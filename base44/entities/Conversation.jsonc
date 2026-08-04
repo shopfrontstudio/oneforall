@@ -1,0 +1,27 @@
+{
+  "name": "Conversation",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string"
+    },
+    "job_title": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "tradie_id": {
+      "type": "string"
+    },
+    "contact_unlocked": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "job_id",
+    "customer_id",
+    "tradie_id"
+  ]
+}

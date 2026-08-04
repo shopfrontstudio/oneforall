@@ -1,0 +1,53 @@
+{
+  "name": "InterestRequest",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string"
+    },
+    "job_title": {
+      "type": "string"
+    },
+    "tradie_id": {
+      "type": "string"
+    },
+    "tradie_name": {
+      "type": "string"
+    },
+    "tradie_business": {
+      "type": "string"
+    },
+    "quote_low": {
+      "type": "number"
+    },
+    "quote_high": {
+      "type": "number"
+    },
+    "earliest_availability": {
+      "type": "string",
+      "format": "date"
+    },
+    "message": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined",
+        "expired"
+      ],
+      "default": "pending"
+    },
+    "response_deadline": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "job_id",
+    "tradie_id",
+    "status"
+  ]
+}

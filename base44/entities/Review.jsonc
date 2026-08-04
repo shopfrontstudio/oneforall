@@ -1,0 +1,39 @@
+{
+  "name": "Review",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string"
+    },
+    "reviewer_id": {
+      "type": "string"
+    },
+    "reviewer_name": {
+      "type": "string"
+    },
+    "reviewee_id": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "body": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "customer_to_tradie",
+        "tradie_to_customer"
+      ]
+    }
+  },
+  "required": [
+    "job_id",
+    "reviewer_id",
+    "reviewee_id",
+    "rating"
+  ]
+}

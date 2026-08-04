@@ -1,0 +1,52 @@
+{
+  "name": "Invitation",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string"
+    },
+    "job_title": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "tradie_id": {
+      "type": "string"
+    },
+    "tradie_name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "responded",
+        "declined"
+      ],
+      "default": "pending"
+    },
+    "quote_low": {
+      "type": "number"
+    },
+    "quote_high": {
+      "type": "number"
+    },
+    "earliest_availability": {
+      "type": "string",
+      "format": "date"
+    },
+    "message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "customer_id",
+    "tradie_id",
+    "status"
+  ]
+}

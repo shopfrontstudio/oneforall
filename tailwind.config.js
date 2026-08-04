@@ -43,6 +43,21 @@ module.exports = {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
+  			eucalyptus: {
+  				DEFAULT: 'hsl(var(--eucalyptus))',
+  				deep: 'hsl(var(--eucalyptus-deep))'
+  			},
+  			mist: {
+  				DEFAULT: 'hsl(var(--mist))',
+  				soft: 'hsl(var(--mist-soft))'
+  			},
+  			sandstone: {
+  				DEFAULT: 'hsl(var(--sandstone))',
+  				deep: 'hsl(var(--sandstone-deep))'
+  			},
+  			terracotta: 'hsl(var(--terracotta))',
+  			sage: 'hsl(var(--sage))',
+  			lime: 'hsl(var(--lime))',
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',

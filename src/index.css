@@ -28,6 +28,15 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    --eucalyptus: 152 44% 22%;
+    --eucalyptus-deep: 155 52% 14%;
+    --mist: 205 16% 58%;
+    --mist-soft: 210 20% 92%;
+    --sandstone: 39 36% 84%;
+    --sandstone-deep: 36 32% 72%;
+    --terracotta: 16 47% 57%;
+    --sage: 100 19% 80%;
+    --lime: 74 90% 55%;
     --radius: 0.5rem;
     --font-heading: ui-sans-serif, system-ui, sans-serif;
     --font-body: ui-sans-serif, system-ui, sans-serif;
@@ -88,5 +97,46 @@
 
   body {
     @apply bg-background text-foreground font-body;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  .glass {
+    background: color-mix(in srgb, hsl(var(--card)) 72%, transparent);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid color-mix(in srgb, white 35%, transparent);
+    box-shadow: 0 10px 40px -12px rgba(20, 40, 30, 0.18);
+  }
+  .glass-soft {
+    background: color-mix(in srgb, white 60%, transparent);
+    backdrop-filter: blur(14px) saturate(130%);
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    border: 1px solid color-mix(in srgb, white 40%, transparent);
+    box-shadow: 0 8px 30px -14px rgba(20, 40, 30, 0.14);
+  }
+  .btn-tactile {
+    transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.14s ease, background-color 0.18s ease;
+    box-shadow: 0 5px 0 -1px rgba(0,0,0,0.12), 0 8px 20px -10px rgba(20,40,30,0.4);
+  }
+  .btn-tactile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 -1px rgba(0,0,0,0.12), 0 14px 26px -10px rgba(20,40,30,0.45);
+  }
+  .btn-tactile:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 0 -1px rgba(0,0,0,0.12), 0 4px 12px -8px rgba(20,40,30,0.4);
+  }
+  .text-balance { text-wrap: balance; }
+  .inp { @apply w-full bg-white/70 border border-border rounded-xl px-3.5 py-2.5 text-sm outline-none; }
+  .inp-mini { @apply w-full bg-white/70 border border-border rounded-xl px-3 py-2 text-sm outline-none; }
+  .inp:focus, .inp-mini:focus { box-shadow: 0 0 0 2px hsl(var(--eucalyptus)); border-color: hsl(var(--eucalyptus)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
   }
 }

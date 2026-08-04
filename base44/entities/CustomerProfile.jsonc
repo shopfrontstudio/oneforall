@@ -1,0 +1,50 @@
+{
+  "name": "CustomerProfile",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "full_name": {
+      "type": "string"
+    },
+    "suburb": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "default": "VIC"
+    },
+    "mobile": {
+      "type": "string"
+    },
+    "mobile_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "email_verified": {
+      "type": "boolean",
+      "default": true
+    },
+    "response_rate": {
+      "type": "number",
+      "default": 100
+    },
+    "avg_response_minutes": {
+      "type": "number",
+      "default": 60
+    },
+    "completed_jobs": {
+      "type": "number",
+      "default": 0
+    },
+    "abandoned_posts": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "user_id",
+    "full_name"
+  ]
+}
