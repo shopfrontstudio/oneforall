@@ -10,8 +10,8 @@
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 16 85% 44%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 96.1%;
@@ -28,15 +28,15 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --eucalyptus: 152 44% 22%;
-    --eucalyptus-deep: 155 52% 14%;
-    --mist: 205 16% 58%;
-    --mist-soft: 210 20% 92%;
-    --sandstone: 39 36% 84%;
-    --sandstone-deep: 36 32% 72%;
-    --terracotta: 16 47% 57%;
-    --sage: 100 19% 80%;
-    --lime: 74 90% 55%;
+    --eucalyptus: 16 85% 44%;
+    --eucalyptus-deep: 18 80% 32%;
+    --mist: 26 12% 50%;
+    --mist-soft: 38 44% 93%;
+    --sandstone: 34 46% 82%;
+    --sandstone-deep: 32 42% 70%;
+    --terracotta: 22 82% 54%;
+    --sage: 33 60% 88%;
+    --lime: 43 96% 52%;
     --radius: 0.5rem;
     --font-heading: ui-sans-serif, system-ui, sans-serif;
     --font-body: ui-sans-serif, system-ui, sans-serif;
@@ -59,8 +59,8 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
+    --primary: 18 80% 38%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
@@ -107,14 +107,14 @@
     backdrop-filter: blur(18px) saturate(140%);
     -webkit-backdrop-filter: blur(18px) saturate(140%);
     border: 1px solid color-mix(in srgb, white 35%, transparent);
-    box-shadow: 0 10px 40px -12px rgba(20, 40, 30, 0.18);
+    box-shadow: 0 10px 40px -12px rgba(90, 40, 15, 0.22);
   }
   .glass-soft {
     background: color-mix(in srgb, white 60%, transparent);
     backdrop-filter: blur(14px) saturate(130%);
     -webkit-backdrop-filter: blur(14px) saturate(130%);
     border: 1px solid color-mix(in srgb, white 40%, transparent);
-    box-shadow: 0 8px 30px -14px rgba(20, 40, 30, 0.14);
+    box-shadow: 0 8px 30px -14px rgba(90, 40, 15, 0.16);
   }
   .btn-tactile {
     transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.14s ease, background-color 0.18s ease;
