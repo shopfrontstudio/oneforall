@@ -1,9 +1,9 @@
 import React from 'react';
 
-// Warm Australian sunrise photo with a light cream scrim so frosted-glass
+// Trades / service workbench photo with a light cream scrim so frosted-glass
 // content and dark text stay readable. Used across the app, onboarding and auth.
 const BG_IMAGE =
-  'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=2000&q=80';
+  'https://media.base44.com/images/public/6a7223fae756a363fe19f87d/e5d551908_generated_image.png';
 
 export default function BrandBackground() {
   return (
@@ -16,10 +16,10 @@ export default function BrandBackground() {
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgba(255,249,240,0.84) 0%, rgba(255,241,224,0.74) 55%, rgba(255,232,208,0.80) 100%)',
+            'linear-gradient(180deg, rgba(255,249,240,0.90) 0%, rgba(255,241,224,0.84) 55%, rgba(255,232,208,0.88) 100%)',
         }}
       />
-      <div className="absolute inset-0 backdrop-blur-[1px]" />
+      <div className="absolute inset-0 backdrop-blur-[2px]" />
     </div>
   );
 }

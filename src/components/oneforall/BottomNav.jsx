@@ -33,14 +33,14 @@ export default function BottomNav() {
                 <span className="w-12 h-12 rounded-2xl bg-eucalyptus text-white flex items-center justify-center btn-tactile shadow-lg">
                   <n.icon size={22} />
                 </span>
-                <span className="text-[10px] mt-0.5 font-medium text-eucalyptus-deep">{n.label}</span>
+                <span className="text-[11px] mt-0.5 font-semibold text-eucalyptus-deep">{n.label}</span>
               </Link>
             );
           }
           return (
             <Link key={n.to} to={n.to} className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl ${active ? 'text-eucalyptus-deep' : 'text-muted-foreground'}`}>
               <n.icon size={20} />
-              <span className="text-[10px] font-medium">{n.label}</span>
+              <span className="text-[11px] font-semibold">{n.label}</span>
             </Link>
           );
         })}

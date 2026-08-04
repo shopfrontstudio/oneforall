@@ -103,14 +103,14 @@
 
 @layer components {
   .glass {
-    background: color-mix(in srgb, hsl(var(--card)) 72%, transparent);
+    background: color-mix(in srgb, hsl(var(--card)) 86%, transparent);
     backdrop-filter: blur(18px) saturate(140%);
     -webkit-backdrop-filter: blur(18px) saturate(140%);
     border: 1px solid color-mix(in srgb, white 35%, transparent);
     box-shadow: 0 10px 40px -12px rgba(90, 40, 15, 0.22);
   }
   .glass-soft {
-    background: color-mix(in srgb, white 60%, transparent);
+    background: color-mix(in srgb, white 80%, transparent);
     backdrop-filter: blur(14px) saturate(130%);
     -webkit-backdrop-filter: blur(14px) saturate(130%);
     border: 1px solid color-mix(in srgb, white 40%, transparent);
