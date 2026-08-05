@@ -9,27 +9,27 @@ const TINTS = {
   sandstone: 'from-sandstone-deep/30 to-sandstone/5 text-eucalyptus-deep',
   eucalyptus: 'from-eucalyptus/25 to-eucalyptus/5 text-eucalyptus-deep',
   sage: 'from-sage/40 to-sage/10 text-eucalyptus-deep',
-  lime: 'from-lime/25 to-lime/5 text-eucalyptus-deep',
+  lime: 'from-lime/25 to-lime/5 text-eucalyptus-deep'
 };
 
 export default function CategoryGrid({ onSelect }) {
   return (
     <div className="grid grid-cols-3 gap-2.5">
-      {CATEGORIES.map(c => {
+      {CATEGORIES.map((c) => {
         const Icon = ICONS[c.icon] || HelpCircle;
         return (
           <button
             key={c.slug}
             onClick={() => onSelect?.(c.slug)}
-            className="glass-soft rounded-2xl p-3 flex flex-col items-center gap-2 btn-tactile hover:bg-white/80"
-          >
+            className="glass-soft rounded-2xl p-3 flex flex-col items-center gap-2 btn-tactile hover:bg-white/80 text-3xl">
+            
             <span className={`w-11 h-11 rounded-xl bg-gradient-to-b ${TINTS[c.tint]} flex items-center justify-center`}>
               <Icon size={20} />
             </span>
             <span className="text-[11px] font-medium text-center leading-tight text-foreground/80">{c.name}</span>
-          </button>
-        );
+          </button>);
+
       })}
-    </div>
-  );
+    </div>);
+
 }
