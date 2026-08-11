@@ -8,7 +8,7 @@ const CUSTOMER_NAV = [
   { to: '/my-jobs', label: 'Jobs', icon: Briefcase },
   { to: '/post-job', label: 'Post', icon: Plus, primary: true },
   { to: '/messages', label: 'Chat', icon: MessageSquare },
-  { to: '/profile', label: 'Me', icon: User },
+  { to: '/tradie-profile', label: 'Me', icon: User },
 ];
 const TRADIE_NAV = [
   { to: '/', label: 'Discover', icon: Compass },

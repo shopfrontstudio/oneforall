@@ -21,5 +21,11 @@
     "job_id",
     "customer_id",
     "type"
-  ]
+  ],
+  "rls": {
+    "create": true,
+    "read": { "data.customer_id": "{{user.id}}" },
+    "update": { "data.customer_id": "{{user.id}}" },
+    "delete": { "data.customer_id": "{{user.id}}" }
+  }
 }

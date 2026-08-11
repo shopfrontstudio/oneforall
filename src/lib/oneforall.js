@@ -80,26 +80,11 @@ async function ensureSubscription(tradieId) {
 }
 
 export async function notify(userId, type, title, body, link) {
-  try { await base44.entities.Notification.create({ user_id: userId, type, title, body, link, read: false }); } catch (e) { /* noop */ }
-}
-
-// Demo marketplace simulation: a verified founding tradie sends an interest request when a job is published.
-export async function simulateInterest(job) {
   try {
-    const tradies = await base44.entities.TradieProfile.filter({ founding_badge: true, verified: true });
-    const match = tradies.find(t => (t.trade_categories || []).includes(job.category_slug)) || tradies[0];
-    if (!match) return;
-    const range = estimateRange(job.category_slug, job.urgency);
-    const avail = job.preferred_date || new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
-    await base44.entities.InterestRequest.create({
-      job_id: job.id, job_title: job.title,
-      tradie_id: match.user_id, tradie_name: match.full_name, tradie_business: match.business_name,
-      quote_low: range.low, quote_high: range.high, earliest_availability: avail,
-      message: `Hi! I'm ${match.full_name} from ${match.business_name || 'my business'} — verified and based in Ballarat. Happy to inspect and provide a firm quote. Founding tradie.`,
-      status: 'pending', response_deadline: new Date(Date.now() + 12 * 3600e3).toISOString(),
-    });
-    await notify(job.customer_id, 'interest', 'New interest request', `${match.full_name} is interested in "${job.title}"`, `/job/${job.id}`);
-  } catch (e) { /* noop */ }
+    await base44.entities.Notification.create({ user_id: userId, type, title, body, link, read: false });
+  } catch {
+    // The primary action should still succeed if a secondary notification is unavailable.
+  }
 }
 
 export async function myUnreadNotifications(userId) {

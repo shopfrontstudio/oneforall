@@ -2,7 +2,7 @@ import React from 'react';
 import CategoryTile from './CategoryTile';
 import { CATEGORIES } from '@/lib/oneforall';
 
-export default function CategoryGrid({ onSelect, activeSlug }) {
+export default function CategoryGrid({ onSelect, activeSlug = null }) {
   return (
     <div className="grid grid-cols-3 gap-3">
       {CATEGORIES.map((c) => (

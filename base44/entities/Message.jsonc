@@ -5,6 +5,12 @@
     "conversation_id": {
       "type": "string"
     },
+    "customer_id": {
+      "type": "string"
+    },
+    "tradie_id": {
+      "type": "string"
+    },
     "sender_id": {
       "type": "string"
     },
@@ -19,5 +25,11 @@
     "conversation_id",
     "sender_id",
     "body"
-  ]
+  ],
+  "rls": {
+    "create": true,
+    "read": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.tradie_id": "{{user.id}}" }] },
+    "update": { "data.sender_id": "{{user.id}}" },
+    "delete": { "data.sender_id": "{{user.id}}" }
+  }
 }

@@ -4,13 +4,16 @@ import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Send, ShieldCheck, ArrowLeft, Lock } from 'lucide-react';
 import { EmptyState } from '@/components/oneforall/Bits';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function Messages() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [convos, setConvos] = useState(null);
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
   const endRef = useRef(null);
 
   const loadConvos = useCallback(async () => {
@@ -19,7 +22,7 @@ export default function Messages() {
       base44.entities.Conversation.filter({ tradie_id: user.id }),
     ]);
     const all = [...asC, ...asT].filter((v, i, a) => a.findIndex(x => x.id === v.id) === i);
-    setConvos(all.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
+    setConvos(all.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime()));
   }, [user.id]);
 
   useEffect(() => { loadConvos(); }, [loadConvos]);
@@ -27,23 +30,21 @@ export default function Messages() {
   const openConvo = async (c) => {
     setActive(c);
     const msgs = await base44.entities.Message.filter({ conversation_id: c.id });
-    setMessages(msgs.sort((a, b) => new Date(a.created_date) - new Date(b.created_date)));
+    setMessages(msgs.sort((a, b) => new Date(a.created_date).getTime() - new Date(b.created_date).getTime()));
     setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   const send = async () => {
     if (!text.trim() || !active) return;
-    const isCustomer = active.customer_id === user.id;
-    const msg = await base44.entities.Message.create({ conversation_id: active.id, sender_id: user.id, sender_name: user.full_name || user.email, body: text.trim() });
-    setMessages(m => [...m, msg]); setText('');
-    setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
-    // simulate tradie auto-acknowledge for demo liveliness
-    if (isCustomer) {
-      setTimeout(async () => {
-        const reply = await base44.entities.Message.create({ conversation_id: active.id, sender_id: active.tradie_id, sender_name: active.tradie_id === user.id ? 'You' : 'Tradie', body: 'Thanks for the message — I\'ll take a look and get back to you shortly.' });
-        setMessages(m => [...m, reply]);
-        setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
-      }, 1400);
+    setSending(true);
+    try {
+      const msg = await base44.entities.Message.create({ conversation_id: active.id, customer_id: active.customer_id, tradie_id: active.tradie_id, sender_id: user.id, sender_name: user.full_name || user.email, body: text.trim() });
+      setMessages(m => [...m, msg]); setText('');
+      setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
+    } catch (error) {
+      toast({ title: 'Message not sent', description: error.message, variant: 'destructive' });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -53,7 +54,7 @@ export default function Messages() {
     <div>
       <h1 className="text-2xl font-semibold tracking-tight mb-4">Messages</h1>
       {convos.length === 0 ? (
-        <EmptyState icon={MessageSquare} title="No conversations yet" body="Once you accept a tradie's interest request, your private chat opens here." />
+        <EmptyState icon={MessageSquare} title="No conversations yet" body={user.account_type === 'tradie' ? 'When a customer accepts your interest request, your private chat opens here.' : "Once you accept a tradie's interest request, your private chat opens here."} />
       ) : (
         <div className="grid md:grid-cols-[300px_1fr] gap-3">
           <div className={`glass-soft rounded-2xl divide-y divide-border/50 ${active ? 'hidden md:block' : ''}`}>
@@ -86,8 +87,8 @@ export default function Messages() {
                 <div ref={endRef} />
               </div>
               <div className="p-3 border-t border-border/50 flex gap-2">
-                <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Type a message…" className="flex-1 bg-white/70 border border-border rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-eucalyptus" />
-                <button onClick={send} className="w-11 h-11 rounded-xl bg-eucalyptus text-white flex items-center justify-center btn-tactile"><Send size={18} /></button>
+                <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Type a message…" className="flex-1 bg-white/70 border border-border rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-eucalyptus" />
+                <button disabled={sending || !text.trim()} onClick={send} className="w-11 h-11 rounded-xl bg-eucalyptus text-white flex items-center justify-center btn-tactile disabled:opacity-45"><Send size={18} /></button>
               </div>
             </div>
           ) : (

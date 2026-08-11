@@ -1,7 +1,7 @@
 import React from 'react';
 import { Star } from 'lucide-react';
 
-export function StarRating({ value = 0, count, size = 14 }) {
+export function StarRating({ value = 0, count = null, size = 14 }) {
   return (
     <div className="inline-flex items-center gap-1">
       <div className="flex">
@@ -23,7 +23,7 @@ export function MatchBadge({ score }) {
   );
 }
 
-export function EmptyState({ icon: Icon, title, body, action }) {
+export function EmptyState({ icon: Icon = null, title, body = '', action = null }) {
   return (
     <div className="glass-soft rounded-3xl p-10 text-center flex flex-col items-center">
       {Icon && <div className="w-14 h-14 rounded-2xl bg-sage/30 flex items-center justify-center mb-4"><Icon className="text-eucalyptus-deep" size={26} /></div>}
@@ -34,7 +34,7 @@ export function EmptyState({ icon: Icon, title, body, action }) {
   );
 }
 
-export function SectionTitle({ children, action }) {
+export function SectionTitle({ children, action = null }) {
   return (
     <div className="flex items-center justify-between mb-3 mt-1">
       <h2 className="text-base font-semibold tracking-tight text-foreground">{children}</h2>
@@ -43,7 +43,7 @@ export function SectionTitle({ children, action }) {
   );
 }
 
-export function StatusBadge({ status, label, tone = 'mist' }) {
+export function StatusBadge({ label, tone = 'mist' }) {
   const tones = {
     mist: 'bg-mist-soft text-eucalyptus-deep',
     lime: 'bg-lime/20 text-eucalyptus-deep',

@@ -1,11 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, DollarSign, Zap, BadgeCheck, ShieldCheck } from 'lucide-react';
+import { MapPin, Clock, DollarSign } from 'lucide-react';
 import { formatAUDRange, JOB_STATUS_LABEL, URGENCY_LABEL } from '@/lib/oneforall';
 import { MatchBadge, StatusBadge } from './Bits';
 
-export default function JobCard({ job, tradie, score, to }) {
-  const dist = tradie ? null : null;
+export default function JobCard({ job, score = null, to = null }) {
   return (
     <Link to={to || `/job/${job.id}`} className="glass-soft rounded-2xl p-4 block card-lift hover:bg-white/80 min-w-0">
       <div className="flex items-start justify-between gap-2">
@@ -13,7 +12,7 @@ export default function JobCard({ job, tradie, score, to }) {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-eucalyptus/10 text-eucalyptus-deep font-medium">{job.category_name || job.category_slug}</span>
             {job.boosted && <span className="text-[11px] px-2 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold">Boosted</span>}
-            <StatusBadge status={job.status} label={JOB_STATUS_LABEL[job.status] || job.status} tone={job.status === 'completed' ? 'sage' : job.status === 'matched' || job.status === 'in_progress' ? 'lime' : 'mist'} />
+            <StatusBadge label={JOB_STATUS_LABEL[job.status] || job.status} tone={job.status === 'completed' ? 'sage' : job.status === 'matched' || job.status === 'in_progress' ? 'lime' : 'mist'} />
           </div>
           <h3 className="font-semibold text-sm text-foreground mt-1.5 line-clamp-1">{job.title}</h3>
         </div>

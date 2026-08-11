@@ -23,5 +23,11 @@
     "job_id",
     "customer_id",
     "tradie_id"
-  ]
+  ],
+  "rls": {
+    "create": true,
+    "read": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.tradie_id": "{{user.id}}" }] },
+    "update": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.tradie_id": "{{user.id}}" }] },
+    "delete": false
+  }
 }

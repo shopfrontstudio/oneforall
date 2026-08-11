@@ -2,17 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
-import { Bell, Home as HomeIcon, Briefcase, Plus, MessageSquare, User, Compass, Ticket, Crown, LogOut, Repeat } from 'lucide-react';
+import { Bell, Home as HomeIcon, Briefcase, Plus, MessageSquare, User, Compass, Ticket, Crown, CheckCheck } from 'lucide-react';
 import Logo from './Logo';
-import { setAccountType, ensureProfile } from '@/lib/oneforall';
-import { useToast } from '@/components/ui/use-toast';
 
 const CUSTOMER_NAV = [
   { to: '/', label: 'Home', icon: HomeIcon },
   { to: '/my-jobs', label: 'My Jobs', icon: Briefcase },
   { to: '/post-job', label: 'Post Job', icon: Plus, primary: true },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
-  { to: '/profile', label: 'Profile', icon: User },
+  { to: '/tradie-profile', label: 'Profile', icon: User },
 ];
 const TRADIE_NAV = [
   { to: '/', label: 'Discover', icon: Compass },
@@ -23,27 +21,38 @@ const TRADIE_NAV = [
 ];
 
 export default function TopBar() {
-  const { user, logout, checkUserAuth } = useAuth();
+  const { user } = useAuth();
   const loc = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [unread, setUnread] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const isTradie = user?.account_type === 'tradie';
   const nav = isTradie ? TRADIE_NAV : CUSTOMER_NAV;
 
   const refreshUnread = async () => {
     if (!user?.id) return;
-    try { setUnread(await base44.entities.Notification.filter({ user_id: user.id, read: false })); } catch (e) {}
+    try {
+      const list = await base44.entities.Notification.filter({ user_id: user.id });
+      const sorted = list.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime());
+      setNotifications(sorted.slice(0, 8));
+      setUnread(sorted.filter(item => !item.read).length);
+    } catch {
+      setUnread(0);
+    }
   };
   useEffect(() => { refreshUnread(); const t = setInterval(refreshUnread, 8000); return () => clearInterval(t); }, [user?.id, loc.pathname]);
 
-  const switchAccount = async () => {
-    const next = isTradie ? 'customer' : 'tradie';
-    await setAccountType(next);
-    await ensureProfile(next, user);
-    await checkUserAuth();
-    toast({ title: `Switched to ${next === 'tradie' ? 'tradie' : 'customer'} account` });
-    navigate('/');
+  const openNotification = async (notification) => {
+    if (!notification.read) await base44.entities.Notification.update(notification.id, { read: true });
+    setShowNotifications(false);
+    await refreshUnread();
+    if (notification.link) navigate(notification.link);
+  };
+
+  const markAllRead = async () => {
+    await Promise.all(notifications.filter(item => !item.read).map(item => base44.entities.Notification.update(item.id, { read: true })));
+    await refreshUnread();
   };
 
   return (
@@ -67,17 +76,16 @@ export default function TopBar() {
               );
             })}
           </nav>
-          <div className="flex items-center gap-1.5">
-            <button onClick={() => navigate('/messages')} className="relative w-10 h-10 rounded-xl glass-soft flex items-center justify-center btn-tactile hover:bg-white/80" aria-label="Notifications">
+          <div className="relative flex items-center gap-1.5">
+            <button onClick={() => setShowNotifications(value => !value)} className="relative w-10 h-10 rounded-xl glass-soft flex items-center justify-center btn-tactile hover:bg-white/80" aria-expanded={showNotifications} aria-label={unread ? `${unread} unread notifications` : 'Notifications'}>
               <Bell size={18} className="text-eucalyptus-deep" />
-              {unread > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">{unread}</span>}
+              {unread > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">{unread > 99 ? '99+' : unread}</span>}
             </button>
-            <button onClick={switchAccount} className="hidden sm:flex w-10 h-10 rounded-xl glass-soft items-center justify-center btn-tactile hover:bg-white/80" title="Switch account type" aria-label="Switch account type">
-              <Repeat size={16} className="text-eucalyptus-deep" />
-            </button>
-            <button onClick={() => logout()} className="w-10 h-10 rounded-xl glass-soft flex items-center justify-center btn-tactile hover:bg-white/80" aria-label="Log out">
-              <LogOut size={16} className="text-eucalyptus-deep" />
-            </button>
+            <Link to={isTradie ? '/tradie-profile' : '/profile'} className="w-10 h-10 rounded-xl bg-eucalyptus text-white flex items-center justify-center btn-tactile" aria-label="Open profile"><User size={17} /></Link>
+            {showNotifications && <div className="absolute right-0 top-12 w-[min(22rem,calc(100vw-2rem))] glass rounded-2xl shadow-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border/50"><b className="text-sm">Notifications</b>{unread > 0 && <button onClick={markAllRead} className="text-xs text-eucalyptus-deep inline-flex items-center gap-1"><CheckCheck size={13} /> Mark all read</button>}</div>
+              {notifications.length ? notifications.map(item => <button key={item.id} onClick={() => openNotification(item)} className={`w-full text-left px-4 py-3 border-b border-border/40 last:border-0 hover:bg-white/60 ${item.read ? '' : 'bg-sage/20'}`}><span className="block text-sm font-medium">{item.title}</span><span className="block text-xs text-muted-foreground mt-0.5">{item.body}</span></button>) : <p className="p-6 text-center text-sm text-muted-foreground">You’re all caught up.</p>}
+            </div>}
           </div>
         </div>
       </div>

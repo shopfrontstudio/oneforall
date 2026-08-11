@@ -96,5 +96,11 @@
   "required": [
     "user_id",
     "full_name"
-  ]
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": { "data.user_id": "{{user.id}}" },
+    "delete": { "data.user_id": "{{user.id}}" }
+  }
 }

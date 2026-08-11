@@ -35,5 +35,11 @@
     "reviewer_id",
     "reviewee_id",
     "rating"
-  ]
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": { "data.reviewer_id": "{{user.id}}" },
+    "delete": { "data.reviewer_id": "{{user.id}}" }
+  }
 }

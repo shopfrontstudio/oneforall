@@ -97,5 +97,11 @@
     "customer_id",
     "title",
     "category_slug"
-  ]
+  ],
+  "rls": {
+    "create": true,
+    "read": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.status": { "$nin": ["draft", "cancelled"] } }] },
+    "update": { "data.customer_id": "{{user.id}}" },
+    "delete": { "data.customer_id": "{{user.id}}" }
+  }
 }

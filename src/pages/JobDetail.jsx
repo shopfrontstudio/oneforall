@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { MapPin, Clock, DollarSign, CheckCircle2, ShieldCheck, Lock, Star, MessageSquare, Send } from 'lucide-react';
 import { formatAUDRange, URGENCY_LABEL, JOB_STATUS_LABEL, estimateRange, notify } from '@/lib/oneforall';
-import { StatusBadge, StarRating, EmptyState } from '@/components/oneforall/Bits';
-import { Image as UIImage } from '@/components/ui/image';
+import { StatusBadge, EmptyState } from '@/components/oneforall/Bits';
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -18,16 +17,23 @@ export default function JobDetail() {
   const [profile, setProfile] = useState(null);
   const [myRequest, setMyRequest] = useState(null);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [reviewed, setReviewed] = useState(false);
 
   const load = async () => {
     const j = await base44.entities.Job.get(id);
     setJob(j);
     const reqs = await base44.entities.InterestRequest.filter({ job_id: id });
-    setRequests(reqs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
+    setRequests(reqs.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime()));
+    const mine = await base44.entities.Review.filter({ job_id: id, reviewer_id: user.id });
+    setReviewed(mine.length > 0);
     if (user?.account_type === 'tradie') {
       const tp = await base44.entities.TradieProfile.filter({ user_id: user.id });
       setProfile(tp[0] || null);
       setMyRequest(reqs.find(r => r.tradie_id === user.id) || null);
+      const subscriptions = await base44.entities.Subscription.filter({ tradie_id: user.id });
+      setSubscription(subscriptions[0] || null);
     }
   };
   useEffect(() => { load(); }, [id, user?.id]);
@@ -38,31 +44,42 @@ export default function JobDetail() {
   const isTradie = user.account_type === 'tradie';
 
   const accept = async (req) => {
-    await base44.entities.InterestRequest.update(req.id, { status: 'accepted' });
-    await base44.entities.Job.update(job.id, { status: 'matched', assigned_tradie_id: req.tradie_id });
-    const convo = await base44.entities.Conversation.create({ job_id: job.id, job_title: job.title, customer_id: user.id, tradie_id: req.tradie_id, contact_unlocked: true });
-    await notify(req.tradie_id, 'accepted', 'Request accepted', `Your interest in "${job.title}" was accepted.`, `/messages`);
-    toast({ title: 'Request accepted', description: 'Contact details unlocked — you can message now.' });
-    navigate('/messages');
+    setWorking(true);
+    try {
+      await base44.entities.InterestRequest.update(req.id, { status: 'accepted' });
+      await Promise.all(requests.filter(item => item.id !== req.id && item.status === 'pending').map(item => base44.entities.InterestRequest.update(item.id, { status: 'declined' })));
+      await base44.entities.Job.update(job.id, { status: 'matched', assigned_tradie_id: req.tradie_id });
+      const existing = await base44.entities.Conversation.filter({ job_id: job.id, tradie_id: req.tradie_id });
+      if (!existing.length) await base44.entities.Conversation.create({ job_id: job.id, job_title: job.title, customer_id: user.id, tradie_id: req.tradie_id, contact_unlocked: true });
+      await notify(req.tradie_id, 'accepted', 'Request accepted', `Your interest in "${job.title}" was accepted.`, `/messages`);
+      toast({ title: 'Request accepted', description: 'Contact details unlocked — you can message now.' });
+      navigate('/messages');
+    } catch (error) { toast({ title: 'Could not accept request', description: error.message, variant: 'destructive' }); }
+    finally { setWorking(false); }
   };
   const decline = async (req) => { await base44.entities.InterestRequest.update(req.id, { status: 'declined' }); toast({ title: 'Declined' }); load(); };
   const startWork = async () => { await base44.entities.Job.update(job.id, { status: 'in_progress' }); toast({ title: 'Marked in progress' }); load(); };
   const complete = async () => { await base44.entities.Job.update(job.id, { status: 'completed' }); toast({ title: 'Job completed' }); load(); };
 
   const submitReview = async (rating, body) => {
+    if (reviewed) { toast({ title: 'Review already submitted', variant: 'destructive' }); return; }
     const tradieId = job.assigned_tradie_id || requests.find(r => r.status === 'accepted')?.tradie_id;
     await base44.entities.Review.create({ job_id: job.id, reviewer_id: user.id, reviewer_name: user.full_name || user.email, reviewee_id: tradieId, rating, body, role: 'customer_to_tradie' });
-    const revs = await base44.entities.Review.filter({ reviewee_id: tradieId });
-    const avg = revs.reduce((s, r) => s + r.rating, 0) / revs.length;
-    const tp = await base44.entities.TradieProfile.filter({ user_id: tradieId });
-    if (tp[0]) await base44.entities.TradieProfile.update(tp[0].id, { rating_avg: Math.round(avg * 10) / 10, rating_count: revs.length });
     setReviewOpen(false); toast({ title: 'Review submitted — thank you!' }); load();
   };
 
   const sendInterest = async (data) => {
-    await base44.entities.InterestRequest.create({ job_id: job.id, job_title: job.title, tradie_id: user.id, tradie_name: profile.full_name, tradie_business: profile.business_name, quote_low: Number(data.quote_low) || null, quote_high: Number(data.quote_high) || null, earliest_availability: data.availability, message: data.message, status: 'pending', response_deadline: new Date(Date.now() + 12 * 3600e3).toISOString() });
-    await notify(job.customer_id, 'interest', 'New interest request', `${profile.business_name || profile.full_name} is interested in "${job.title}"`, `/job/${job.id}`);
-    toast({ title: 'Interest sent' }); load();
+    const low = Number(data.quote_low); const high = Number(data.quote_high);
+    const entitled = subscription && ['active', 'trial'].includes(subscription.status) && subscription.plan !== 'free';
+    if (!entitled) { toast({ title: 'Subscription required', variant: 'destructive' }); navigate('/membership'); return; }
+    if (!data.availability || !Number.isFinite(low) || low <= 0 || !Number.isFinite(high) || high < low) { toast({ title: 'Add a valid quote and availability', variant: 'destructive' }); return; }
+    setWorking(true);
+    try {
+      await base44.entities.InterestRequest.create({ job_id: job.id, job_title: job.title, customer_id: job.customer_id, tradie_id: user.id, tradie_name: profile.full_name, tradie_business: profile.business_name, quote_low: low, quote_high: high, earliest_availability: data.availability, message: data.message?.trim(), status: 'pending', response_deadline: new Date(Date.now() + 12 * 3600e3).toISOString() });
+      await notify(job.customer_id, 'interest', 'New interest request', `${profile.business_name || profile.full_name} is interested in "${job.title}"`, `/job/${job.id}`);
+      toast({ title: 'Interest sent' }); await load();
+    } catch (error) { toast({ title: 'Could not send interest', description: error.message, variant: 'destructive' }); }
+    finally { setWorking(false); }
   };
 
   return (
@@ -70,7 +87,7 @@ export default function JobDetail() {
       <div className="glass rounded-3xl p-5">
         <div className="flex items-center gap-2 flex-wrap mb-2">
           <span className="text-xs px-2 py-0.5 rounded-full bg-eucalyptus/10 text-eucalyptus-deep font-medium">{job.category_name}</span>
-          <StatusBadge status={job.status} label={JOB_STATUS_LABEL[job.status]} tone={job.status === 'completed' ? 'sage' : job.status === 'matched' || job.status === 'in_progress' ? 'lime' : 'mist'} />
+          <StatusBadge label={JOB_STATUS_LABEL[job.status]} tone={job.status === 'completed' ? 'sage' : job.status === 'matched' || job.status === 'in_progress' ? 'lime' : 'mist'} />
           {job.boosted && <span className="text-xs px-2 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold">Boosted</span>}
         </div>
         <h1 className="text-xl font-semibold tracking-tight">{job.title}</h1>
@@ -83,7 +100,7 @@ export default function JobDetail() {
         </div>
         {job.access_notes && <p className="text-xs text-muted-foreground mt-3">Access: {job.access_notes} · Parking: {job.parking}</p>}
         {job.photos?.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 mt-4">{job.photos.map((u, i) => <div key={i} className="aspect-square rounded-xl overflow-hidden"><UIImage src={u} className="w-full h-full" fittingType="fill" /></div>)}</div>
+          <div className="grid grid-cols-3 gap-2 mt-4">{job.photos.map((u, i) => <div key={i} className="aspect-square rounded-xl overflow-hidden"><img src={u} alt={`Job attachment ${i + 1}`} className="w-full h-full object-cover" /></div>)}</div>
         )}
       </div>
 
@@ -105,7 +122,7 @@ export default function JobDetail() {
                   <div className="text-xs text-muted-foreground mt-2">Indicative quote: {formatAUDRange(r.quote_low, r.quote_high)} · Available {r.earliest_availability || 'flexible'}</div>
                   {r.status === 'pending' && (
                     <div className="flex gap-2 mt-3">
-                      <button onClick={() => accept(r)} className="flex-1 px-3 py-2 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile">Accept & unlock</button>
+                      <button disabled={working} onClick={() => accept(r)} className="flex-1 px-3 py-2 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-50">{working ? 'Working…' : 'Accept & unlock'}</button>
                       <button onClick={() => decline(r)} className="px-4 py-2 rounded-xl glass-soft text-sm font-medium btn-tactile">Decline</button>
                     </div>
                   )}
@@ -120,7 +137,7 @@ export default function JobDetail() {
               {job.status !== 'completed' && <button onClick={complete} className="flex-1 px-4 py-2.5 rounded-xl bg-sage/40 text-sm font-semibold btn-tactile">Mark complete</button>}
             </div>
           )}
-          {job.status === 'completed' && !reviewOpen && (
+          {job.status === 'completed' && !reviewOpen && !reviewed && (
             <button onClick={() => setReviewOpen(true)} className="mt-3 w-full px-4 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile inline-flex items-center justify-center gap-2"><Star size={16} /> Leave a review</button>
           )}
           {reviewOpen && <ReviewForm onSubmit={submitReview} onCancel={() => setReviewOpen(false)} />}
@@ -137,7 +154,7 @@ export default function JobDetail() {
               <div className="glass-soft rounded-xl p-2.5 mt-2 text-xs text-muted-foreground inline-flex items-center gap-1"><Lock size={12} /> Contact details unlock when the customer accepts.</div>
             </div>
           ) : (
-            <TradieRespond job={job} profile={profile} onSend={sendInterest} />
+            <TradieRespond job={job} profile={profile} busy={working} onSend={sendInterest} />
           )}
         </section>
       )}
@@ -149,9 +166,9 @@ function Info({ icon: Icon, label, value }) {
   return <div className="flex items-start gap-2"><Icon size={15} className="text-eucalyptus-deep mt-0.5 shrink-0" /><div><div className="text-xs text-muted-foreground">{label}</div><div className="font-medium text-sm">{value}</div></div></div>;
 }
 
-function TradieRespond({ job, profile, onSend }) {
+function TradieRespond({ job, profile, onSend, busy = false }) {
   const range = estimateRange(job.category_slug, job.urgency);
-  const [qL, setQL] = useState(range.low); const [qH, setQH] = useState(range.high); const [avail, setAvail] = useState(''); const [msg, setMsg] = useState('');
+  const [qL, setQL] = useState(String(range.low)); const [qH, setQH] = useState(String(range.high)); const [avail, setAvail] = useState(''); const [msg, setMsg] = useState('');
   if (!profile) return <p className="text-sm text-muted-foreground">Complete your tradie profile first.</p>;
   return (
     <div className="space-y-2">
@@ -162,7 +179,7 @@ function TradieRespond({ job, profile, onSend }) {
       </div>
       <input type="date" value={avail} onChange={e => setAvail(e.target.value)} className="inp-mini" />
       <textarea rows={2} value={msg} onChange={e => setMsg(e.target.value)} placeholder="Short message + link to your verified profile" className="inp-mini" />
-      <button onClick={() => onSend({ quote_low: qL, quote_high: qH, availability: avail, message: msg })} className="w-full px-4 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile inline-flex items-center justify-center gap-1.5"><Send size={15} /> Send interest request</button>
+      <button disabled={busy} onClick={() => onSend({ quote_low: qL, quote_high: qH, availability: avail, message: msg })} className="w-full px-4 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile inline-flex items-center justify-center gap-1.5 disabled:opacity-50"><Send size={15} /> {busy ? 'Sending…' : 'Send interest request'}</button>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
-import { BadgeCheck, Mail, Phone, Clock, CheckCircle2, Repeat, LogOut } from 'lucide-react';
+import { Mail, Phone, Clock, CheckCircle2, Repeat, LogOut } from 'lucide-react';
 import { setAccountType, ensureProfile } from '@/lib/oneforall';
 
 export default function Profile() {
@@ -67,7 +67,7 @@ export default function Profile() {
   );
 }
 
-const Signal = ({ icon: Icon, label, ok, val }) => (
+const Signal = ({ icon: Icon, label, ok = false, val = null }) => (
   <div className="glass-soft rounded-xl p-3">
     <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Icon size={13} /> {label}</div>
     <div className="font-semibold text-sm mt-0.5">{val != null ? val : ok ? 'Verified' : 'Pending'}</div>

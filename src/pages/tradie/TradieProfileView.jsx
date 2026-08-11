@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { BadgeCheck, Crown, MapPin, ShieldCheck, Lock, Star } from 'lucide-react';
+import { BadgeCheck, Crown, MapPin, ShieldCheck, Lock } from 'lucide-react';
 import { StarRating, EmptyState } from '@/components/oneforall/Bits';
 import { pseudoDistance } from '@/lib/oneforall';
-import { Image as UIImage } from '@/components/ui/image';
 
 export default function TradieProfileView() {
   const { id } = useParams();
@@ -46,7 +45,7 @@ export default function TradieProfileView() {
       {t.portfolio_photos?.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold mb-2">Portfolio</h2>
-          <div className="grid grid-cols-3 gap-2">{t.portfolio_photos.map((u, i) => <div key={i} className="aspect-square rounded-xl overflow-hidden"><UIImage src={u} className="w-full h-full" fittingType="fill" /></div>)}</div>
+          <div className="grid grid-cols-3 gap-2">{t.portfolio_photos.map((u, i) => <div key={i} className="aspect-square rounded-xl overflow-hidden"><img src={u} alt={`Portfolio item ${i + 1}`} className="w-full h-full object-cover" /></div>)}</div>
         </div>
       )}
 
@@ -60,4 +59,4 @@ export default function TradieProfileView() {
     </div>
   );
 }
-const V = ({ k, ok, val }) => <div className="flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${ok ? 'bg-eucalyptus' : 'bg-muted-foreground/30'}`} />{k}: <span className="font-medium">{val || (ok ? 'Yes' : '—')}</span></div>;
+const V = ({ k, ok, val = null }) => <div className="flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${ok ? 'bg-eucalyptus' : 'bg-muted-foreground/30'}`} />{k}: <span className="font-medium">{val || (ok ? 'Yes' : '—')}</span></div>;
