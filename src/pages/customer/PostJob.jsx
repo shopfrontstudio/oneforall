@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Camera, Check, ChevronLeft, ChevronRight, Info, Sparkles, Upload, X } from 'lucide-react';
 import { CATEGORIES, CATEGORY_MAP, URGENCY_OPTIONS, estimateRange, formatAUDRange, simulateInterest } from '@/lib/oneforall';
 import { Image as UIImage } from '@/components/ui/image';
+import CategoryGrid from '@/components/oneforall/CategoryGrid';
 
 const PHOTO_GUIDE = {
   electrical: 'Photograph the switchboard, the affected outlet/fitting, and any visible wiring. Include the whole room for context.',
@@ -94,10 +95,8 @@ export default function PostJob() {
       <div className="glass rounded-3xl p-5 sm:p-6">
         {step === 1 && (
           <Step title="Describe the problem" sub="Pick a category or describe it in your own words — we'll suggest the right trade.">
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {CATEGORIES.map(c => (
-                <button key={c.slug} onClick={() => set('category_slug', c.slug)} className={`p-2.5 rounded-xl text-xs font-medium btn-tactile ${form.category_slug === c.slug ? 'bg-eucalyptus text-white' : 'glass-soft text-foreground/80'}`}>{c.name}</button>
-              ))}
+            <div className="mb-4">
+              <CategoryGrid activeSlug={form.category_slug} onSelect={(slug) => set('category_slug', slug)} />
             </div>
             <label className="text-xs font-medium text-muted-foreground">Or describe it in your words</label>
             <textarea value={form.freeText} onChange={e => set('freeText', e.target.value)} rows={3} placeholder="My kitchen tap is leaking…" className="mt-1 w-full rounded-xl bg-white/70 border border-border p-3 text-sm focus:ring-2 ring-eucalyptus outline-none" />

@@ -1,25 +1,33 @@
 import React from 'react';
 
-// Trades / service workbench photo with a light cream scrim so frosted-glass
-// content and dark text stay readable. Used across the app, onboarding and auth.
-const BG_IMAGE =
-  'https://media.base44.com/images/public/6a7223fae756a363fe19f87d/e5d551908_generated_image.png';
+// Grainy off-white plaster wall, dimmed and vignetted as if lit at night.
+// No heavy image — pure CSS gradient + SVG noise so it stays crisp and fast.
+const NOISE =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
 export default function BrandBackground() {
   return (
     <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${BG_IMAGE}')` }}
-      />
+      {/* base greige wall, dimming downward */}
       <div
         className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(255,249,240,0.90) 0%, rgba(255,241,224,0.84) 55%, rgba(255,232,208,0.88) 100%)',
-        }}
+        style={{ background: 'linear-gradient(180deg, #e8e3da 0%, #d6d0c4 52%, #bcb5a8 100%)' }}
       />
-      <div className="absolute inset-0 backdrop-blur-[2px]" />
+      {/* soft off-white light spilling from above */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'radial-gradient(120% 75% at 50% -12%, rgba(255,253,247,0.55), transparent 60%)' }}
+      />
+      {/* gritty grain */}
+      <div
+        className="absolute inset-0"
+        style={{ backgroundImage: NOISE, backgroundSize: '180px 180px', opacity: 0.05, mixBlendMode: 'overlay' }}
+      />
+      {/* night vignette */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'radial-gradient(100% 100% at 50% 45%, transparent 55%, rgba(38,34,28,0.20) 100%)' }}
+      />
     </div>
   );
 }

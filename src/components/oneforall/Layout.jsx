@@ -10,7 +10,7 @@ export default function Layout() {
   const loc = useLocation();
   if (!user?.account_type) return <Navigate to="/onboarding" replace state={{ from: loc.pathname }} />;
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <BrandBackground />
       <TopBar />
       <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 md:pb-12">
