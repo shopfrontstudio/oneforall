@@ -7,7 +7,7 @@ import { MatchBadge, StatusBadge } from './Bits';
 export default function JobCard({ job, tradie, score, to }) {
   const dist = tradie ? null : null;
   return (
-    <Link to={to || `/job/${job.id}`} className="glass-soft rounded-2xl p-4 block btn-tactile hover:bg-white/80 min-w-0">
+    <Link to={to || `/job/${job.id}`} className="glass-soft rounded-2xl p-4 block card-lift hover:bg-white/80 min-w-0">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
