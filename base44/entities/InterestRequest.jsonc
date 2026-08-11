@@ -8,6 +8,9 @@
     "job_title": {
       "type": "string"
     },
+    "customer_id": {
+      "type": "string"
+    },
     "tradie_id": {
       "type": "string"
     },
@@ -49,5 +52,11 @@
     "job_id",
     "tradie_id",
     "status"
-  ]
+  ],
+  "rls": {
+    "create": true,
+    "read": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.tradie_id": "{{user.id}}" }] },
+    "update": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.tradie_id": "{{user.id}}" }] },
+    "delete": false
+  }
 }

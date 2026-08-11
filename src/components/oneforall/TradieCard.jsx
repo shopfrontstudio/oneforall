@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BadgeCheck, MapPin, Star } from 'lucide-react';
+import { BadgeCheck, MapPin } from 'lucide-react';
 import { pseudoDistance } from '@/lib/oneforall';
 import { StarRating } from './Bits';
 

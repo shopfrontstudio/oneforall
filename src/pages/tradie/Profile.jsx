@@ -9,11 +9,13 @@ export default function TradieProfile() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [p, setP] = useState(null);
-  const [sub, setSub] = useState(null);
+  const [subscription, setSubscription] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    const [profiles, subs] = await Promise.all([base44.entities.TradieProfile.filter({ user_id: user.id }), base44.entities.Subscription.filter({ tradie_id: user.id })]);
-    setP(profiles[0] || null); setSub(subs[0] || null);
+    const [profiles, subscriptions] = await Promise.all([base44.entities.TradieProfile.filter({ user_id: user.id }), base44.entities.Subscription.filter({ tradie_id: user.id })]);
+    setP(profiles[0] || null);
+    setSubscription(subscriptions[0] || null);
   };
   useEffect(() => { load(); }, [user.id]);
 
@@ -21,8 +23,18 @@ export default function TradieProfile() {
   const toggleCat = (slug) => upd('trade_categories', (p.trade_categories || []).includes(slug) ? (p.trade_categories || []).filter(c => c !== slug) : [...(p.trade_categories || []), slug]);
 
   const save = async () => {
-    await base44.entities.TradieProfile.update(p.id, { ...p });
-    toast({ title: 'Profile saved' });
+    const abn = (p.abn || '').replace(/\s/g, '');
+    const maxRadius = subscription?.plan === 'pro' ? 80 : subscription?.plan === 'local' ? 35 : 20;
+    if (abn && !/^\d{11}$/.test(abn)) { toast({ title: 'ABN must contain 11 digits', variant: 'destructive' }); return; }
+    if (!(p.trade_categories || []).length) { toast({ title: 'Choose at least one trade category', variant: 'destructive' }); return; }
+    setSaving(true);
+    try {
+      const editable = { full_name: p.full_name?.trim(), business_name: p.business_name?.trim(), abn, suburb: p.suburb?.trim(), licence_number: p.licence_number?.trim(), licence_type: p.licence_type?.trim(), insurance_provider: p.insurance_provider?.trim(), insurance_policy_number: p.insurance_policy_number?.trim(), public_liability: !!p.public_liability, trade_categories: p.trade_categories, experience_years: Math.max(0, Number(p.experience_years) || 0), service_radius_km: Math.min(maxRadius, Math.max(1, Number(p.service_radius_km) || 20)), service_areas: p.service_areas, bio: p.bio?.trim(), open_to_work: !!p.open_to_work };
+      await base44.entities.TradieProfile.update(p.id, editable);
+      setP(prev => ({ ...prev, ...editable }));
+      toast({ title: 'Profile saved', description: editable.service_radius_km < p.service_radius_km ? `Radius capped at ${maxRadius} km for your plan.` : undefined });
+    } catch (error) { toast({ title: 'Could not save profile', description: error.message, variant: 'destructive' }); }
+    finally { setSaving(false); }
   };
 
   if (!p) return <div className="glass-soft rounded-2xl h-40 animate-pulse" />;
@@ -86,7 +98,7 @@ export default function TradieProfile() {
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.open_to_work} onChange={e => upd('open_to_work', e.target.checked)} /> Open to work</label>
       </div>
 
-      <button onClick={save} className="w-full px-4 py-3 rounded-xl bg-eucalyptus text-white font-semibold btn-tactile inline-flex items-center justify-center gap-2"><Save size={16} /> Save profile</button>
+      <button disabled={saving} onClick={save} className="w-full px-4 py-3 rounded-xl bg-eucalyptus text-white font-semibold btn-tactile inline-flex items-center justify-center gap-2 disabled:opacity-50"><Save size={16} /> {saving ? 'Saving…' : 'Save profile'}</button>
     </div>
   );
 }
@@ -94,6 +106,6 @@ export default function TradieProfile() {
 const CheckRow = ({ label, ok }) => (
   <div className="flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${ok ? 'bg-eucalyptus' : 'bg-muted-foreground/30'}`} />{label} {ok ? <span className="text-eucalyptus-deep text-[10px]">✓</span> : <span className="text-muted-foreground text-[10px]">pending</span>}</div>
 );
-const Inp = ({ label, v, on, type = 'text', placeholder }) => (
+const Inp = ({ label, v, on, type = 'text', placeholder = '' }) => (
   <div><label className="text-xs font-medium text-muted-foreground">{label}</label><input type={type} value={v ?? ''} placeholder={placeholder} onChange={e => on(e.target.value)} className="inp mt-1" /></div>
 );

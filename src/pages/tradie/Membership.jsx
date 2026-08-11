@@ -10,6 +10,7 @@ export default function Membership() {
   const { toast } = useToast();
   const [sub, setSub] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const load = async () => {
     const s = await base44.entities.Subscription.filter({ tradie_id: user.id });
@@ -21,7 +22,7 @@ export default function Membership() {
     // Demo billing only — abstracted for future Apple/Google subscription handoff.
     const expires = new Date(Date.now() + 30 * 864e5).toISOString();
     if (sub) {
-      await base44.entities.Subscription.update(sub.id, { plan, status: 'active', started_date: new Date().toISOString(), expires_date: expires, founding_trial: false });
+      await base44.entities.Subscription.update(sub.id, { plan, status: 'active', started_date: new Date().toISOString(), expires_date: expires, founding_trial: false, cancel_at_period_end: false });
     } else {
       await base44.entities.Subscription.create({ tradie_id: user.id, plan, status: 'active', started_date: new Date().toISOString(), expires_date: expires });
     }
@@ -32,8 +33,9 @@ export default function Membership() {
 
   const cancel = async () => {
     if (!sub) return;
-    await base44.entities.Subscription.update(sub.id, { status: 'cancelled' });
-    toast({ title: 'Subscription cancelled', description: 'Access remains until the paid period ends.' });
+    await base44.entities.Subscription.update(sub.id, { cancel_at_period_end: true });
+    setConfirmCancel(false);
+    toast({ title: 'Renewal cancelled', description: 'Access remains until the paid period ends.' });
     load();
   };
 
@@ -53,10 +55,10 @@ export default function Membership() {
           <div className="flex-1">
             <div className="font-semibold text-sm">{PLAN_INFO[sub.plan]?.name} plan {isFounding && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold">Founding</span>}</div>
             <div className="text-xs text-muted-foreground">
-              {sub.status === 'cancelled' ? 'Cancelled — access ends at period end' : isFounding ? `Founding access · expires ${new Date(sub.expires_date).toLocaleDateString('en-AU')}` : `Active · renews ${new Date(sub.expires_date).toLocaleDateString('en-AU')}`}
+              {sub.cancel_at_period_end ? `Active · ends ${new Date(sub.expires_date).toLocaleDateString('en-AU')}` : sub.status === 'cancelled' ? 'Expired' : isFounding ? `Founding access · expires ${new Date(sub.expires_date).toLocaleDateString('en-AU')}` : `Active · renews ${new Date(sub.expires_date).toLocaleDateString('en-AU')}`}
             </div>
           </div>
-          {isActive && !isFounding && <button onClick={cancel} className="text-xs font-medium text-terracotta">Cancel</button>}
+          {isActive && !isFounding && !sub.cancel_at_period_end && <button onClick={() => setConfirmCancel(true)} className="text-xs font-medium text-terracotta">Cancel renewal</button>}
         </div>
       )}
 
@@ -83,8 +85,8 @@ export default function Membership() {
               </ul>
               {plan === 'free' ? (
                 <div className="mt-4 text-xs text-muted-foreground text-center py-2.5">Always free to browse</div>
-              ) : current ? (
-                <div className="mt-4 text-center text-sm font-semibold text-eucalyptus-deep py-2.5">Current plan</div>
+              ) : current || (isFounding && plan === 'local') ? (
+                <div className="mt-4 text-center text-sm font-semibold text-eucalyptus-deep py-2.5">{current ? 'Current plan' : 'Included with Pro'}</div>
               ) : (
                 <button onClick={() => setConfirm(plan)} className="mt-4 px-4 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile">{plan === 'local' ? 'Subscribe' : 'Go Pro'}</button>
               )}
@@ -105,6 +107,7 @@ export default function Membership() {
           </div>
         </div>
       )}
+      {confirmCancel && <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-5" onClick={() => setConfirmCancel(false)}><div className="glass rounded-3xl p-6 max-w-sm w-full" onClick={event => event.stopPropagation()}><h3 className="font-semibold text-lg">Cancel renewal?</h3><p className="text-sm text-muted-foreground mt-2">Your paid features stay active until {new Date(sub.expires_date).toLocaleDateString('en-AU')}. You can subscribe again later.</p><div className="mt-5 flex gap-2"><button onClick={() => setConfirmCancel(false)} className="flex-1 rounded-xl glass-soft px-4 py-2.5 text-sm font-semibold">Keep plan</button><button onClick={cancel} className="flex-1 rounded-xl bg-terracotta px-4 py-2.5 text-sm font-semibold text-white">Cancel renewal</button></div></div></div>}
     </div>
   );
 }

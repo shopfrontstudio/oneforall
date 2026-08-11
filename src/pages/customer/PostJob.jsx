@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { Camera, Check, ChevronLeft, ChevronRight, Info, Sparkles, Upload, X } from 'lucide-react';
-import { CATEGORIES, CATEGORY_MAP, URGENCY_OPTIONS, estimateRange, formatAUDRange, simulateInterest } from '@/lib/oneforall';
-import { Image as UIImage } from '@/components/ui/image';
+import { Check, ChevronLeft, ChevronRight, Info, Save, Sparkles, Upload, X } from 'lucide-react';
+import { CATEGORY_MAP, URGENCY_OPTIONS, estimateRange, formatAUDRange, pseudoDistance } from '@/lib/oneforall';
 import CategoryGrid from '@/components/oneforall/CategoryGrid';
 
 const PHOTO_GUIDE = {
@@ -27,6 +26,8 @@ export default function PostJob() {
   const [params] = useSearchParams();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [draftId, setDraftId] = useState(null);
+  const [loadingDraft, setLoadingDraft] = useState(false);
   const [form, setForm] = useState({
     category_slug: '', freeText: '', title: '', description: '',
     suburb: 'Ballarat', preferred_date: '', urgency: 'flexible',
@@ -34,15 +35,109 @@ export default function PostJob() {
     photos: [], budget: '',
   });
 
-  useEffect(() => { const c = params.get('category'); if (c) setForm(f => ({ ...f, category_slug: c })); }, [params]);
+  useEffect(() => {
+    const category = params.get('category');
+    const problem = params.get('problem');
+    const requestedDraft = params.get('draft');
+    if (category && CATEGORY_MAP[category]) setForm(f => ({ ...f, category_slug: category }));
+    if (problem) setForm(f => ({ ...f, freeText: problem, title: f.title || problem.slice(0, 80), description: f.description || problem }));
+    if (!requestedDraft) return;
+
+    let activeRequest = true;
+    setLoadingDraft(true);
+    base44.entities.Job.get(requestedDraft).then((job) => {
+      if (!activeRequest || job.customer_id !== user.id || job.status !== 'draft') return;
+      setDraftId(job.id);
+      setForm({
+        category_slug: job.category_slug || '', freeText: '', title: job.title || '', description: job.description || '',
+        suburb: job.suburb || 'Ballarat', preferred_date: job.preferred_date || '', urgency: job.urgency || 'flexible',
+        access_notes: job.access_notes || '', parking: job.parking || 'on_street', safety_info: job.safety_info || '',
+        photos: job.photos || [], budget: job.budget || '',
+      });
+    }).catch(() => toast({ title: 'Draft unavailable', description: 'It may have been removed or published.', variant: 'destructive' }))
+      .finally(() => activeRequest && setLoadingDraft(false));
+    return () => { activeRequest = false; };
+  }, [params, user.id, toast]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const suggestCategory = () => {
-    const t = (form.freeText || '').toLowerCase();
+  const suggestCategory = (text = form.freeText) => {
+    const t = (text || '').toLowerCase();
     const map = { tap: 'plumbing', leak: 'plumbing', pipe: 'plumbing', drain: 'plumbing', power: 'electrical', light: 'electrical', switch: 'electrical', wire: 'electrical', fence: 'carpentry', deck: 'carpentry', wood: 'carpentry', wall: 'building', renovat: 'building', kitchen: 'building', bathroom: 'building', paint: 'painting', garden: 'gardening', lawn: 'gardening', tree: 'gardening', clean: 'cleaning' };
     for (const k in map) if (t.includes(k)) return map[k];
     return 'maintenance';
+  };
+
+  const buildPayload = (status) => {
+    const categorySlug = form.category_slug || suggestCategory();
+    const range = estimateRange(categorySlug, form.urgency);
+    const cat = CATEGORY_MAP[categorySlug];
+    return {
+      customer_id: user.id,
+      customer_name: user.full_name || user.email,
+      customer_suburb: form.suburb.trim() || 'Ballarat',
+      title: form.title.trim() || form.freeText.trim().slice(0, 80) || `${cat?.name || 'Local'} job`,
+      description: form.description.trim() || form.freeText.trim(),
+      category_slug: categorySlug,
+      category_name: cat?.name,
+      suburb: form.suburb.trim() || 'Ballarat',
+      preferred_date: form.preferred_date || null,
+      urgency: form.urgency,
+      access_notes: form.access_notes.trim(),
+      parking: form.parking,
+      safety_info: form.safety_info.trim(),
+      budget: Number(form.budget) || null,
+      indicative_low: range.low,
+      indicative_high: range.high,
+      photos: form.photos,
+      status,
+      boosted: false,
+    };
+  };
+
+  const goNext = () => {
+    if (step === 1) {
+      const problem = form.freeText.trim();
+      if (!form.category_slug && !problem) {
+        toast({ title: 'Tell us what needs doing', description: 'Choose a service or describe the problem.', variant: 'destructive' });
+        return;
+      }
+      const category = form.category_slug || suggestCategory(problem);
+      setForm(f => ({
+        ...f,
+        category_slug: category,
+        title: f.title || problem.slice(0, 80),
+        description: f.description || problem,
+      }));
+    }
+    if (step === 2) {
+      if (form.title.trim().length < 5 || form.description.trim().length < 10 || !form.suburb.trim()) {
+        toast({ title: 'Add the key job details', description: 'Enter a clear title, a short description, and the suburb.', variant: 'destructive' });
+        return;
+      }
+    }
+    setStep(current => Math.min(5, current + 1));
+  };
+
+  const saveDraft = async () => {
+    if (!form.category_slug && !form.freeText.trim() && !form.title.trim()) {
+      toast({ title: 'Nothing to save yet', description: 'Choose a service or describe the job first.' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = buildPayload('draft');
+      const draft = draftId
+        ? await base44.entities.Job.update(draftId, payload)
+        : await base44.entities.Job.create(payload);
+      setDraftId(draft?.id || draftId);
+      toast({ title: 'Draft saved', description: 'You can continue it from My Jobs.' });
+      navigate('/my-jobs');
+    } catch (error) {
+      toast({ title: 'Could not save draft', description: error.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const onUpload = async (files) => {
@@ -59,19 +154,30 @@ export default function PostJob() {
   };
 
   const publish = async () => {
+    if (!form.category_slug || form.title.trim().length < 5 || form.description.trim().length < 10 || !form.suburb.trim()) {
+      toast({ title: 'Job is not ready', description: 'Check the category, title, description, and suburb.', variant: 'destructive' });
+      return;
+    }
     setSaving(true);
     try {
-      const range = estimateRange(form.category_slug, form.urgency);
-      const cat = CATEGORY_MAP[form.category_slug];
-      const job = await base44.entities.Job.create({
-        customer_id: user.id, customer_name: user.full_name || user.email, customer_suburb: form.suburb,
-        title: form.title, description: form.description, category_slug: form.category_slug, category_name: cat?.name,
-        suburb: form.suburb, preferred_date: form.preferred_date, urgency: form.urgency,
-        access_notes: form.access_notes, parking: form.parking, safety_info: form.safety_info,
-        budget: Number(form.budget) || null, indicative_low: range.low, indicative_high: range.high,
-        photos: form.photos, status: 'published', boosted: false,
-      });
-      await simulateInterest(job);
+      const payload = buildPayload('published');
+      const job = draftId
+        ? await base44.entities.Job.update(draftId, payload)
+        : await base44.entities.Job.create(payload);
+
+      const tradies = await base44.entities.TradieProfile.filter({ verified: true, open_to_work: true });
+      const eligible = tradies.filter(tradie =>
+        (tradie.trade_categories || []).includes(payload.category_slug) &&
+        pseudoDistance(payload.suburb, tradie.suburb) <= (tradie.service_radius_km || 20)
+      );
+      await Promise.allSettled(eligible.map(tradie => base44.entities.Notification.create({
+        user_id: tradie.user_id,
+        type: 'job_match',
+        title: `New ${payload.category_name} job nearby`,
+        body: `${payload.title} · ${payload.suburb}`,
+        link: `/job/${job.id}`,
+        read: false,
+      })));
       toast({ title: 'Job published!', description: 'Nearby verified tradies have been notified.' });
       navigate(`/job/${job.id}`);
     } catch (e) { toast({ title: 'Could not publish', description: e.message, variant: 'destructive' }); }
@@ -80,6 +186,13 @@ export default function PostJob() {
 
   const steps = [1, 2, 3, 4, 5];
   const range = estimateRange(form.category_slug, form.urgency);
+  const canContinue = step === 1
+    ? Boolean(form.category_slug || form.freeText.trim())
+    : step === 2
+      ? form.title.trim().length >= 5 && form.description.trim().length >= 10 && Boolean(form.suburb.trim())
+      : true;
+
+  if (loadingDraft) return <div className="glass-soft rounded-3xl h-72 animate-pulse" aria-label="Loading draft" />;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -101,7 +214,7 @@ export default function PostJob() {
             <label className="text-xs font-medium text-muted-foreground">Or describe it in your words</label>
             <textarea value={form.freeText} onChange={e => set('freeText', e.target.value)} rows={3} placeholder="My kitchen tap is leaking…" className="mt-1 w-full rounded-xl bg-white/70 border border-border p-3 text-sm focus:ring-2 ring-eucalyptus outline-none" />
             {form.freeText && !form.category_slug && (
-              <button onClick={() => set('category_slug', suggestCategory())} className="mt-3 inline-flex items-center gap-2 text-sm text-eucalyptus-deep font-medium"><Sparkles size={15} /> Suggest a trade for me</button>
+            <button type="button" onClick={() => set('category_slug', suggestCategory())} className="mt-3 inline-flex items-center gap-2 text-sm text-eucalyptus-deep font-medium"><Sparkles size={15} /> Suggest a trade for me</button>
             )}
             {form.category_slug && <p className="mt-3 text-xs text-eucalyptus-deep inline-flex items-center gap-1"><Check size={13} /> Suggested trade: {CATEGORY_MAP[form.category_slug]?.name}</p>}
           </Step>
@@ -116,7 +229,7 @@ export default function PostJob() {
               <Field label="Preferred date"><input type="date" value={form.preferred_date} onChange={e => set('preferred_date', e.target.value)} className="inp" /></Field>
             </div>
             <Field label="Urgency">
-              <div className="flex gap-2">{URGENCY_OPTIONS.map(u => <button key={u.value} onClick={() => set('urgency', u.value)} className={`px-3 py-2 rounded-xl text-sm btn-tactile ${form.urgency === u.value ? 'bg-eucalyptus text-white' : 'glass-soft'}`}>{u.label}</button>)}</div>
+              <div className="flex gap-2">{URGENCY_OPTIONS.map(u => <button type="button" key={u.value} onClick={() => set('urgency', u.value)} className={`px-3 py-2 rounded-xl text-sm btn-tactile ${form.urgency === u.value ? 'bg-eucalyptus text-white' : 'glass-soft'}`}>{u.label}</button>)}</div>
             </Field>
             <Field label="Property access notes"><input value={form.access_notes} onChange={e => set('access_notes', e.target.value)} placeholder="e.g. Side gate, dog in yard" className="inp" /></Field>
             <div className="grid grid-cols-2 gap-3">
@@ -142,8 +255,8 @@ export default function PostJob() {
               <div className="grid grid-cols-3 gap-2 mt-4">
                 {form.photos.map((url, i) => (
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden">
-                    <UIImage src={url} className="w-full h-full" fittingType="fill" />
-                    <button onClick={() => set('photos', form.photos.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center"><X size={13} /></button>
+                    <img src={url} alt={`Job attachment ${i + 1}`} className="w-full h-full object-cover" />
+                    <button type="button" aria-label={`Remove photo ${i + 1}`} onClick={() => set('photos', form.photos.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center"><X size={13} /></button>
                   </div>
                 ))}
               </div>
@@ -171,13 +284,15 @@ export default function PostJob() {
         <div className="flex justify-between mt-6">
           {step > 1 ? <button onClick={() => setStep(step - 1)} className="px-4 py-2.5 rounded-xl glass-soft text-sm font-medium btn-tactile">Back</button> : <span />}
           {step < 5 ? (
-            <button onClick={() => setStep(step + 1)} disabled={step === 2 && !form.title} className="px-5 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-50">Continue <ChevronRight size={16} className="inline" /></button>
+            <button type="button" onClick={goNext} disabled={!canContinue} className="px-5 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-45 disabled:cursor-not-allowed">Continue <ChevronRight size={16} className="inline" /></button>
           ) : (
             <button onClick={publish} disabled={saving || !form.title || !form.category_slug} className="px-5 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-50">{saving ? 'Publishing…' : 'Publish job'}</button>
           )}
         </div>
       </div>
-      <p className="text-center mt-4"><Link to="/my-jobs" className="text-xs text-muted-foreground">Save as draft and exit</Link></p>
+      <button type="button" onClick={saveDraft} disabled={saving} className="mx-auto mt-4 flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-50">
+        <Save size={13} /> {saving ? 'Saving…' : 'Save draft and exit'}
+      </button>
     </div>
   );
 }

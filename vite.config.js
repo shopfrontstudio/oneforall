@@ -15,5 +15,16 @@ export default defineConfig({
       visualEditAgent: true
     }),
     react(),
-  ]
+  ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-base44': ['@base44/sdk'],
+          'vendor-ui': ['lucide-react', 'framer-motion'],
+        },
+      },
+    },
+  },
 });

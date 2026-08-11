@@ -35,10 +35,20 @@
     "founding_trial": {
       "type": "boolean",
       "default": false
+    },
+    "cancel_at_period_end": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [
     "tradie_id",
     "plan"
-  ]
+  ],
+  "rls": {
+    "create": true,
+    "read": { "data.tradie_id": "{{user.id}}" },
+    "update": { "data.tradie_id": "{{user.id}}" },
+    "delete": { "data.tradie_id": "{{user.id}}" }
+  }
 }
