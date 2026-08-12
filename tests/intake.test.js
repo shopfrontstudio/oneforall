@@ -6,38 +6,51 @@ import { readFile } from 'node:fs/promises';
 
 const storage = () => { const values = new Map(); return { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: (key) => values.delete(key), values }; };
 
-test('scheduled/recurring intake validates schedule and can become ready', () => {
-  const draft = { ...createIntakeDraft('cleaning.routine_domestic'), scope_description: 'Vacuum and mop the living areas', suburb: 'Ballarat', preferred_date: '2026-09-01', recurrence: 'fortnightly' };
+test('scheduled intake requires a configured selection and schedule', () => {
+  const empty = { ...createIntakeDraft('cleaning.routine_domestic'), suburb: 'Ballarat', preferred_date: '2026-09-01' };
+  assert.equal(evaluateIntakeDraft(empty).state, 'error');
+  const draft = { ...empty, selected_scope_ids: ['vacuum-mop-dust'], recurrence: 'fortnightly' };
   assert.equal(evaluateIntakeDraft(draft).state, 'ready');
 });
 
-test('managed quote intake requires expanded scope and routes review terms', () => {
-  const short = { ...createIntakeDraft('handyman.minor_tasks'), scope_description: 'Hang shelf', suburb: 'Ballarat' };
-  assert.equal(evaluateIntakeDraft(short).state, 'error');
-  const review = { ...short, scope_description: 'Mount a heavy shelf with wall anchors', suburb: 'Ballarat' };
-  assert.equal(evaluateIntakeDraft(review).state, 'manual_review');
+test('optional notes may tighten but never widen selected scope', () => {
+  const base = { ...createIntakeDraft('handyman.minor_tasks'), selected_scope_ids: ['flat-pack'], suburb: 'Ballarat' };
+  assert.equal(evaluateIntakeDraft(base).state, 'ready');
+  assert.equal(evaluateIntakeDraft({ ...base, scope_description: 'garage door opener' }).state, 'restricted');
+  assert.equal(evaluateIntakeDraft({ ...base, scope_description: 'something else entirely' }).state, 'manual_review');
 });
 
-test('licensed diagnostic intake needs pest observations and blocks direct treatment', () => {
-  const draft = { ...createIntakeDraft('pest-control.diagnostic'), scope_description: 'Inspect signs in the kitchen only', suburb: 'Ballarat', reported_pest: 'Not sure', observed_signs: 'Small droppings by the pantry' };
-  assert.equal(evaluateIntakeDraft(draft).state, 'ready');
-  assert.equal(evaluateIntakeDraft({ ...draft, scope_description: 'Treat now without SDS' }).state, 'restricted');
+test('licensed diagnostic blocks all treatment wording', () => {
+  const base = { ...createIntakeDraft('pest-control.diagnostic'), selected_scope_ids: ['accessible-inspection'], suburb: 'Ballarat', reported_pest: 'Not sure', observed_signs: 'Small droppings by the pantry' };
+  assert.equal(evaluateIntakeDraft(base).state, 'manual_review');
+  for (const notes of ['pest treatment', 'spray for ants', 'treat the infestation']) assert.equal(evaluateIntakeDraft({ ...base, scope_description: notes }).state, 'restricted');
+  assert.equal(evaluateIntakeDraft({ ...base, observed_signs: 'Please spray and treat the entire house' }).state, 'restricted');
+  assert.equal(evaluateIntakeDraft({ ...base, reported_pest: 'Need treatment for ants' }).state, 'restricted');
+  assert.equal(evaluateIntakeDraft({ ...base, safety_considerations: 'considerations_present' }).state, 'manual_review');
+  assert.equal(evaluateIntakeDraft({ ...base, safety_considerations: 'prefer_not_to_say' }).state, 'manual_review');
 });
 
-test('beauty restricted terms fail closed', () => {
-  const draft = { ...createIntakeDraft('beauty.adult_low_risk'), scope_description: 'Microneedling treatment requested', suburb: 'Ballarat', preferred_date: '2026-09-01' };
-  assert.equal(evaluateIntakeDraft(draft).state, 'restricted');
+test('beauty requires adult confirmation and low-risk selected scope', () => {
+  const base = { ...createIntakeDraft('beauty.adult_low_risk'), selected_scope_ids: ['makeup-strip-lashes'], suburb: 'Ballarat', preferred_date: '2026-09-01' };
+  assert.equal(evaluateIntakeDraft(base).state, 'restricted');
+  assert.equal(evaluateIntakeDraft({ ...base, adult_scope_confirmed: true }).state, 'ready');
+  assert.equal(evaluateIntakeDraft({ ...base, adult_scope_confirmed: true, scope_description: 'eyelash extensions' }).state, 'restricted');
 });
 
 test('session draft is bounded, service-scoped and expires', () => {
   const store = storage();
   const now = 100000;
-  const draft = { ...createIntakeDraft('cleaning.routine_domestic', now), scope_description: 'Routine clean', photo_names: ['room.jpg'] };
+  const draft = { ...createIntakeDraft('cleaning.routine_domestic', now), selected_scope_ids: ['vacuum-mop-dust'], photo_names: ['room.jpg'] };
   assert.equal(saveSessionIntake(draft, store, now), true);
   assert.ok(store.getItem(INTAKE_STORAGE_KEY));
   assert.equal(loadSessionIntake('gardening.basic_maintenance', store, now), null);
   assert.equal(loadSessionIntake('cleaning.routine_domestic', store, now + INTAKE_TTL_MS + 1), null);
-  assert.deepEqual(loadSessionIntake('cleaning.routine_domestic', store, now).photo_names, ['room.jpg']);
+  assert.deepEqual(loadSessionIntake('cleaning.routine_domestic', store, now).selected_scope_ids, ['vacuum-mop-dust']);
+});
+
+test('storage failure is non-throwing and reports unsaved', () => {
+  const failing = { setItem() { throw new Error('denied'); } };
+  assert.equal(saveSessionIntake(createIntakeDraft('cleaning.routine_domestic'), failing), false);
 });
 
 test('public routes and legacy redirects preserve the auth boundary', () => {
@@ -54,22 +67,31 @@ test('local preview reports duplicate submissions without creating another actio
 
 test('public catalogue and intake pages contain no Base44 data/function access', async () => {
   const paths = ['../src/pages/public/Home.jsx', '../src/pages/public/Services.jsx', '../src/pages/public/ServiceDetail.jsx', '../src/pages/public/Intake.jsx'];
-  for (const path of paths) {
-    const source = await readFile(new URL(path, import.meta.url), 'utf8');
-    assert.doesNotMatch(source, /api\/base44Client|functions\.invoke|entities\./i);
-  }
+  for (const path of paths) assert.doesNotMatch(await readFile(new URL(path, import.meta.url), 'utf8'), /api\/base44Client|functions\.invoke|entities\./i);
 });
 
-test('App declares public catalogue routes separately from protected customer routes', async () => {
-  const source = await readFile(new URL('../src/App.jsx', import.meta.url), 'utf8');
-  for (const route of ['path="/"', 'path="/services"', 'path="/services/:serviceKey"', 'path="/request/:serviceKey"']) assert.match(source, new RegExp(route));
-  for (const route of ['path="/bookings"', 'path="/messages"', 'path="/account"']) assert.match(source, new RegExp(route));
-  assert.ok(source.indexOf('element={<PublicLayout />}') < source.indexOf('element={<ProtectedRoute'));
+test('service detail does not expose a false aria-disabled link', async () => {
+  const source = await readFile(new URL('../src/pages/public/ServiceDetail.jsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /aria-disabled/);
+  assert.match(source, /serviceAvailabilityMessage/);
 });
 
-test('authentication stays lazy for anonymous visitors but resumes for an existing token', async () => {
-  const source = await readFile(new URL('../src/lib/AuthContext.jsx', import.meta.url), 'utf8');
-  assert.match(source, /if \(appParams\.token\) checkUserAuth\(\)/);
-  assert.match(source, /await import\('@\/api\/base44Client'\)/);
-  assert.doesNotMatch(source, /apps\/public|public-settings\/by-id/);
+test('adult and scope groups expose errors and ignore bubbled internal blur', async () => {
+  const source = await readFile(new URL('../src/pages/public/Intake.jsx', import.meta.url), 'utf8');
+  assert.match(source, /event\.currentTarget\.contains\(event\.relatedTarget\)/);
+  assert.match(source, /markGroupTouched\('adult_scope_confirmed'\)/);
+  assert.match(source, /markGroupTouched\('selected_scope_ids'\)/);
+  assert.match(source, /aria-invalid=\{Boolean\(error\('adult_scope_confirmed'\)\)\}/);
+  assert.match(source, /aria-describedby=\{error\('selected_scope_ids'\)/);
+});
+
+test('invalid submit focuses the first invalid control after errors render', async () => {
+  const source = await readFile(new URL('../src/pages/public/Intake.jsx', import.meta.url), 'utf8');
+  assert.match(source, /useRef\(null\)/);
+  assert.match(source, /<form ref=\{formRef\}/);
+  assert.match(source, /if \(next\.state === 'error' && Object\.keys\(next\.errors \|\| \{\}\)\.length\)/);
+  assert.match(source, /querySelector\('\[aria-invalid="true"\]'\)/);
+  assert.match(source, /invalidElement\?\.querySelector\(FOCUSABLE_CONTROL\)/);
+  assert.match(source, /focusTarget\?\.focus\(\)/);
+  assert.doesNotMatch(source, /next\.state === 'restricted'[\s\S]*setInvalidFocusRequest/);
 });

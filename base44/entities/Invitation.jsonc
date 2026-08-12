@@ -6,13 +6,41 @@
       "type": "string"
     },
     "job_title": {
-      "type": "string"
+      "type": "string",
+      "description": "Safe service label, never customer-authored title text."
     },
+    "service_key": { "type": "string" },
+    "selected_scope_ids": { "type": "array", "items": { "type": "string" } },
+    "selected_scope_labels": { "type": "array", "items": { "type": "string" } },
+    "service_area": { "type": "string" },
+    "preferred_date": { "type": "string", "format": "date" },
+    "urgency": { "type": "string", "enum": ["flexible", "this_week", "urgent"] },
+    "indicative_low": { "type": "number" },
+    "indicative_high": { "type": "number" },
+    "policy_version": { "type": "string" },
     "customer_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Routing identifier hidden from the invited provider.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
     },
     "customer_name": {
-      "type": "string"
+      "type": "string",
+      "description": "Deprecated private field retained for historic records; new invitations never write it.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
     },
     "tradie_id": {
       "type": "string"
@@ -20,6 +48,9 @@
     "tradie_name": {
       "type": "string"
     },
+    "provider_assertion_id": { "type": "string" },
+    "provider_assertion_evidence_checked_date": { "type": "string", "format": "date" },
+    "provider_assertion_valid_through": { "type": "string", "format": "date" },
     "status": {
       "type": "string",
       "enum": [
@@ -49,9 +80,9 @@
     "tradie_id",
     "status"
   ],
-  // customer_name is disclosed to the invited tradie on purpose, so invite-tradie
-  // proves the caller owns the job before attaching it. Responses go through
-  // respond-invitation, which enforces server-owned service eligibility.
+  // Providers receive only the minimal safe request snapshot above. Responses go
+  // through respond-invitation, which re-reads the private Job under service role
+  // only after proving the caller owns this invitation.
   "rls": {
     "create": { "user_condition": { "role": "admin" } },
     "read": {

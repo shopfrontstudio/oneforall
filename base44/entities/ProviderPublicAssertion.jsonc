@@ -11,7 +11,7 @@
     "credential_scope": { "type": "array", "items": { "type": "string" } },
     "valid_through": { "type": "string", "format": "date" }
   },
-  "required": ["provider_id", "display_name", "approved_service_ids", "evidence_checked_date"],
+  "required": ["provider_id", "display_name", "approved_service_ids", "evidence_checked_date", "valid_through"],
   "rls": {
     "create": { "user_condition": { "role": "admin" } },
     "read": { "user_condition": { "id": "{{user.id}}" } },

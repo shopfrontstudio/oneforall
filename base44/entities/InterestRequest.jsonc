@@ -6,14 +6,25 @@
       "type": "string"
     },
     "job_title": {
-      "type": "string"
+      "type": "string",
+      "description": "Safe service label, never customer-authored title text."
     },
     "service_key": { "type": "string" },
+    "selected_scope_ids": { "type": "array", "items": { "type": "string" } },
     "idempotency_key": { "type": "string" },
     "policy_version": { "type": "string" },
     "booking_id": { "type": "string" },
     "customer_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Routing identifier hidden from the provider until a booking exists.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
     },
     "tradie_id": {
       "type": "string"
@@ -28,6 +39,9 @@
     "tradie_business": {
       "type": "string"
     },
+    "provider_assertion_id": { "type": "string" },
+    "provider_assertion_evidence_checked_date": { "type": "string", "format": "date" },
+    "provider_assertion_valid_through": { "type": "string", "format": "date" },
     "quote_low": {
       "type": "number"
     },

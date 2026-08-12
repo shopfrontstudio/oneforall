@@ -6,8 +6,8 @@ import { getPhase1Service } from '../../shared/phase1-catalogue.js';
 
 // Announces a freshly published job to matching tradies.
 //
-// The job itself is still written by the customer through normal entity RLS — only
-// the fan-out moved here, because Notification.create is closed to the client.
+// submit-request owns the request write. This separate authorised fan-out creates
+// participant-scoped Invitation snapshots before notifying eligible providers.
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -28,9 +28,9 @@ export default async function (req) {
 
     const notified = await notifyMatchingTradies(base44, job, {
       type: 'job_match',
-      title: `New ${job.category_name || 'local'} job nearby`,
-      body: `${job.title} · ${job.suburb}`,
-      link: `/booking/${job.id}`,
+      title: `New managed ${definition.name} request`,
+      body: `A reviewed request is available in ${job.suburb}.`,
+      link: '/provider/discover',
     });
 
     return ok({ notified });

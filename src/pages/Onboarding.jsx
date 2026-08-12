@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { HardHat, Home as HomeIcon, ArrowRight, ShieldCheck, MapPin } from 'lucide-react';
 import Logo from '@/components/oneforall/Logo';
 import BrandBackground from '@/components/oneforall/BrandBackground';
-import { setAccountType, ensureProfile } from '@/lib/oneforall';
+import { setAccountType, ensureProfile, PROVIDER_ONBOARDING_OPEN } from '@/lib/oneforall';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function Onboarding() {
@@ -15,12 +15,13 @@ export default function Onboarding() {
   if (user?.account_type) return <Navigate to="/" replace />;
 
   const choose = async (type) => {
+    if (type === 'tradie' && !PROVIDER_ONBOARDING_OPEN) return;
     setBusy(true);
     try {
       await setAccountType(type);
       await ensureProfile(type, user);
       await checkUserAuth();
-      toast({ title: type === 'tradie' ? 'Welcome, tradie!' : 'Welcome to OneForAll!' });
+      toast({ title: type === 'tradie' ? 'Welcome, service provider!' : 'Welcome to OneForAll!' });
       navigate('/');
     } catch (e) {
       toast({ title: 'Something went wrong', description: e.message, variant: 'destructive' });
@@ -45,11 +46,11 @@ export default function Onboarding() {
           <p className="text-sm text-muted-foreground mt-2">One account, your way — you can switch later from your profile.</p>
 
           <div className="grid gap-3 mt-7">
-            <button disabled={busy} onClick={() => choose('tradie')} className="glass rounded-3xl p-5 text-left flex items-center gap-4 btn-tactile hover:bg-white/80 disabled:opacity-60">
+            <button disabled={busy || !PROVIDER_ONBOARDING_OPEN} onClick={() => choose('tradie')} className="glass rounded-3xl p-5 text-left flex items-center gap-4 btn-tactile hover:bg-white/80 disabled:opacity-60">
               <span className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shrink-0"><HardHat size={26} /></span>
               <span className="flex-1">
-                <span className="block font-semibold text-foreground">I'm a tradie</span>
-                <span className="block text-xs text-muted-foreground">Find local jobs, get verified, subscribe when ready.</span>
+                <span className="block font-semibold text-foreground">I provide services</span>
+                <span className="block text-xs text-muted-foreground">{PROVIDER_ONBOARDING_OPEN ? 'Prepare a draft provider profile. Service approval and request access are reviewed separately.' : 'Provider onboarding is not currently available. Existing provider accounts remain accessible.'}</span>
               </span>
               <ArrowRight className="text-eucalyptus-deep" size={20} />
             </button>
@@ -57,8 +58,8 @@ export default function Onboarding() {
             <button disabled={busy} onClick={() => choose('customer')} className="glass rounded-3xl p-5 text-left flex items-center gap-4 btn-tactile hover:bg-white/80 disabled:opacity-60">
               <span className="w-14 h-14 rounded-2xl bg-terracotta text-white flex items-center justify-center shrink-0"><HomeIcon size={26} /></span>
               <span className="flex-1">
-                <span className="block font-semibold text-foreground">I need a tradie</span>
-                <span className="block text-xs text-muted-foreground">Post a job free. Verified local tradies come to you.</span>
+                <span className="block font-semibold text-foreground">I need a service</span>
+                <span className="block text-xs text-muted-foreground">Choose a structured pathway and manage quotes or bookings in one place.</span>
               </span>
               <ArrowRight className="text-eucalyptus-deep" size={20} />
             </button>

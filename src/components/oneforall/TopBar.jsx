@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
-import { Bell, Home as HomeIcon, CalendarDays, Shapes, MessageSquare, User, Compass, Ticket, CheckCheck } from 'lucide-react';
+import { Bell, Home as HomeIcon, CalendarDays, Shapes, MessageSquare, User, ClipboardList, BriefcaseBusiness, CheckCheck } from 'lucide-react';
 import Logo from './Logo';
 
 const CUSTOMER_NAV = [
@@ -13,8 +13,8 @@ const CUSTOMER_NAV = [
   { to: '/account', label: 'Account', icon: User },
 ];
 const TRADIE_NAV = [
-  { to: '/provider/discover', label: 'Discover', icon: Compass },
-  { to: '/provider/invites', label: 'Invites', icon: Ticket },
+  { to: '/provider/discover', label: 'Requests', icon: ClipboardList },
+  { to: '/provider/invites', label: 'Jobs', icon: BriefcaseBusiness },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
   { to: '/provider/account', label: 'Account', icon: User },
 ];

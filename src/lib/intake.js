@@ -1,4 +1,4 @@
-import { classifyServiceScope, getPhase1Service, PHASE1_POLICY_VERSION } from '../../base44/shared/phase1-catalogue.js';
+import { classifyServiceScope, collectAdditionalRiskText, getPhase1Service, PHASE1_POLICY_VERSION } from '../../base44/shared/phase1-catalogue.js';
 
 export const INTAKE_STORAGE_KEY = 'oneforall.phase1.intake';
 export const INTAKE_TTL_MS = 30 * 60 * 1000;
@@ -8,10 +8,12 @@ export function createIntakeDraft(serviceKey, now = Date.now()) {
   const service = getPhase1Service(serviceKey);
   if (!service) return null;
   return {
-    version: 1,
+    version: 2,
     policy_version: PHASE1_POLICY_VERSION,
     service_key: service.key,
     pathway: service.pathway,
+    selected_scope_ids: [],
+    adult_scope_confirmed: false,
     scope_description: '',
     suburb: '',
     preferred_date: '',
@@ -29,8 +31,11 @@ const bounded = (value, max) => String(value || '').trim().slice(0, max);
 export function sanitiseIntakeDraft(input) {
   const service = getPhase1Service(input?.service_key);
   if (!service) return null;
+  const validScopeIds = new Set(service.scope_options.map((item) => item.id));
   return {
     ...createIntakeDraft(service.key, Number(input.saved_at) || Date.now()),
+    selected_scope_ids: Array.isArray(input.selected_scope_ids) ? [...new Set(input.selected_scope_ids.filter((id) => validScopeIds.has(id)))] : [],
+    adult_scope_confirmed: input.adult_scope_confirmed === true,
     scope_description: bounded(input.scope_description, 3000),
     suburb: bounded(input.suburb, 100),
     preferred_date: bounded(input.preferred_date, 20),
@@ -46,13 +51,18 @@ export function sanitiseIntakeDraft(input) {
 export function evaluateIntakeDraft(draft) {
   const service = getPhase1Service(draft?.service_key);
   if (!service) return { state: 'empty', errors: { service: 'Choose a service.' } };
-  const scope = classifyServiceScope(service.key, draft.scope_description);
-  if (scope.decision === 'blocked') return { state: 'restricted', scope, errors: { scope_description: 'This request includes work OneForAll does not offer.' } };
   const errors = {};
-  if (bounded(draft.scope_description, 3000).length < 12) errors.scope_description = 'Describe what you need in at least 12 characters.';
+  if (!Array.isArray(draft.selected_scope_ids) || !draft.selected_scope_ids.length) errors.selected_scope_ids = 'Choose at least one listed service option.';
+  if (service.adults_only && draft.adult_scope_confirmed !== true) errors.adult_scope_confirmed = 'Confirm the person receiving this service is an adult.';
+  const scope = classifyServiceScope(service.key, {
+    selectedScopeIds: draft.selected_scope_ids,
+    scopeNotes: draft.scope_description,
+    additionalRiskText: collectAdditionalRiskText(draft),
+    adultConfirmed: draft.adult_scope_confirmed,
+  });
+  if (scope.decision === 'blocked') return { state: 'restricted', scope, errors: { ...errors, scope_description: 'This request includes work OneForAll does not offer.' } };
   if (!bounded(draft.suburb, 100)) errors.suburb = 'Enter the service suburb.';
   if (service.pathway === 'scheduled_or_recurring' && !draft.preferred_date) errors.preferred_date = 'Choose a preferred date.';
-  if (service.pathway === 'managed_quote' && bounded(draft.scope_description, 3000).length < 24) errors.scope_description = 'Managed quotes need a little more detail (at least 24 characters).';
   if (service.pathway === 'licensed_diagnostic') {
     if (!bounded(draft.reported_pest, 120)) errors.reported_pest = 'Tell us which pest you suspect, or choose “Not sure”.';
     if (bounded(draft.observed_signs, 2000).length < 8) errors.observed_signs = 'Briefly describe the signs you have observed.';
@@ -67,8 +77,12 @@ export function saveSessionIntake(draft, storage = globalThis.sessionStorage, no
   if (!safe || !storage) return false;
   const serialized = JSON.stringify(safe);
   if (new TextEncoder().encode(serialized).length > INTAKE_MAX_BYTES) return false;
-  storage.setItem(INTAKE_STORAGE_KEY, serialized);
-  return true;
+  try {
+    storage.setItem(INTAKE_STORAGE_KEY, serialized);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function loadSessionIntake(serviceKey, storage = globalThis.sessionStorage, now = Date.now()) {
@@ -83,7 +97,7 @@ export function loadSessionIntake(serviceKey, storage = globalThis.sessionStorag
 }
 
 export function clearSessionIntake(storage = globalThis.sessionStorage) {
-  storage?.removeItem(INTAKE_STORAGE_KEY);
+  try { storage?.removeItem(INTAKE_STORAGE_KEY); } catch { /* In-memory form remains usable. */ }
 }
 
 export function nextPreviewState(previousPreviewCount) {

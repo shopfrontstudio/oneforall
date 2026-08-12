@@ -10,7 +10,7 @@
     "capacity_remaining": { "type": "number", "default": 0 },
     "coverage_suburbs": { "type": "array", "items": { "type": "string" } },
     "availability_days": { "type": "array", "items": { "type": "string" } },
-    "approved_scope": { "type": "array", "items": { "type": "string" } },
+    "approved_scope": { "type": "array", "description": "Approved ServiceDefinition scope option IDs, never free-form labels.", "items": { "type": "string" } },
     "reviewed_by": { "type": "string" },
     "reviewed_at": { "type": "string", "format": "date-time" },
     "reverification_required": { "type": "boolean", "default": true },

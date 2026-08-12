@@ -44,7 +44,53 @@
       "type": "string"
     },
     "service_key": { "type": "string" },
+    "selected_scope_ids": {
+      "type": "array",
+      "description": "Structured positive-scope choices snapshotted when the request is submitted.",
+      "items": { "type": "string" }
+    },
+    "adult_scope_confirmed": { "type": "boolean", "default": false },
     "service_pathway": { "type": "string", "enum": ["scheduled_or_recurring", "managed_quote", "licensed_diagnostic"] },
+    "reported_pest": {
+      "type": "string",
+      "description": "Customer-supplied diagnostic context; visible only to booking participants and admins.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "data.assigned_tradie_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
+    },
+    "observed_signs": {
+      "type": "string",
+      "description": "Customer-supplied diagnostic observations; visible only to booking participants and admins.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "data.assigned_tradie_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
+    },
+    "safety_considerations": {
+      "type": "string",
+      "enum": ["none_declared", "considerations_present", "prefer_not_to_say"],
+      "description": "Privacy-preserving safety signal; visible only to booking participants and admins.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "data.assigned_tradie_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
+    },
     "policy_version": { "type": "string" },
     "request_idempotency_key": { "type": "string" },
     "recurrence_requested": { "type": "boolean", "default": false },
@@ -173,11 +219,9 @@
     "title",
     "category_slug"
   ],
-  // Every rule is wrapped in an authentication check: `true` in Base44 RLS means
-  // "including anonymous/unauthenticated", so a bare `data.*` condition must never
-  // be the only gate on a job board that carries photos of people's homes.
-  // Browsing is limited to `published` — once a job is matched it is only visible
-  // to the customer and the tradie they accepted.
+  // Requests are never an authenticated open feed. Only the customer, the
+  // accepted provider and admins can read a request; private routing must happen
+  // through reviewed backend logic rather than direct client entity browsing.
   "rls": {
     "create": { "user_condition": { "role": "admin" } },
     "read": {
@@ -187,7 +231,6 @@
           "$or": [
             { "data.customer_id": "{{user.id}}" },
             { "data.assigned_tradie_id": "{{user.id}}" },
-            { "data.status": "published" },
             { "user_condition": { "role": "admin" } }
           ]
         }

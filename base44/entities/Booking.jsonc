@@ -14,6 +14,7 @@
     "scope_decision": { "type": "string", "enum": ["allowed", "manual_review", "blocked"] },
     "substitution_disclosed": { "type": "boolean", "default": false },
     "service_key": { "type": "string" },
+    "selected_scope_ids": { "type": "array", "items": { "type": "string" } },
     "state": { "type": "string", "enum": ["accepted", "scheduled", "in_progress", "completed", "cancelled", "disputed", "superseded"], "default": "accepted" },
     "scheduled_start": { "type": "string", "format": "date-time" },
     "recurring_series_id": { "type": "string" },

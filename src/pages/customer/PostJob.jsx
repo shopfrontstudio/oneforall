@@ -25,7 +25,7 @@ export default function PostJob() {
   const [saving, setSaving] = useState(false);
   const [draftId, setDraftId] = useState(null);
   const [loadingDraft, setLoadingDraft] = useState(false);
-  const invitedTradieProfileId = params.get('tradie');
+  const invitedProviderAssertionId = params.get('provider_assertion');
   const [form, setForm] = useState({
     category_slug: '', freeText: '', title: '', description: '',
     suburb: 'Ballarat', preferred_date: '', urgency: 'flexible',
@@ -162,8 +162,8 @@ export default function PostJob() {
 
       // The request, notification fan-out and direct invite are all authorised
       // server-side. Release flags currently keep public publishing fail-closed.
-      if (invitedTradieProfileId) {
-        await callFunction('invite-tradie', { job_id: job.id, tradie_profile_id: invitedTradieProfileId })
+      if (invitedProviderAssertionId) {
+        await callFunction('invite-tradie', { job_id: job.id, provider_assertion_id: invitedProviderAssertionId })
           .catch(() => toast({ title: 'Job published, but the invite could not be sent', variant: 'destructive' }));
       }
 

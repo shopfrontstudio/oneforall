@@ -50,18 +50,18 @@ export default function Messages() {
     }
   };
 
-  if (convos === null) return <div className="glass-soft rounded-2xl h-40 animate-pulse" />;
+  if (convos === null) return <div className="glass-soft h-40 rounded-2xl" role="status" aria-label="Loading booking conversations" />;
 
   return (
     <div>
       <h1 className="text-2xl font-semibold tracking-tight mb-4">Messages</h1>
       {convos.length === 0 ? (
-        <EmptyState icon={MessageSquare} title="No conversations yet" body={user.account_type === 'tradie' ? 'When a customer accepts your interest request, your private chat opens here.' : "Once you accept a tradie's interest request, your private chat opens here."} />
+        <EmptyState icon={MessageSquare} title="No booking conversations yet" body={user.account_type === 'tradie' ? 'A private conversation opens after a customer confirms your eligible quote.' : 'A private conversation opens after you confirm an eligible provider quote.'} />
       ) : (
         <div className="grid md:grid-cols-[300px_1fr] gap-3">
           <div className={`glass-soft rounded-2xl divide-y divide-border/50 ${active ? 'hidden md:block' : ''}`}>
             {convos.map(c => {
-              const other = c.customer_id === user.id ? 'Tradie' : c.customer_name || 'Customer';
+              const other = c.customer_id === user.id ? 'Service provider' : c.customer_name || 'Customer';
               return (
                 <button key={c.id} onClick={() => openConvo(c)} className={`w-full text-left p-3.5 hover:bg-white/60 ${active?.id === c.id ? 'bg-white/70' : ''}`}>
                   <div className="font-medium text-sm truncate">{c.job_title}</div>

@@ -130,7 +130,7 @@ export default function Register() {
     <AuthLayout
       icon={UserPlus}
       title="Create your account"
-      subtitle="Join Ballarat locals finding trusted help and quality work."
+      subtitle="Join Ballarat locals using managed service requests and bookings."
       footer={
         <>
           Already have an account?{" "}

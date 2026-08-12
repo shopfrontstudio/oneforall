@@ -6,7 +6,10 @@
       "enum": [
         "customer",
         "tradie"
-      ]
+      ],
+      "rls": {
+        "write": { "user_condition": { "role": "admin" } }
+      }
     },
     "account_standing": {
       "type": "string",
@@ -24,11 +27,9 @@
         "admin",
         "user"
       ],
-      // account_type is self-service (Onboarding and the profile switcher both call
-      // auth.updateMe), and role sits on the same record — so without this rule a
-      // crafted updateMe({ role: "admin" }) would grant admin, which ServiceCategory
-      // writes and every `user_condition: { role: "admin" }` rule trust.
-      // `update` only: leave create alone so signup can still stamp the default role.
+      // Account experience changes now pass through set-account-type, while role
+      // remains admin-owned. Otherwise a crafted user update could grant admin,
+      // which protected writes and every admin RLS condition trust.
       "rls": {
         "update": { "user_condition": { "role": "admin" } }
       }

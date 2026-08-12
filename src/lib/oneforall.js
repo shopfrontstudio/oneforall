@@ -13,6 +13,7 @@ export const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map(c => [c.slug, c]))
 export const PRIMARY_SERVICE_BY_CATEGORY = Object.freeze(Object.fromEntries(CATEGORIES.map(c => [c.slug, c.service_key])));
 export { PHASE1_SERVICES, PHASE1_SERVICE_MAP };
 export const MARKETPLACE_RELEASE_OPEN = PHASE1_SERVICES.some(service => service.flags.public_release_enabled);
+export const PROVIDER_ONBOARDING_OPEN = PHASE1_SERVICES.some(service => service.flags.provider_onboarding_enabled);
 
 export const URGENCY_OPTIONS = [
   { value: 'flexible', label: 'Flexible', mult: 1.0 },
@@ -51,15 +52,17 @@ export function matchScore(job, tradie) {
 
 export const URGENCY_LABEL = { flexible: 'Flexible', this_week: 'This week', urgent: 'Urgent' };
 export const JOB_STATUS_LABEL = {
-  draft: 'Draft', published: 'Open', matched: 'Matched', in_progress: 'In progress', completed: 'Completed', cancelled: 'Cancelled',
+  draft: 'Draft request', published: 'Request received', matched: 'Booked', in_progress: 'In progress', completed: 'Completed', cancelled: 'Cancelled',
 };
 
-export async function setAccountType(type) { await base44.auth.updateMe({ account_type: type }); }
+export async function setAccountType(type) { return callFunction('set-account-type', { account_type: type }); }
 
 export async function ensureProfile(type, user) {
   if (type === 'tradie') {
-    const ex = await base44.entities.TradieProfile.filter({ user_id: user.id });
-    if (!ex.length) await base44.entities.TradieProfile.create({ user_id: user.id, full_name: user.full_name || user.email, open_to_work: true, service_radius_km: 20 });
+    if (!PROVIDER_ONBOARDING_OPEN) throw new Error('Provider onboarding is not currently available.');
+    // The gated backend creates a provider draft after eligibility opens. The
+    // client deliberately has no direct provider-draft creation path.
+    return;
   } else {
     const ex = await base44.entities.CustomerProfile.filter({ user_id: user.id });
     if (!ex.length) await base44.entities.CustomerProfile.create({ user_id: user.id, full_name: user.full_name || user.email, suburb: 'Ballarat' });

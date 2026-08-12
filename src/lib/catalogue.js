@@ -12,7 +12,7 @@ export const CATEGORY_META = Object.freeze([
 export const CATEGORY_META_MAP = Object.freeze(Object.fromEntries(CATEGORY_META.map((item) => [item.key, item])));
 
 export const PATHWAY_LABELS = Object.freeze({
-  scheduled_or_recurring: 'Request a time',
+  scheduled_or_recurring: 'Request a scheduled or recurring service',
   managed_quote: 'Request a managed quote',
   licensed_diagnostic: 'Arrange a licensed assessment',
 });
@@ -23,6 +23,13 @@ export function groupedServices() {
 
 export function serviceAvailability(service) {
   return service?.flags.public_release_enabled && service.flags.publicly_visible && service.flags.request_enabled ? 'available' : 'not_accepting_requests';
+}
+
+export function serviceAvailabilityMessage(service) {
+  if (!service?.flags.publicly_visible) return 'This service is visible for planning only.';
+  if (!service.flags.public_release_enabled) return 'This service has not passed its public release gate.';
+  if (!service.flags.request_enabled) return 'Requests for this service are temporarily unavailable.';
+  return 'Accepting requests.';
 }
 
 export { PHASE1_SERVICES, PHASE1_SERVICE_MAP };

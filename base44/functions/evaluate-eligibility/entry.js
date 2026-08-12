@@ -8,9 +8,9 @@ export default async function (req) {
     const base44 = createClientFromRequest(req);
     const user = await currentUser(base44);
     if (!user) return unauthorized();
-    const { service_key, suburb } = await req.json();
-    if (!service_key || !suburb) return fail('A service and suburb are required.');
-    return ok(await loadServiceEligibility(base44, { providerId: user.id, serviceKey: service_key, suburb }));
+    const { service_key, selected_scope_ids, suburb } = await req.json();
+    if (!service_key || !suburb || !Array.isArray(selected_scope_ids) || !selected_scope_ids.length) return fail('A service, selected scope and suburb are required.');
+    return ok(await loadServiceEligibility(base44, { providerId: user.id, serviceKey: service_key, selectedScopeIds: selected_scope_ids, suburb }));
   } catch (error) {
     return serverError(error);
   }

@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, FileImage, Info, LockKeyhole, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
@@ -8,17 +8,23 @@ import { EmptyState } from '@/components/oneforall/Bits';
 import { IS_DEV_PREVIEW } from '@/lib/runtime';
 
 const FieldError = ({ id, children }) => children ? <p id={id} className="mt-1 text-sm font-medium text-destructive" role="alert">{children}</p> : null;
+const FOCUSABLE_CONTROL = 'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function Intake() {
   const { serviceKey } = useParams();
   const service = PHASE1_SERVICE_MAP[serviceKey];
   const { isAuthenticated } = useAuth();
   const formId = useId();
+  const formRef = useRef(null);
   const [draft, setDraft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState(null);
   const [previewCount, setPreviewCount] = useState(0);
   const [restored, setRestored] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [touched, setTouched] = useState({});
+  const [storageWarning, setStorageWarning] = useState(false);
+  const [invalidFocusRequest, setInvalidFocusRequest] = useState(0);
 
   useEffect(() => {
     if (!service) { setLoading(false); return; }
@@ -29,19 +35,44 @@ export default function Intake() {
   }, [service]);
 
   useEffect(() => {
-    if (draft) saveSessionIntake(draft);
+    if (draft) setStorageWarning(!saveSessionIntake(draft));
   }, [draft]);
+
+  useEffect(() => {
+    if (!invalidFocusRequest) return;
+    // Effects run after React commits the submitted/error state. DOM order is
+    // therefore the deterministic error order; an invalid fieldset delegates
+    // focus to its first usable form control.
+    const invalidElement = formRef.current?.querySelector('[aria-invalid="true"]');
+    const focusTarget = invalidElement?.matches(FOCUSABLE_CONTROL)
+      ? invalidElement
+      : invalidElement?.querySelector(FOCUSABLE_CONTROL);
+    focusTarget?.focus();
+  }, [invalidFocusRequest]);
 
   if (loading) return <div className="glass-soft h-72 animate-pulse rounded-3xl" role="status" aria-label="Loading request questions" />;
   if (!service || !draft) return <EmptyState title="Request pathway not found" body="Choose a service from the Phase 1 catalogue." action={<Link to="/services" className="font-semibold text-eucalyptus-deep">Browse services</Link>} />;
 
   const assessment = result || evaluateIntakeDraft(draft);
-  const set = (field, value) => { setDraft((current) => ({ ...current, [field]: value })); setResult(null); };
+  const hasVisibleError = Object.keys(assessment.errors || {}).some((field) => touched[field]);
+  const visibleState = assessment.state === 'error' && !submitted && !hasVisibleError ? 'empty' : assessment.state;
+  const set = (field, value) => { setDraft((current) => ({ ...current, [field]: value })); setTouched((current) => ({ ...current, [field]: true })); setResult(null); };
+  const toggleScope = (scopeId) => set('selected_scope_ids', draft.selected_scope_ids.includes(scopeId) ? draft.selected_scope_ids.filter((id) => id !== scopeId) : [...draft.selected_scope_ids, scopeId]);
+  const markGroupTouched = (field) => (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) setTouched((current) => ({ ...current, [field]: true }));
+  };
 
   const submit = (event) => {
     event.preventDefault();
+    setSubmitted(true);
     const next = evaluateIntakeDraft(draft);
-    if (next.state !== 'ready') { setResult(next); return; }
+    if (next.state !== 'ready') {
+      setResult(next);
+      if (next.state === 'error' && Object.keys(next.errors || {}).length) {
+        setInvalidFocusRequest((request) => request + 1);
+      }
+      return;
+    }
     if (IS_DEV_PREVIEW) {
       setPreviewCount((count) => count + 1);
       setResult({ ...next, state: nextPreviewState(previewCount) });
@@ -50,8 +81,8 @@ export default function Intake() {
     setResult({ ...next, state: 'unavailable' });
   };
 
-  const reset = () => { clearSessionIntake(); setDraft(createIntakeDraft(service.key)); setResult(null); setRestored(false); setPreviewCount(0); };
-  const error = (field) => assessment.errors?.[field];
+  const reset = () => { clearSessionIntake(); setDraft(createIntakeDraft(service.key)); setResult(null); setRestored(false); setPreviewCount(0); setSubmitted(false); setTouched({}); setStorageWarning(false); setInvalidFocusRequest(0); };
+  const error = (field) => submitted || touched[field] ? assessment.errors?.[field] : undefined;
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -59,11 +90,14 @@ export default function Intake() {
       <header className="glass rounded-3xl p-5 sm:p-7"><p className="text-xs font-bold uppercase tracking-[0.14em] text-terracotta">{PATHWAY_LABELS[service.pathway]}</p><h1 className="mt-2 text-2xl font-semibold sm:text-3xl">{service.name}</h1><p className="mt-2 text-sm text-muted-foreground">This reusable intake changes its questions by pathway and service configuration. It does not create a record in this checkpoint.</p>{restored && <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sage/35 px-3 py-2 text-sm font-semibold" role="status"><Clock3 size={16} />Restored from this browser session</p>}</header>
 
       <div className="rounded-2xl border border-sandstone-deep/45 bg-sandstone/30 p-4" role="status"><b>Public requests are currently unavailable.</b><p className="mt-1 text-sm text-muted-foreground">You may review and complete the questions. Production stops before submission while release flags are off.</p>{IS_DEV_PREVIEW && <p className="mt-2 text-sm font-bold text-terracotta">Local QA preview · no Base44 function is invoked and no record is written.</p>}</div>
+      {storageWarning && <div className="rounded-2xl border border-sandstone-deep/45 bg-white/70 p-4 text-sm" role="status"><b>Draft not saved in this browser.</b><p className="mt-1 text-muted-foreground">You can keep completing this form; leaving or refreshing may clear it.</p></div>}
 
-      <form onSubmit={submit} noValidate className="glass space-y-6 rounded-3xl p-5 sm:p-7">
-        {service.adults_only && <div className="rounded-2xl border border-terracotta/25 bg-terracotta/5 p-4 text-sm"><b>Adults-only, low-risk pathway.</b><p className="mt-1 text-muted-foreground">Requests involving minors, impaired consent, broken/infected skin or invasive treatments are blocked.</p></div>}
+      <form ref={formRef} onSubmit={submit} noValidate className="glass space-y-6 rounded-3xl p-5 sm:p-7">
+        {service.adults_only && <fieldset className="rounded-2xl border border-terracotta/25 bg-terracotta/5 p-4 text-sm" aria-invalid={Boolean(error('adult_scope_confirmed'))} aria-describedby={error('adult_scope_confirmed') ? `${formId}-adult-error` : undefined} onBlur={markGroupTouched('adult_scope_confirmed')}><legend className="px-1 font-semibold">Adults-only, low-risk pathway</legend><p className="mt-1 text-muted-foreground">Requests involving minors, impaired consent, broken/infected skin or invasive treatments are blocked.</p><label className="mt-3 flex items-start gap-2 font-semibold"><input type="checkbox" checked={draft.adult_scope_confirmed} onChange={(event) => set('adult_scope_confirmed', event.target.checked)} /><span>I confirm the person receiving the service is 18 or older and can consent.</span></label><FieldError id={`${formId}-adult-error`}>{error('adult_scope_confirmed')}</FieldError></fieldset>}
 
-        <div><label htmlFor={`${formId}-scope`} className="text-sm font-semibold">What do you need?</label><p className="mt-1 text-xs text-muted-foreground">Describe the task and context. Do not enter identity documents, health records or payment details.</p><textarea id={`${formId}-scope`} value={draft.scope_description} onChange={(event) => set('scope_description', event.target.value)} rows={5} aria-invalid={Boolean(error('scope_description'))} aria-describedby={error('scope_description') ? `${formId}-scope-error` : undefined} className="inp mt-2" /><FieldError id={`${formId}-scope-error`}>{error('scope_description')}</FieldError></div>
+        <fieldset onBlur={markGroupTouched('selected_scope_ids')} aria-invalid={Boolean(error('selected_scope_ids'))} aria-describedby={error('selected_scope_ids') ? `${formId}-scope-options-error` : undefined}><legend className="text-sm font-semibold">Choose the listed work you need</legend><p className="mt-1 text-xs text-muted-foreground">Only these configured options can proceed automatically. Notes can narrow the request but cannot add a new service.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{service.scope_options.map((option) => <label key={option.id} className="flex items-start gap-2 rounded-xl border border-border bg-white/65 p-3 text-sm"><input type="checkbox" checked={draft.selected_scope_ids.includes(option.id)} onChange={() => toggleScope(option.id)} /><span>{option.label}</span></label>)}</div><FieldError id={`${formId}-scope-options-error`}>{error('selected_scope_ids')}</FieldError></fieldset>
+
+        <div><label htmlFor={`${formId}-scope`} className="text-sm font-semibold">Optional notes</label><p className="mt-1 text-xs text-muted-foreground">Add context only. Unknown, mixed, review or prohibited wording will tighten the decision; it never widens the selected options. Do not enter identity documents, health records or payment details.</p><textarea id={`${formId}-scope`} value={draft.scope_description} onChange={(event) => set('scope_description', event.target.value)} rows={5} aria-invalid={Boolean(error('scope_description'))} aria-describedby={error('scope_description') ? `${formId}-scope-error` : undefined} className="inp mt-2" /><FieldError id={`${formId}-scope-error`}>{error('scope_description')}</FieldError></div>
 
         <div><label htmlFor={`${formId}-suburb`} className="text-sm font-semibold">Service suburb</label><input id={`${formId}-suburb`} value={draft.suburb} onChange={(event) => set('suburb', event.target.value)} aria-invalid={Boolean(error('suburb'))} aria-describedby={error('suburb') ? `${formId}-suburb-error` : undefined} autoComplete="address-level2" className="inp mt-2" /><FieldError id={`${formId}-suburb-error`}>{error('suburb')}</FieldError></div>
 
@@ -73,7 +107,7 @@ export default function Intake() {
 
         {service.pathway === 'licensed_diagnostic' && <fieldset className="space-y-4"><legend className="text-lg font-semibold">Diagnostic questions</legend><div><label htmlFor={`${formId}-pest`} className="text-sm font-semibold">Reported pest</label><input id={`${formId}-pest`} value={draft.reported_pest} onChange={(event) => set('reported_pest', event.target.value)} placeholder="e.g. Not sure, ants, rodents" aria-invalid={Boolean(error('reported_pest'))} aria-describedby={error('reported_pest') ? `${formId}-pest-error` : undefined} className="inp mt-2" /><FieldError id={`${formId}-pest-error`}>{error('reported_pest')}</FieldError></div><div><label htmlFor={`${formId}-signs`} className="text-sm font-semibold">Signs observed</label><textarea id={`${formId}-signs`} value={draft.observed_signs} onChange={(event) => set('observed_signs', event.target.value)} rows={3} aria-invalid={Boolean(error('observed_signs'))} aria-describedby={error('observed_signs') ? `${formId}-signs-error` : undefined} className="inp mt-2" /><FieldError id={`${formId}-signs-error`}>{error('observed_signs')}</FieldError></div><div><label htmlFor={`${formId}-safety`} className="text-sm font-semibold">Are there safety considerations for the assessment?</label><select id={`${formId}-safety`} value={draft.safety_considerations} onChange={(event) => set('safety_considerations', event.target.value)} className="inp mt-2"><option value="none_declared">None declared</option><option value="considerations_present">Yes — discuss privately during review</option><option value="prefer_not_to_say">Prefer not to say here</option></select><p className="mt-1 text-xs text-muted-foreground">Do not enter health details in this preview.</p></div></fieldset>}
 
-        <IntakeStatus state={assessment.state} isAuthenticated={isAuthenticated} serviceKey={service.key} />
+        <IntakeStatus state={visibleState} isAuthenticated={isAuthenticated} serviceKey={service.key} />
 
         <div className="flex flex-col gap-2 sm:flex-row"><button type="submit" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25">{IS_DEV_PREVIEW ? 'Preview request — no record' : 'Check request availability'}</button><button type="button" onClick={reset} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"><RotateCcw size={16} />Clear draft</button></div>
       </form>

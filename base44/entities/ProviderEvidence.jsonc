@@ -4,6 +4,7 @@
   "properties": {
     "provider_id": { "type": "string" },
     "worker_id": { "type": "string" },
+    "subject_type": { "type": "string", "enum": ["provider", "worker"] },
     "evidence_type": { "type": "string" },
     "legal_entity_name": { "type": "string" },
     "abn": { "type": "string" },
@@ -12,14 +13,19 @@
     "identifier": { "type": "string" },
     "issuer": { "type": "string" },
     "service_scopes": { "type": "array", "items": { "type": "string" } },
+    "approved_scope_ids": { "type": "array", "items": { "type": "string" } },
+    "expiry_required": { "type": "boolean", "description": "Review snapshot; the authoritative requirement remains the service configuration.", "default": false },
     "issued_date": { "type": "string", "format": "date" },
     "expires_date": { "type": "string", "format": "date-time" },
     "review_status": { "type": "string", "enum": ["pending", "verified", "rejected", "expired"], "default": "pending" },
     "review_notes": { "type": "string" },
     "reviewed_by": { "type": "string" },
-    "reviewed_at": { "type": "string", "format": "date-time" }
+    "reviewed_at": { "type": "string", "format": "date-time" },
+    "supersedes_evidence_id": { "type": "string", "description": "Admin-reviewed replacement link. The replacement workflow remains a next-checkpoint release gate." },
+    "superseded_by_evidence_id": { "type": "string", "description": "When present, this evidence is historical and cannot satisfy eligibility." },
+    "superseded_at": { "type": "string", "format": "date-time" }
   },
-  "required": ["provider_id", "evidence_type", "review_status"],
+  "required": ["provider_id", "subject_type", "evidence_type", "review_status"],
   "rls": {
     "create": { "user_condition": { "role": "admin" } },
     "read": { "$or": [{ "data.provider_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },

@@ -1,7 +1,7 @@
 import React from "react";
 import BrandBackground from "@/components/oneforall/BrandBackground";
 import Logo from "@/components/oneforall/Logo";
-import { BadgeCheck, MapPin, ShieldCheck } from "lucide-react";
+import { ClipboardCheck, MapPin, ShieldCheck } from "lucide-react";
 
 export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = null, children = null }) {
   return (
@@ -16,7 +16,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = 
             <Logo size={48} className="drop-shadow-lg" />
             <div>
               <p className="text-xl font-bold tracking-tight">OneForAll</p>
-              <p className="text-xs text-primary-foreground/80">Ballarat's local job marketplace</p>
+              <p className="text-xs text-primary-foreground/80">Ballarat's managed service pathway</p>
             </div>
           </div>
 
@@ -25,16 +25,16 @@ export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = 
               <MapPin size={13} /> Built for Ballarat
             </p>
             <h2 className="text-4xl font-bold leading-[1.08] tracking-tight text-balance">
-              Good local work, matched with good local people.
+              Local service requests with clearer scope and support.
             </h2>
             <p className="mt-4 max-w-sm text-sm leading-6 text-primary-foreground/80">
-              Post a job for free or discover nearby opportunities—without commissions getting in the way.
+              Choose a configured service, provide the details needed for review, and manage an eligible booking in one place.
             </p>
           </div>
 
           <div className="relative grid gap-3 text-sm">
-            <TrustPoint icon={BadgeCheck}>Verified local tradie profiles</TrustPoint>
-            <TrustPoint icon={ShieldCheck}>Private contact details until you match</TrustPoint>
+            <TrustPoint icon={ClipboardCheck}>Service-specific scope and eligibility</TrustPoint>
+            <TrustPoint icon={ShieldCheck}>Private contact details until a booking is confirmed</TrustPoint>
           </div>
         </aside>
 
@@ -43,7 +43,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = 
             <Logo size={42} />
             <div>
               <p className="font-bold tracking-tight">OneForAll</p>
-              <p className="text-[11px] text-muted-foreground">Local jobs · verified tradies</p>
+              <p className="text-[11px] text-muted-foreground">Managed local service requests</p>
             </div>
           </div>
 

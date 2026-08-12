@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { Home as HomeIcon, CalendarDays, Shapes, MessageSquare, User, Compass, Ticket } from 'lucide-react';
+import { Home as HomeIcon, CalendarDays, Shapes, MessageSquare, User, ClipboardList, BriefcaseBusiness } from 'lucide-react';
 
 const CUSTOMER_NAV = [
   { to: '/', label: 'Home', icon: HomeIcon },
@@ -11,8 +11,8 @@ const CUSTOMER_NAV = [
   { to: '/account', label: 'Account', icon: User },
 ];
 const TRADIE_NAV = [
-  { to: '/provider/discover', label: 'Discover', icon: Compass },
-  { to: '/provider/invites', label: 'Invites', icon: Ticket },
+  { to: '/provider/discover', label: 'Requests', icon: ClipboardList },
+  { to: '/provider/invites', label: 'Jobs', icon: BriefcaseBusiness },
   { to: '/messages', label: 'Chat', icon: MessageSquare },
   { to: '/provider/account', label: 'Account', icon: User },
 ];

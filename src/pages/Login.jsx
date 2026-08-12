@@ -42,7 +42,7 @@ export default function Login() {
     <AuthLayout
       icon={LogIn}
       title="Welcome back"
-      subtitle="Log in to manage your jobs, messages and local matches."
+      subtitle="Log in to manage your service requests, bookings and messages."
       footer={
         <>
           Don't have an account?{" "}

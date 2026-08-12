@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Ban, CheckCircle2, Briefcase, Pencil } from 'lucide-react';
+import { Plus, Ban, Briefcase, Pencil } from 'lucide-react';
 import JobCard from '@/components/oneforall/JobCard';
 import { EmptyState } from '@/components/oneforall/Bits';
 import { callFunction } from '@/lib/oneforall';
@@ -22,25 +22,21 @@ export default function MyJobs() {
 
   useEffect(() => { load(); }, [load]);
 
-  const updateStatus = async (job, status) => {
+  const cancelRequest = async (job) => {
     setWorkingId(job.id);
     try {
-      if (status === 'completed') {
-        await callFunction('transition-booking', { job_id: job.id, to_state: 'completed', idempotency_key: crypto.randomUUID() });
-      } else {
-        await callFunction('transition-request', { job_id: job.id, to_state: 'cancelled', idempotency_key: crypto.randomUUID() });
-      }
-      toast({ title: status === 'completed' ? 'Job marked complete' : status === 'discarded' ? 'Draft discarded' : 'Job cancelled' });
+      await callFunction('transition-request', { job_id: job.id, to_state: 'cancelled', idempotency_key: crypto.randomUUID() });
+      toast({ title: job.status === 'draft' ? 'Draft closed' : 'Request cancelled' });
       await load();
     } catch (error) {
-      toast({ title: 'Could not update job', description: error.message, variant: 'destructive' });
+      toast({ title: 'Could not update request', description: error.message, variant: 'destructive' });
     } finally {
       setWorkingId(null);
       setConfirmAction(null);
     }
   };
 
-  if (jobs === null) return <div className="glass-soft rounded-2xl h-40 animate-pulse" />;
+  if (jobs === null) return <div className="glass-soft h-40 rounded-2xl" role="status" aria-label="Loading requests and bookings" />;
   if (!jobs.length) return <EmptyState icon={Briefcase} title="No bookings yet" body="Explore the service catalogue. Public requests remain closed during the founding phase." action={<Link to="/services" className="bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-2"><Plus size={16} /> Browse services</Link>} />;
 
   const open = jobs.filter(j => j.status !== 'completed' && j.status !== 'cancelled');
@@ -52,17 +48,18 @@ export default function MyJobs() {
         <h1 className="text-2xl font-semibold tracking-tight">Bookings</h1>
         <Link to="/services" className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-1.5"><Plus size={16} /> Services</Link>
       </div>
-      {open.length > 0 && <div className="grid sm:grid-cols-2 gap-3">{open.map(j => <JobActions key={j.id} job={j} onConfirm={setConfirmAction} working={workingId === j.id} />)}</div>}
-      {closed.length > 0 && (<div><h2 className="text-sm font-semibold text-muted-foreground mb-2">Closed</h2><div className="grid sm:grid-cols-2 gap-3 opacity-70">{closed.map(j => <JobCard key={j.id} job={j} />)}</div></div>)}
+      <p className="rounded-xl border border-border bg-white/65 p-3 text-sm text-muted-foreground" role="status">This page keeps service requests and their resulting bookings together. Booking progress is recorded by the attending provider; contact support through Messages if something is wrong.</p>
+      {open.length > 0 && <section aria-labelledby="current-bookings"><h2 id="current-bookings" className="mb-2 text-sm font-semibold">Current requests and bookings</h2><div className="grid gap-3 sm:grid-cols-2">{open.map(j => <JobActions key={j.id} job={j} onConfirm={setConfirmAction} working={workingId === j.id} />)}</div></section>}
+      {closed.length > 0 && (<section aria-labelledby="booking-history"><h2 id="booking-history" className="mb-2 text-sm font-semibold text-muted-foreground">Booking history</h2><div className="grid gap-3 opacity-70 sm:grid-cols-2">{closed.map(j => <JobCard key={j.id} job={j} />)}</div></section>)}
       {confirmAction && (
         <ConfirmAction
-          title={confirmAction.type === 'complete' ? 'Mark this job complete?' : confirmAction.type === 'discard' ? 'Discard this draft?' : 'Cancel this job?'}
-          body={confirmAction.type === 'complete' ? 'This closes the job and enables the review step.' : confirmAction.type === 'discard' ? 'This closes the saved draft without deleting its audit history.' : 'Providers will no longer see this job. This cannot be reopened.'}
-          confirmLabel={confirmAction.type === 'complete' ? 'Mark complete' : confirmAction.type === 'discard' ? 'Discard draft' : 'Cancel job'}
-          destructive={confirmAction.type !== 'complete'}
+          title={confirmAction.type === 'discard' ? 'Close this draft?' : 'Cancel this request?'}
+          body={confirmAction.type === 'discard' ? 'This closes the saved draft without deleting its audit history.' : 'This closes the unbooked request. Confirmed bookings must be handled from their booking and support pathway.'}
+          confirmLabel={confirmAction.type === 'discard' ? 'Close draft' : 'Cancel request'}
+          destructive
           busy={workingId === confirmAction.job.id}
           onCancel={() => setConfirmAction(null)}
-          onConfirm={() => updateStatus(confirmAction.job, confirmAction.type === 'complete' ? 'completed' : confirmAction.type === 'discard' ? 'discarded' : 'cancelled')}
+          onConfirm={() => cancelRequest(confirmAction.job)}
         />
       )}
     </div>
@@ -77,11 +74,9 @@ function JobActions({ job, onConfirm, working }) {
         {job.status === 'draft' ? (
           <Link to="/services" className="flex-1 text-xs font-medium px-3 py-2 rounded-xl glass-soft card-lift inline-flex items-center justify-center gap-1"><Pencil size={13} /> Review services</Link>
         ) : <span className="flex-1" />}
-        {job.status === 'matched' || job.status === 'in_progress' ? (
-          <button disabled={working} onClick={() => onConfirm({ type: 'complete', job })} className="flex-1 text-xs font-medium px-3 py-2 rounded-xl bg-sage/40 card-lift inline-flex items-center justify-center gap-1 disabled:opacity-50"><CheckCircle2 size={13} /> Complete</button>
-        ) : (
+        {job.status === 'draft' || job.status === 'published' ? (
           <button disabled={working} onClick={() => onConfirm({ type: job.status === 'draft' ? 'discard' : 'cancel', job })} className="flex-1 text-xs font-medium px-3 py-2 rounded-xl glass-soft card-lift inline-flex items-center justify-center gap-1 text-terracotta disabled:opacity-50"><Ban size={13} /> {job.status === 'draft' ? 'Discard draft' : 'Cancel'}</button>
-        )}
+        ) : <Link to={`/booking/${job.id}`} className="flex-1 rounded-xl bg-sage/40 px-3 py-2 text-center text-xs font-medium">View booking</Link>}
       </div>
     </div>
   );
@@ -94,7 +89,7 @@ function ConfirmAction({ title, body, confirmLabel, destructive, busy, onCancel,
         <h2 id="confirm-title" className="text-lg font-semibold">{title}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{body}</p>
         <div className="mt-5 flex gap-2">
-          <button disabled={busy} onClick={onCancel} className="flex-1 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold">Keep job</button>
+          <button disabled={busy} onClick={onCancel} className="flex-1 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold">Keep request</button>
           <button disabled={busy} onClick={onConfirm} className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold ${destructive ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'}`}>{busy ? 'Updating…' : confirmLabel}</button>
         </div>
       </div>

@@ -4,33 +4,25 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { ArrowRight, ChevronRight, Search } from 'lucide-react';
 import CategoryGrid from '@/components/oneforall/CategoryGrid';
-import TradieCard from '@/components/oneforall/TradieCard';
 import JobCard from '@/components/oneforall/JobCard';
 import { SectionTitle, EmptyState } from '@/components/oneforall/Bits';
-import { pseudoDistance } from '@/lib/oneforall';
 
 export default function CustomerHome() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState(null);
-  const [tradies, setTradies] = useState(null);
   const [quickProblem, setQuickProblem] = useState('');
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let activeRequest = true;
-    Promise.all([
-      base44.entities.Job.filter({ customer_id: user.id }),
-      base44.entities.TradieProfile.filter({ verified: true }),
-    ]).then(([jobList, tradieList]) => {
+    base44.entities.Job.filter({ customer_id: user.id }).then((jobList) => {
       if (!activeRequest) return;
       setJobs(jobList);
-      setTradies(tradieList);
       setLoadError(false);
     }).catch(() => {
       if (!activeRequest) return;
       setJobs([]);
-      setTradies([]);
       setLoadError(true);
     });
     return () => { activeRequest = false; };
@@ -43,10 +35,6 @@ export default function CustomerHome() {
   };
 
   const active = (jobs || []).filter(j => ['published', 'matched', 'in_progress'].includes(j.status));
-  const origin = 'Ballarat';
-  const nearby = [...(tradies || [])]
-    .sort((a, b) => pseudoDistance(origin, a.suburb) - pseudoDistance(origin, b.suburb))
-    .slice(0, 4);
 
   return (
     <div className="space-y-7">
@@ -98,24 +86,8 @@ export default function CustomerHome() {
         <SectionTitle action={<span className="inline-flex items-center gap-1 text-xs text-muted-foreground">Fastest to you</span>}>
           Nearby tradies
         </SectionTitle>
-        {tradies === null ? (
-          <SkeletonGrid />
-        ) : tradies.length === 0 ? (
-          <EmptyState title="Tradie profiles coming soon" body="Ballarat's founding tradies are being verified." />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {nearby.map(t => <TradieCard key={t.id} tradie={t} origin={origin} />)}
-          </div>
-        )}
+        <EmptyState title="Provider assertions coming soon" body="OneForAll will show only current, reviewed, service-specific public assertions—not private provider drafts." />
       </section>
-    </div>
-  );
-}
-
-function SkeletonGrid() {
-  return (
-    <div className="grid sm:grid-cols-2 gap-3">
-      {[0, 1, 2, 3].map(i => <div key={i} className="glass-soft rounded-2xl h-20 animate-pulse" />)}
     </div>
   );
 }
