@@ -107,7 +107,7 @@ export default function TradieProfileView() {
               <div className="flex gap-2"><button onClick={() => setInviteOpen(false)} className="flex-1 rounded-xl glass-soft px-3 py-2 text-sm font-medium">Cancel</button><button disabled={sending || !selectedJob} onClick={invite} className="flex-1 rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">{sending ? 'Sending…' : 'Send invite'}</button></div>
             </div>
           )}
-          <Link to={`/post-job?tradie=${encodeURIComponent(t.id)}`} className="mt-3 block text-center text-sm text-eucalyptus-deep font-medium">Post a new job for this tradie →</Link>
+          <Link to="/services" className="mt-3 block text-center text-sm text-eucalyptus-deep font-medium">Review available service pathways →</Link>
         </div>
       )}
     </div>

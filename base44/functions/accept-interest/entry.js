@@ -1,12 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import { ok, fail, forbidden, unauthorized, serverError } from '../../shared/http.js';
 import { currentUser } from '../../shared/guards.js';
-import { chooseCanonicalBooking, evaluateBookingGate, loadServiceEligibility } from '../../shared/marketplace.js';
+import { chooseCanonicalBooking, evaluateBookingGate, idempotencyScope, loadServiceEligibility } from '../../shared/marketplace.js';
 import { getPhase1Service, PHASE1_POLICY_VERSION } from '../../shared/phase1-catalogue.js';
 import { notifyUser } from '../../shared/notify.js';
 
 async function recordEvent(base44, booking, actorId, idempotencyKey) {
-  const prior = await base44.asServiceRole.entities.BookingEvent.filter({ idempotency_key: idempotencyKey });
+  const prior = await base44.asServiceRole.entities.BookingEvent.filter(idempotencyScope.event({ key: idempotencyKey, actorId, bookingId: booking.id, jobId: booking.job_id }));
   if (prior[0]) return prior[0];
   return base44.asServiceRole.entities.BookingEvent.create({
     booking_id: booking.id, job_id: booking.job_id, customer_id: booking.customer_id,
@@ -21,7 +21,7 @@ export default async function (req) {
     const base44 = createClientFromRequest(req);
     const user = await currentUser(base44);
     if (!user) return unauthorized();
-    const { request_id, action, idempotency_key } = await req.json();
+    const { request_id, action, idempotency_key, worker_acknowledged } = await req.json();
     if (!request_id || !['accept', 'decline'].includes(action)) return fail('A valid quote action is required.');
     if (!idempotency_key) return fail('An idempotency key is required.');
     const request = await base44.asServiceRole.entities.InterestRequest.get(request_id);
@@ -37,7 +37,7 @@ export default async function (req) {
       return ok({ status: 'declined' });
     }
 
-    const duplicate = await base44.asServiceRole.entities.Booking.filter({ idempotency_key });
+    const duplicate = await base44.asServiceRole.entities.Booking.filter(idempotencyScope.booking({ key: idempotency_key, customerId: user.id, jobId: job.id }));
     if (duplicate[0]) return ok({ status: 'accepted', booking: duplicate[0], already_applied: true });
     const existingBookings = await base44.asServiceRole.entities.Booking.filter({ job_id: job.id });
     const existingWinner = chooseCanonicalBooking(existingBookings);
@@ -55,7 +55,8 @@ export default async function (req) {
     const gate = evaluateBookingGate({
       serviceKey: job.service_key, providerEligibility, worker, workerEvidence,
       hazardScreen: { status: job.hazard_screen_status, scope_decision: job.scope_decision },
-      serviceDate: job.preferred_date || new Date(), substitutionDisclosed: true,
+      serviceDate: job.preferred_date || new Date(),
+      substitutionDisclosed: request.substitution_disclosed === true && worker_acknowledged === true,
     });
     if (!gate.eligible) return fail(`Booking blocked: ${gate.reason}.`, 403);
 
@@ -64,9 +65,11 @@ export default async function (req) {
     // converge races, but cannot provide strict serialisability.
     const booking = await base44.asServiceRole.entities.Booking.create({
       job_id: job.id, quote_id: request.id, customer_id: user.id, provider_id: request.tradie_id,
-      attending_worker_id: request.attending_worker_id, service_key: job.service_key, state: 'accepted',
+      attending_worker_id: request.attending_worker_id, attending_worker_display_name: request.attending_worker_display_name,
+      worker_relationship_label: request.worker_relationship_label, customer_worker_acknowledged: worker_acknowledged === true,
+      service_key: job.service_key, state: 'accepted',
       hazard_screen_status: job.hazard_screen_status, scope_decision: job.scope_decision,
-      substitution_disclosed: true, idempotency_key, policy_version: PHASE1_POLICY_VERSION, version: 1,
+      substitution_disclosed: request.substitution_disclosed === true, idempotency_key, policy_version: PHASE1_POLICY_VERSION, version: 1,
     });
     const afterCreate = await base44.asServiceRole.entities.Booking.filter({ job_id: job.id });
     const winner = chooseCanonicalBooking(afterCreate);

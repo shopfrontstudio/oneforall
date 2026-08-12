@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import { ok, fail, forbidden, unauthorized, serverError } from '../../shared/http.js';
 import { cleanText, currentUser, displayName } from '../../shared/guards.js';
 import { classifyServiceScope, getPhase1Service, PHASE1_POLICY_VERSION } from '../../shared/phase1-catalogue.js';
+import { idempotencyScope } from '../../shared/marketplace.js';
 
 const allowedStatus = new Set(['draft', 'published']);
 
@@ -25,8 +26,9 @@ export default async function (req) {
       if (scope.decision !== 'allowed') return fail('This request requires manual review before it can be published.', 422);
     }
 
-    const prior = await base44.asServiceRole.entities.Job.filter({ request_idempotency_key: payload.idempotency_key });
-    if (prior[0]) return ok({ job: prior[0], already_submitted: true });
+    const prior = await base44.asServiceRole.entities.Job.filter(idempotencyScope.job({ key: payload.idempotency_key, customerId: user.id, serviceKey: definition.key }));
+    const priorForParent = payload.job_id ? prior.find((item) => item.id === payload.job_id) : prior[0];
+    if (priorForParent) return ok({ job: priorForParent, already_submitted: true });
 
     let existing = null;
     if (payload.job_id) {

@@ -114,6 +114,11 @@
     background: hsl(var(--primary) / 22%);
     color: hsl(var(--foreground));
   }
+
+  :where(a, button, input, textarea, select):focus-visible {
+    outline: 3px solid hsl(var(--ring) / 55%);
+    outline-offset: 2px;
+  }
 }
 
 @layer components {

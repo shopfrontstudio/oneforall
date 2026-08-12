@@ -1,96 +1,91 @@
-import { Toaster } from "@/components/ui/toaster"
-import { QueryClientProvider } from '@tanstack/react-query'
-import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import PageNotFound from './lib/PageNotFound';
-import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import ScrollToTop from './components/ScrollToTop';
-import { Navigate } from 'react-router-dom';
+import React, { lazy, Suspense } from 'react';
+import { Toaster } from '@/components/ui/toaster';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { queryClientInstance } from '@/lib/query-client';
+import { AuthProvider } from '@/lib/AuthContext';
+import ScrollToTop from '@/components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import Layout from '@/components/oneforall/Layout';
-import Onboarding from '@/pages/Onboarding';
-import Home from '@/pages/Home';
-import PostJob from '@/pages/customer/PostJob';
-import MyJobs from '@/pages/customer/MyJobs';
-import Messages from '@/pages/Messages';
-import Profile from '@/pages/customer/Profile';
-import Discover from '@/pages/tradie/Discover';
-import Invites from '@/pages/tradie/Invites';
-import TradieProfile from '@/pages/tradie/Profile';
-import TradieProfileView from '@/pages/tradie/TradieProfileView';
-import JobDetail from '@/pages/JobDetail';
+import PublicLayout from '@/components/public/PublicLayout';
+import PublicHome from '@/pages/public/Home';
+import Services from '@/pages/public/Services';
+import ServiceDetail from '@/pages/public/ServiceDetail';
+import Intake from '@/pages/public/Intake';
 
-const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+const PrivateLayout = lazy(() => import('@/components/oneforall/Layout'));
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const Onboarding = lazy(() => import('@/pages/Onboarding'));
+const MyJobs = lazy(() => import('@/pages/customer/MyJobs'));
+const Messages = lazy(() => import('@/pages/Messages'));
+const Account = lazy(() => import('@/pages/Account'));
+const Discover = lazy(() => import('@/pages/tradie/Discover'));
+const Invites = lazy(() => import('@/pages/tradie/Invites'));
+const TradieProfileView = lazy(() => import('@/pages/tradie/TradieProfileView'));
+const JobDetail = lazy(() => import('@/pages/JobDetail'));
+const PageNotFound = lazy(() => import('@/lib/PageNotFound'));
 
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+const RouteFallback = () => <div className="mx-auto mt-16 h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" role="status" aria-label="Loading page" />;
 
-  // Handle authentication errors
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
-    }
-  }
+function LoginRedirect() {
+  const location = useLocation();
+  const returnTo = `${location.pathname}${location.search}`;
+  return <Navigate to={`/login?returnTo=${encodeURIComponent(returnTo)}`} replace />;
+}
 
-  // Render the main app
+function AppRoutes() {
   return (
-    <Routes>
+    <Suspense fallback={<RouteFallback />}><Routes>
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<PublicHome />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/services/:serviceKey" element={<ServiceDetail />} />
+        <Route path="/request/:serviceKey" element={<Intake />} />
+        <Route path="/post-job" element={<Navigate to="/services" replace />} />
+      </Route>
+
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+
+      <Route element={<ProtectedRoute unauthenticatedElement={<LoginRedirect />} />}>
         <Route path="/onboarding" element={<Onboarding />} />
-      </Route>
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/post-job" element={<PostJob />} />
-          <Route path="/my-jobs" element={<MyJobs />} />
+        <Route element={<PrivateLayout />}>
+          <Route path="/bookings" element={<MyJobs />} />
           <Route path="/messages" element={<Messages />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/discover" element={<Discover />} />
-          <Route path="/invites" element={<Invites />} />
-          <Route path="/tradie-profile" element={<TradieProfile />} />
+          <Route path="/account" element={<Account />} />
+          <Route path="/provider/discover" element={<Discover />} />
+          <Route path="/provider/invites" element={<Invites />} />
+          <Route path="/provider/account" element={<Account />} />
+          <Route path="/provider/:id" element={<TradieProfileView />} />
+          <Route path="/booking/:id" element={<JobDetail />} />
+          <Route path="/job/:id" element={<Navigate to="/bookings" replace />} />
+          <Route path="/my-jobs" element={<Navigate to="/bookings" replace />} />
+          <Route path="/profile" element={<Navigate to="/account" replace />} />
+          <Route path="/discover" element={<Navigate to="/provider/discover" replace />} />
+          <Route path="/invites" element={<Navigate to="/provider/invites" replace />} />
+          <Route path="/tradie-profile" element={<Navigate to="/provider/account" replace />} />
           <Route path="/tradie/:id" element={<TradieProfileView />} />
-          <Route path="/job/:id" element={<JobDetail />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
-    </Routes>
+    </Routes></Suspense>
   );
-};
+}
 
-
-function App() {
-
+export default function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <Router>
+        <BrowserRouter>
           <ScrollToTop />
-          <AuthenticatedApp />
-        </Router>
+          <AppRoutes />
+        </BrowserRouter>
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>
-  )
+  );
 }
-
-export default App

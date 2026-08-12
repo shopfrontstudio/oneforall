@@ -55,7 +55,7 @@ export default function TradieProfile() {
           <h1 className="text-xl font-semibold tracking-tight flex items-center gap-1.5">{p.full_name}{p.founding_badge && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold"><Crown size={11} />Founding</span>}</h1>
           <p className="text-sm text-muted-foreground">{p.business_name || 'Add your business name'}</p>
         </div>
-        <Link to={`/tradie/${p.id}`} className="ml-auto text-xs font-semibold text-eucalyptus-deep">View public profile</Link>
+        <Link to={`/provider/${p.id}`} className="ml-auto text-xs font-semibold text-eucalyptus-deep">View provider profile</Link>
       </div>
 
       <div className="glass rounded-2xl p-4">

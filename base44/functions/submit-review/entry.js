@@ -65,7 +65,7 @@ export default async function (req) {
       type: 'review',
       title: 'You received a review',
       body: `${displayName(user)} rated your work on "${job.title}" ${score}/5.`,
-      link: '/tradie-profile',
+      link: '/provider/account',
     });
 
     return ok({ review });

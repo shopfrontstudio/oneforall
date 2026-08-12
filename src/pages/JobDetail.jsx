@@ -19,6 +19,7 @@ export default function JobDetail() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [working, setWorking] = useState(false);
   const [reviewed, setReviewed] = useState(false);
+  const [workerAcknowledgements, setWorkerAcknowledgements] = useState({});
 
   const load = async () => {
     const j = await base44.entities.Job.get(id);
@@ -46,7 +47,7 @@ export default function JobDetail() {
   const accept = async (req) => {
     setWorking(true);
     try {
-      await callFunction('accept-interest', { request_id: req.id, action: 'accept', idempotency_key: crypto.randomUUID() });
+      await callFunction('accept-interest', { request_id: req.id, action: 'accept', worker_acknowledged: workerAcknowledgements[req.id] === true, idempotency_key: crypto.randomUUID() });
       toast({ title: 'Request accepted', description: 'Contact details unlocked — you can message now.' });
       navigate('/messages');
     } catch (error) { toast({ title: 'Could not accept request', description: error.message, variant: 'destructive' }); }
@@ -90,7 +91,6 @@ export default function JobDetail() {
         <div className="flex items-center gap-2 flex-wrap mb-2">
           <span className="text-xs px-2 py-0.5 rounded-full bg-eucalyptus/10 text-eucalyptus-deep font-medium">{job.category_name}</span>
           <StatusBadge label={JOB_STATUS_LABEL[job.status]} tone={job.status === 'completed' ? 'sage' : job.status === 'matched' || job.status === 'in_progress' ? 'lime' : 'mist'} />
-          {job.boosted && <span className="text-xs px-2 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold">Boosted</span>}
         </div>
         <h1 className="text-xl font-semibold tracking-tight">{job.title}</h1>
         <p className="text-sm text-foreground/80 mt-2 whitespace-pre-wrap">{job.description}</p>
@@ -128,9 +128,10 @@ export default function JobDetail() {
                   </div>
                   {r.message && <p className="text-sm text-foreground/80 mt-2">"{r.message}"</p>}
                   <div className="text-xs text-muted-foreground mt-2">Indicative quote: {formatAUDRange(r.quote_low, r.quote_high)} · Available {r.earliest_availability || 'flexible'}</div>
+                  {r.attending_worker_display_name && <div className="mt-2 rounded-xl border border-border bg-white/70 p-3 text-xs"><b>Attending worker:</b> {r.attending_worker_display_name}<span className="text-muted-foreground"> · {r.worker_relationship_label || 'Provider team'}</span><label className="mt-2 flex items-start gap-2"><input type="checkbox" checked={workerAcknowledgements[r.id] === true} onChange={(event) => setWorkerAcknowledgements(current => ({ ...current, [r.id]: event.target.checked }))} /><span>I understand this is the disclosed attending worker and any substitution must be separately disclosed and eligible.</span></label></div>}
                   {r.status === 'pending' && (
                     <div className="flex gap-2 mt-3">
-                      <button disabled={working || !PHASE1_SERVICE_MAP[job.service_key]?.flags.booking_enabled} onClick={() => accept(r)} className="flex-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-50">{working ? 'Working…' : 'Accept & unlock'}</button>
+                      <button disabled={working || !r.attending_worker_display_name || workerAcknowledgements[r.id] !== true || !PHASE1_SERVICE_MAP[job.service_key]?.flags.booking_enabled} onClick={() => accept(r)} className="flex-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-50">{working ? 'Working…' : 'Accept & book'}</button>
                       <button onClick={() => decline(r)} className="px-4 py-2 rounded-xl glass-soft text-sm font-medium btn-tactile">Decline</button>
                     </div>
                   )}

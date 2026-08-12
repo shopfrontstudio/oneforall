@@ -125,7 +125,7 @@ export default function Discover() {
           ))}
         </div>
       )}
-      <p className="text-xs text-muted-foreground text-center pt-2">Showing top {ranked.length} matches · ranking never depends on membership.</p>
+      <p className="text-xs text-muted-foreground text-center pt-2">Showing top {ranked.length} matches · ranking uses service fit, not commercial placement.</p>
     </div>
   );
 }

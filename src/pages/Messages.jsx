@@ -79,7 +79,7 @@ export default function Messages() {
                   <div className="font-semibold text-sm truncate">{active.job_title}</div>
                   <div className="text-xs text-muted-foreground">{active.contact_unlocked ? <span className="inline-flex items-center gap-1 text-eucalyptus-deep"><ShieldCheck size={12} /> Contact unlocked</span> : <span className="inline-flex items-center gap-1"><Lock size={12} /> Contact details private</span>}</div>
                 </div>
-                <Link to={`/job/${active.job_id}`} className="text-xs text-eucalyptus-deep font-medium">View job</Link>
+                <Link to={`/booking/${active.job_id}`} className="text-xs text-eucalyptus-deep font-medium">View booking</Link>
               </div>
               <div className="flex-1 overflow-y-auto p-3.5 space-y-2">
                 {messages.map(m => {

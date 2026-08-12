@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import { ok, fail, forbidden, unauthorized, serverError } from '../../shared/http.js';
 import { currentUser } from '../../shared/guards.js';
-import { canTransitionBooking } from '../../shared/marketplace.js';
+import { canTransitionBooking, idempotencyScope } from '../../shared/marketplace.js';
 import { PHASE1_POLICY_VERSION } from '../../shared/phase1-catalogue.js';
 
 const jobState = { accepted: 'matched', scheduled: 'matched', in_progress: 'in_progress', completed: 'completed', cancelled: 'cancelled', disputed: 'in_progress' };
@@ -18,7 +18,7 @@ export default async function (req) {
     if (!booking) return fail('That booking no longer exists.', 404);
     const actorRole = user.role === 'admin' ? 'admin' : booking.customer_id === user.id ? 'customer' : booking.provider_id === user.id ? 'provider' : null;
     if (!actorRole) return forbidden();
-    const prior = await base44.asServiceRole.entities.BookingEvent.filter({ idempotency_key });
+    const prior = await base44.asServiceRole.entities.BookingEvent.filter(idempotencyScope.event({ key: idempotency_key, actorId: user.id, bookingId: booking.id, jobId: booking.job_id }));
     if (prior[0]) return ok({ booking, already_applied: true });
     if (!canTransitionBooking(booking.state, to_state, actorRole)) return fail('That booking transition is not allowed.', 409);
     const updated = await base44.asServiceRole.entities.Booking.update(booking.id, { state: to_state, version: Number(booking.version || 1) + 1 });

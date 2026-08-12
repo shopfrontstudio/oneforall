@@ -155,7 +155,7 @@
     "boosted": {
       "type": "boolean",
       "default": false,
-      "description": "Set by the boost-job function once the monthly quota and cooldown pass.",
+      "description": "Dormant legacy flag. Phase 1 boosting is permanently disabled.",
       "rls": {
         "write": { "user_condition": { "role": "admin" } }
       }

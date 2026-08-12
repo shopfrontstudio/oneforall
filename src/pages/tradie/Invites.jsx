@@ -71,7 +71,7 @@ export default function Invites() {
               </div>
               <span className={`text-xs px-2 py-1 rounded-full font-medium ${inv.status === 'responded' ? 'bg-sage/40 text-eucalyptus-deep' : inv.status === 'declined' ? 'bg-terracotta/15 text-terracotta' : 'bg-mist-soft text-eucalyptus-deep'}`}>{inv.status}</span>
             </div>
-            <Link to={`/job/${inv.job_id}`} className="text-xs text-eucalyptus-deep font-medium inline-block mt-1">View full job & photos →</Link>
+            <Link to={`/booking/${inv.job_id}`} className="text-xs text-eucalyptus-deep font-medium inline-block mt-1">View request details →</Link>
             <div className="text-xs text-muted-foreground mt-2 inline-flex items-center gap-1"><Lock size={12} /> Contact details stay private until the customer accepts.</div>
             {inv.status === 'pending' && (
               respondId === inv.id ? (

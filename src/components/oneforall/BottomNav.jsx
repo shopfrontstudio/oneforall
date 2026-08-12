@@ -1,20 +1,20 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { Home as HomeIcon, Briefcase, Plus, MessageSquare, User, Compass, Ticket } from 'lucide-react';
+import { Home as HomeIcon, CalendarDays, Shapes, MessageSquare, User, Compass, Ticket } from 'lucide-react';
 
 const CUSTOMER_NAV = [
   { to: '/', label: 'Home', icon: HomeIcon },
-  { to: '/my-jobs', label: 'Jobs', icon: Briefcase },
-  { to: '/post-job', label: 'Post', icon: Plus, primary: true },
-  { to: '/messages', label: 'Chat', icon: MessageSquare },
-  { to: '/profile', label: 'Me', icon: User },
+  { to: '/services', label: 'Services', icon: Shapes },
+  { to: '/bookings', label: 'Bookings', icon: CalendarDays },
+  { to: '/messages', label: 'Messages', icon: MessageSquare },
+  { to: '/account', label: 'Account', icon: User },
 ];
 const TRADIE_NAV = [
-  { to: '/', label: 'Discover', icon: Compass },
-  { to: '/invites', label: 'Invites', icon: Ticket },
+  { to: '/provider/discover', label: 'Discover', icon: Compass },
+  { to: '/provider/invites', label: 'Invites', icon: Ticket },
   { to: '/messages', label: 'Chat', icon: MessageSquare },
-  { to: '/tradie-profile', label: 'Me', icon: User },
+  { to: '/provider/account', label: 'Account', icon: User },
 ];
 
 export default function BottomNav() {

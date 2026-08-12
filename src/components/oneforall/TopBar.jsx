@@ -2,21 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
-import { Bell, Home as HomeIcon, Briefcase, Plus, MessageSquare, User, Compass, Ticket, CheckCheck } from 'lucide-react';
+import { Bell, Home as HomeIcon, CalendarDays, Shapes, MessageSquare, User, Compass, Ticket, CheckCheck } from 'lucide-react';
 import Logo from './Logo';
 
 const CUSTOMER_NAV = [
   { to: '/', label: 'Home', icon: HomeIcon },
-  { to: '/my-jobs', label: 'My Jobs', icon: Briefcase },
-  { to: '/post-job', label: 'Post Job', icon: Plus, primary: true },
+  { to: '/services', label: 'Services', icon: Shapes },
+  { to: '/bookings', label: 'Bookings', icon: CalendarDays },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
-  { to: '/profile', label: 'Profile', icon: User },
+  { to: '/account', label: 'Account', icon: User },
 ];
 const TRADIE_NAV = [
-  { to: '/', label: 'Discover', icon: Compass },
-  { to: '/invites', label: 'Invites', icon: Ticket },
+  { to: '/provider/discover', label: 'Discover', icon: Compass },
+  { to: '/provider/invites', label: 'Invites', icon: Ticket },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
-  { to: '/tradie-profile', label: 'Profile', icon: User },
+  { to: '/provider/account', label: 'Account', icon: User },
 ];
 
 // Notification.link is written by whichever account triggered the notification, so
@@ -73,7 +73,7 @@ export default function TopBar() {
             <Logo size={34} />
             <div className="leading-tight hidden sm:block">
               <div className="font-semibold text-foreground tracking-tight">OneForAll</div>
-              <div className="text-[10px] text-muted-foreground -mt-0.5">Local jobs · verified tradies</div>
+              <div className="text-[10px] text-muted-foreground -mt-0.5">Managed local services</div>
             </div>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
@@ -91,7 +91,7 @@ export default function TopBar() {
               <Bell size={18} className="text-eucalyptus-deep" />
               {unread > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">{unread > 99 ? '99+' : unread}</span>}
             </button>
-            <Link to={isTradie ? '/tradie-profile' : '/profile'} className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center btn-tactile" aria-label="Open profile"><User size={17} /></Link>
+            <Link to={isTradie ? '/provider/account' : '/account'} className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center btn-tactile" aria-label="Open account"><User size={17} /></Link>
             {showNotifications && <div className="absolute right-0 top-12 w-[min(22rem,calc(100vw-2rem))] glass rounded-2xl shadow-xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border/50"><b className="text-sm">Notifications</b>{unread > 0 && <button onClick={markAllRead} className="text-xs text-eucalyptus-deep inline-flex items-center gap-1"><CheckCheck size={13} /> Mark all read</button>}</div>
               {notifications.length ? notifications.map(item => <button key={item.id} onClick={() => openNotification(item)} className={`w-full text-left px-4 py-3 border-b border-border/40 last:border-0 hover:bg-white/60 ${item.read ? '' : 'bg-sage/20'}`}><span className="block text-sm font-medium">{item.title}</span><span className="block text-xs text-muted-foreground mt-0.5">{item.body}</span></button>) : <p className="p-6 text-center text-sm text-muted-foreground">You’re all caught up.</p>}

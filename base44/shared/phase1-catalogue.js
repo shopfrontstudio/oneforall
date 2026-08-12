@@ -14,7 +14,16 @@ const GLOBAL_EVIDENCE = ['responsible_identity', 'abn_entity_match', 'service_sp
 
 const service = (definition) => Object.freeze({
   ...definition,
+  excluded_scope: [...definition.blocked_scope],
   required_evidence: [...GLOBAL_EVIDENCE, ...definition.required_evidence],
+  trigger_configuration: Object.freeze({
+    expiry_alert_days: [30, 7],
+    block_at_expiry: true,
+    reverify_on: ['scope_change', 'entity_change', 'worker_change', 'incident', 'complaint'],
+    unknown_scope: 'manual_review',
+    mixed_scope: 'manual_review',
+    regulated_scope: 'blocked',
+  }),
   flags: RELEASE_FLAGS_OFF,
 });
 

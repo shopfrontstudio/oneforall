@@ -88,8 +88,6 @@ export default function PostJob() {
       status,
       job_id: draftId || undefined,
       idempotency_key: crypto.randomUUID(),
-      // `boosted` is deliberately absent: it is admin-write only now, owned by the
-      // boost-job function, so sending it here would be rejected.
     };
     if (form.preferred_date) payload.preferred_date = form.preferred_date;
     if (form.budget !== '' && Number.isFinite(Number(form.budget))) payload.budget = Number(form.budget);

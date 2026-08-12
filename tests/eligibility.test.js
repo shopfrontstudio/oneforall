@@ -49,8 +49,11 @@ test('booking gate requires a linked worker, service-date credentials, hazard pa
   const worker = { id: 'w1', provider_id: 'p1', active: true, identity_verified: true, relationship_verified: true, is_subcontractor: false };
   const workerEvidence = [{ review_status: 'verified', service_scopes: [serviceKey], expires_date: '2026-08-20T00:00:00.000Z' }];
   const hazardScreen = { status: 'passed', scope_decision: 'allowed' };
-  const run = (overrides = {}) => evaluateBookingGate({ serviceKey, providerEligibility, worker, workerEvidence, hazardScreen, serviceDate: '2026-08-15T00:00:00.000Z', ...overrides });
+  const base = { serviceKey, providerEligibility, worker, workerEvidence, hazardScreen, serviceDate: '2026-08-15T00:00:00.000Z' };
+  const run = (overrides = {}) => evaluateBookingGate({ ...base, substitutionDisclosed: true, ...overrides });
+  assert.equal(evaluateBookingGate(base).reason, 'worker_disclosure_not_acknowledged');
   assert.equal(run().eligible, true);
+  assert.equal(run({ substitutionDisclosed: false }).reason, 'worker_disclosure_not_acknowledged');
   assert.equal(run({ hazardScreen: { status: 'manual_review', scope_decision: 'manual_review' } }).reason, 'hazard_screen_not_passed');
   assert.equal(run({ workerEvidence: [{ ...workerEvidence[0], expires_date: '2026-08-14T00:00:00.000Z' }] }).reason, 'worker_credentials_expired_on_service_date');
   assert.equal(run({ worker: { ...worker, is_subcontractor: true, subcontractor_separately_verified: false } }).reason, 'subcontractor_not_verified');

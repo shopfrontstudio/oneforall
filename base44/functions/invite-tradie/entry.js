@@ -56,7 +56,7 @@ export default async function (req) {
       type: 'invitation',
       title: 'Direct job invitation',
       body: `${displayName(user)} invited you to "${job.title}"`,
-      link: '/invites',
+      link: '/provider/invites',
     });
 
     return ok({ invitation });

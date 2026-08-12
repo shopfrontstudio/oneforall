@@ -19,6 +19,9 @@
       "type": "string"
     },
     "attending_worker_id": { "type": "string" },
+    "attending_worker_display_name": { "type": "string" },
+    "worker_relationship_label": { "type": "string" },
+    "substitution_disclosed": { "type": "boolean", "default": false },
     "tradie_name": {
       "type": "string"
     },
@@ -58,9 +61,8 @@
     "tradie_id",
     "status"
   ],
-  // Created by send-interest / respond-invitation, which verify the job is open and
-  // the tradie holds a paid or trial plan — an entitlement check that used to live
-  // only in the browser. Status transitions belong to accept-interest, which proves
+  // Created by send-interest / respond-invitation, which verify the request is open
+  // and service-level provider eligibility passes. Status transitions belong to accept-interest, which proves
   // the caller owns the job, so update stays closed to the client.
   "rls": {
     "create": { "user_condition": { "role": "admin" } },

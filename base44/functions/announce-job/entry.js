@@ -30,7 +30,7 @@ export default async function (req) {
       type: 'job_match',
       title: `New ${job.category_name || 'local'} job nearby`,
       body: `${job.title} · ${job.suburb}`,
-      link: `/job/${job.id}`,
+      link: `/booking/${job.id}`,
     });
 
     return ok({ notified });

@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import { ok, fail, forbidden, unauthorized, serverError } from '../../shared/http.js';
 import { cleanText, currentUser, displayName, parseQuote } from '../../shared/guards.js';
-import { loadServiceEligibility } from '../../shared/marketplace.js';
+import { idempotencyScope, loadServiceEligibility } from '../../shared/marketplace.js';
 import { PHASE1_POLICY_VERSION } from '../../shared/phase1-catalogue.js';
 import { notifyUser } from '../../shared/notify.js';
 
@@ -27,8 +27,9 @@ export default async function (req) {
     if (!worker?.active || worker.provider_id !== user.id || !worker.identity_verified || !worker.relationship_verified) {
       return fail('The attending worker is not separately verified for this provider.', 403);
     }
+    if (payload.substitution_disclosed !== true) return fail('Confirm the disclosed attending worker before sending the quote.');
 
-    const duplicate = await base44.asServiceRole.entities.InterestRequest.filter({ idempotency_key: payload.idempotency_key });
+    const duplicate = await base44.asServiceRole.entities.InterestRequest.filter(idempotencyScope.quote({ key: payload.idempotency_key, providerId: user.id, jobId: job.id }));
     if (duplicate[0]) return ok({ request: duplicate[0], already_sent: true });
     const existing = await base44.asServiceRole.entities.InterestRequest.filter({ job_id: job.id, tradie_id: user.id });
     const live = existing.find((item) => item.status !== 'declined');
@@ -39,14 +40,16 @@ export default async function (req) {
 
     const request = await base44.asServiceRole.entities.InterestRequest.create({
       job_id: job.id, job_title: job.title, customer_id: job.customer_id,
-      tradie_id: user.id, attending_worker_id: worker.id, service_key: job.service_key,
+      tradie_id: user.id, attending_worker_id: worker.id, attending_worker_display_name: worker.display_name,
+      worker_relationship_label: worker.is_subcontractor ? 'Subcontractor' : 'Provider team member',
+      substitution_disclosed: payload.substitution_disclosed, service_key: job.service_key,
       tradie_name: profile.full_name || displayName(user), tradie_business: profile.business_name,
       quote_low: quote.low, quote_high: quote.high, earliest_availability: quote.availability,
       message: cleanText(payload.message, 2000), status: 'pending',
       idempotency_key: payload.idempotency_key, policy_version: PHASE1_POLICY_VERSION,
       response_deadline: new Date(Date.now() + 12 * 3600e3).toISOString(),
     });
-    await notifyUser(base44, job.customer_id, { type: 'interest', title: 'New quote', body: `${profile.business_name || profile.full_name || displayName(user)} sent a quote for "${job.title}"`, link: `/job/${job.id}` });
+    await notifyUser(base44, job.customer_id, { type: 'interest', title: 'New quote', body: `${profile.business_name || profile.full_name || displayName(user)} sent a quote for "${job.title}"`, link: `/booking/${job.id}` });
     return ok({ request });
   } catch (error) {
     return serverError(error);

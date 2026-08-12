@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import { ok, fail, forbidden, unauthorized, serverError } from '../../shared/http.js';
 import { cleanText, currentUser, parseQuote } from '../../shared/guards.js';
-import { loadServiceEligibility } from '../../shared/marketplace.js';
+import { idempotencyScope, loadServiceEligibility } from '../../shared/marketplace.js';
 import { PHASE1_POLICY_VERSION } from '../../shared/phase1-catalogue.js';
 import { notifyUser } from '../../shared/notify.js';
 
@@ -30,14 +30,17 @@ export default async function (req) {
     if (!eligibility.eligible) return fail(`Quote access blocked: ${eligibility.reason}.`, 403);
     const worker = await base44.asServiceRole.entities.ProviderWorker.get(payload.attending_worker_id);
     if (!worker?.active || worker.provider_id !== user.id || !worker.identity_verified || !worker.relationship_verified) return fail('The attending worker is not verified.', 403);
+    if (payload.substitution_disclosed !== true) return fail('Confirm the disclosed attending worker before sending the quote.');
 
-    const duplicate = await base44.asServiceRole.entities.InterestRequest.filter({ idempotency_key: payload.idempotency_key });
+    const duplicate = await base44.asServiceRole.entities.InterestRequest.filter(idempotencyScope.quote({ key: payload.idempotency_key, providerId: user.id, jobId: job.id }));
     let request = duplicate[0];
     if (!request) {
       const profiles = await base44.asServiceRole.entities.TradieProfile.filter({ user_id: user.id });
       request = await base44.asServiceRole.entities.InterestRequest.create({
         job_id: job.id, job_title: job.title, customer_id: job.customer_id, tradie_id: user.id,
-        attending_worker_id: worker.id, service_key: job.service_key,
+        attending_worker_id: worker.id, attending_worker_display_name: worker.display_name,
+        worker_relationship_label: worker.is_subcontractor ? 'Subcontractor' : 'Provider team member',
+        substitution_disclosed: payload.substitution_disclosed, service_key: job.service_key,
         tradie_name: profiles[0]?.full_name || invitation.tradie_name, tradie_business: profiles[0]?.business_name,
         quote_low: quote.low, quote_high: quote.high, earliest_availability: quote.availability,
         message: cleanText(payload.message, 2000), status: 'pending', idempotency_key: payload.idempotency_key,
@@ -45,7 +48,7 @@ export default async function (req) {
       });
     }
     await base44.asServiceRole.entities.Invitation.update(invitation.id, { status: 'responded', quote_low: quote.low, quote_high: quote.high, earliest_availability: quote.availability, message: cleanText(payload.message, 2000) });
-    await notifyUser(base44, invitation.customer_id, { type: 'invite_response', title: 'Invitation response', body: `${invitation.tradie_name} responded to your invitation`, link: `/job/${job.id}` });
+    await notifyUser(base44, invitation.customer_id, { type: 'invite_response', title: 'Invitation response', body: `${invitation.tradie_name} responded to your invitation`, link: `/booking/${job.id}` });
     return ok({ status: 'responded', request });
   } catch (error) {
     return serverError(error);

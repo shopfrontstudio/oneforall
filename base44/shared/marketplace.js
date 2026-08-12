@@ -71,12 +71,13 @@ export function evaluateServiceEligibility({ user, serviceKey, serviceDefinition
   return result(true, ELIGIBILITY_REASON.ELIGIBLE);
 }
 
-export function evaluateBookingGate({ serviceKey, providerEligibility, worker, workerEvidence = [], hazardScreen, serviceDate, substitutionDisclosed = true }) {
+export function evaluateBookingGate({ serviceKey, providerEligibility, worker, workerEvidence = [], hazardScreen, serviceDate, substitutionDisclosed = false }) {
   if (!providerEligibility?.eligible) return providerEligibility || result(false, ELIGIBILITY_REASON.OFFERING_NOT_APPROVED);
   if (!worker?.id || !worker.active || worker.provider_id !== providerEligibility.provider_id || !worker.identity_verified || !worker.relationship_verified) {
     return result(false, 'worker_not_verified');
   }
-  if (worker.is_subcontractor && (!worker.subcontractor_separately_verified || !substitutionDisclosed)) {
+  if (!substitutionDisclosed) return result(false, 'worker_disclosure_not_acknowledged');
+  if (worker.is_subcontractor && !worker.subcontractor_separately_verified) {
     return result(false, 'subcontractor_not_verified');
   }
   const relevant = workerEvidence.filter((item) => item.review_status === 'verified' && ((item.service_scopes || []).includes('*') || (item.service_scopes || []).includes(serviceKey)));
@@ -117,3 +118,10 @@ const BOOKING_TRANSITIONS = Object.freeze({
 export function canTransitionBooking(from, to, actorRole) {
   return Boolean(BOOKING_TRANSITIONS[from]?.[actorRole]?.includes(to));
 }
+
+export const idempotencyScope = Object.freeze({
+  job: ({ key, customerId, serviceKey }) => ({ request_idempotency_key: key, customer_id: customerId, service_key: serviceKey }),
+  quote: ({ key, providerId, jobId }) => ({ idempotency_key: key, tradie_id: providerId, job_id: jobId }),
+  booking: ({ key, customerId, jobId }) => ({ idempotency_key: key, customer_id: customerId, job_id: jobId }),
+  event: ({ key, actorId, bookingId, jobId }) => ({ idempotency_key: key, actor_id: actorId, booking_id: bookingId, job_id: jobId }),
+});
