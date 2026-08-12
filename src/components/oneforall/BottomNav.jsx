@@ -8,14 +8,14 @@ const CUSTOMER_NAV = [
   { to: '/my-jobs', label: 'Jobs', icon: Briefcase },
   { to: '/post-job', label: 'Post', icon: Plus, primary: true },
   { to: '/messages', label: 'Chat', icon: MessageSquare },
-  { to: '/tradie-profile', label: 'Me', icon: User },
+  { to: '/profile', label: 'Me', icon: User },
 ];
 const TRADIE_NAV = [
   { to: '/', label: 'Discover', icon: Compass },
   { to: '/invites', label: 'Invites', icon: Ticket },
   { to: '/messages', label: 'Chat', icon: MessageSquare },
   { to: '/membership', label: 'Plan', icon: Crown },
-  { to: '/profile', label: 'Me', icon: User },
+  { to: '/tradie-profile', label: 'Me', icon: User },
 ];
 
 export default function BottomNav() {
@@ -30,7 +30,7 @@ export default function BottomNav() {
           if (n.primary) {
             return (
               <Link key={n.to} to={n.to} className="-mt-6 flex flex-col items-center" aria-label={n.label}>
-                <span className="w-12 h-12 rounded-2xl bg-eucalyptus text-white flex items-center justify-center btn-tactile shadow-lg">
+                <span className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center btn-tactile shadow-lg">
                   <n.icon size={22} />
                 </span>
                 <span className="text-[11px] mt-0.5 font-semibold text-eucalyptus-deep">{n.label}</span>

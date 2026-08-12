@@ -28,6 +28,7 @@ export default function PostJob() {
   const [saving, setSaving] = useState(false);
   const [draftId, setDraftId] = useState(null);
   const [loadingDraft, setLoadingDraft] = useState(false);
+  const invitedTradieProfileId = params.get('tradie');
   const [form, setForm] = useState({
     category_slug: '', freeText: '', title: '', description: '',
     suburb: 'Ballarat', preferred_date: '', urgency: 'flexible',
@@ -72,7 +73,7 @@ export default function PostJob() {
     const categorySlug = form.category_slug || suggestCategory();
     const range = estimateRange(categorySlug, form.urgency);
     const cat = CATEGORY_MAP[categorySlug];
-    return {
+    const payload = {
       customer_id: user.id,
       customer_name: user.full_name || user.email,
       customer_suburb: form.suburb.trim() || 'Ballarat',
@@ -81,18 +82,19 @@ export default function PostJob() {
       category_slug: categorySlug,
       category_name: cat?.name,
       suburb: form.suburb.trim() || 'Ballarat',
-      preferred_date: form.preferred_date || null,
       urgency: form.urgency,
       access_notes: form.access_notes.trim(),
       parking: form.parking,
       safety_info: form.safety_info.trim(),
-      budget: Number(form.budget) || null,
       indicative_low: range.low,
       indicative_high: range.high,
       photos: form.photos,
       status,
       boosted: false,
     };
+    if (form.preferred_date) payload.preferred_date = form.preferred_date;
+    if (form.budget !== '' && Number.isFinite(Number(form.budget))) payload.budget = Number(form.budget);
+    return payload;
   };
 
   const goNext = () => {
@@ -165,6 +167,14 @@ export default function PostJob() {
         ? await base44.entities.Job.update(draftId, payload)
         : await base44.entities.Job.create(payload);
 
+      if (invitedTradieProfileId) {
+        const invitedTradie = await base44.entities.TradieProfile.get(invitedTradieProfileId);
+        if (invitedTradie?.user_id) {
+          await base44.entities.Invitation.create({ job_id: job.id, job_title: job.title, customer_id: user.id, customer_name: user.full_name || user.email, tradie_id: invitedTradie.user_id, tradie_name: invitedTradie.business_name || invitedTradie.full_name, status: 'pending' });
+          await base44.entities.Notification.create({ user_id: invitedTradie.user_id, type: 'invitation', title: 'Direct job invitation', body: `${user.full_name || user.email} invited you to "${job.title}"`, link: '/invites', read: false });
+        }
+      }
+
       const tradies = await base44.entities.TradieProfile.filter({ verified: true, open_to_work: true });
       const eligible = tradies.filter(tradie =>
         (tradie.trade_categories || []).includes(payload.category_slug) &&
@@ -200,7 +210,7 @@ export default function PostJob() {
         {step > 1 && <button onClick={() => setStep(step - 1)} className="w-9 h-9 rounded-xl glass-soft flex items-center justify-center btn-tactile"><ChevronLeft size={18} /></button>}
         <h1 className="text-xl font-semibold tracking-tight">Post a job</h1>
         <div className="flex-1 flex gap-1.5 ml-2">
-          {steps.map(s => <span key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-eucalyptus' : 'bg-border'}`} />)}
+          {steps.map(s => <span key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-primary' : 'bg-border'}`} />)}
         </div>
         <span className="text-xs text-muted-foreground">Step {step}/5</span>
       </div>
@@ -212,7 +222,7 @@ export default function PostJob() {
               <CategoryGrid activeSlug={form.category_slug} onSelect={(slug) => set('category_slug', slug)} />
             </div>
             <label className="text-xs font-medium text-muted-foreground">Or describe it in your words</label>
-            <textarea value={form.freeText} onChange={e => set('freeText', e.target.value)} rows={3} placeholder="My kitchen tap is leaking…" className="mt-1 w-full rounded-xl bg-white/70 border border-border p-3 text-sm focus:ring-2 ring-eucalyptus outline-none" />
+            <textarea value={form.freeText} onChange={e => set('freeText', e.target.value)} rows={3} placeholder="My kitchen tap is leaking…" className="mt-1 w-full rounded-xl bg-white/70 border border-border p-3 text-sm focus:ring-2 ring-primary outline-none" />
             {form.freeText && !form.category_slug && (
             <button type="button" onClick={() => set('category_slug', suggestCategory())} className="mt-3 inline-flex items-center gap-2 text-sm text-eucalyptus-deep font-medium"><Sparkles size={15} /> Suggest a trade for me</button>
             )}
@@ -229,7 +239,7 @@ export default function PostJob() {
               <Field label="Preferred date"><input type="date" value={form.preferred_date} onChange={e => set('preferred_date', e.target.value)} className="inp" /></Field>
             </div>
             <Field label="Urgency">
-              <div className="flex gap-2">{URGENCY_OPTIONS.map(u => <button type="button" key={u.value} onClick={() => set('urgency', u.value)} className={`px-3 py-2 rounded-xl text-sm btn-tactile ${form.urgency === u.value ? 'bg-eucalyptus text-white' : 'glass-soft'}`}>{u.label}</button>)}</div>
+              <div className="flex gap-2">{URGENCY_OPTIONS.map(u => <button type="button" key={u.value} onClick={() => set('urgency', u.value)} className={`px-3 py-2 rounded-xl text-sm btn-tactile ${form.urgency === u.value ? 'bg-primary text-primary-foreground' : 'glass-soft'}`}>{u.label}</button>)}</div>
             </Field>
             <Field label="Property access notes"><input value={form.access_notes} onChange={e => set('access_notes', e.target.value)} placeholder="e.g. Side gate, dog in yard" className="inp" /></Field>
             <div className="grid grid-cols-2 gap-3">
@@ -284,9 +294,9 @@ export default function PostJob() {
         <div className="flex justify-between mt-6">
           {step > 1 ? <button onClick={() => setStep(step - 1)} className="px-4 py-2.5 rounded-xl glass-soft text-sm font-medium btn-tactile">Back</button> : <span />}
           {step < 5 ? (
-            <button type="button" onClick={goNext} disabled={!canContinue} className="px-5 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-45 disabled:cursor-not-allowed">Continue <ChevronRight size={16} className="inline" /></button>
+            <button type="button" onClick={goNext} disabled={!canContinue} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-45 disabled:cursor-not-allowed">Continue <ChevronRight size={16} className="inline" /></button>
           ) : (
-            <button onClick={publish} disabled={saving || !form.title || !form.category_slug} className="px-5 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-50">{saving ? 'Publishing…' : 'Publish job'}</button>
+            <button onClick={publish} disabled={saving || !form.title || !form.category_slug} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-50">{saving ? 'Publishing…' : 'Publish job'}</button>
           )}
         </div>
       </div>

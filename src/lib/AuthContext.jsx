@@ -3,6 +3,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import { removeAccessToken } from '@base44/sdk/dist/utils/auth-utils';
 
 const AuthContext = createContext();
 
@@ -118,6 +119,14 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
+
+    const isLocalPreview = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (isLocalPreview) {
+      removeAccessToken({ storageKey: 'base44_access_token' });
+      removeAccessToken({ storageKey: 'token' });
+      if (shouldRedirect) window.location.assign(`/login?app_id=${encodeURIComponent(appParams.appId || '')}`);
+      return;
+    }
     
     if (shouldRedirect) {
       // Use the SDK's logout method which handles token cleanup and redirect
@@ -129,6 +138,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
+    if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+      window.location.assign(`/login?app_id=${encodeURIComponent(appParams.appId || '')}`);
+      return;
+    }
     // Use the SDK's redirectToLogin method
     base44.auth.redirectToLogin(window.location.href);
   };

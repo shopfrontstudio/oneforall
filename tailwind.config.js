@@ -55,7 +55,8 @@ module.exports = {
   				DEFAULT: 'hsl(var(--sandstone))',
   				deep: 'hsl(var(--sandstone-deep))'
   			},
-  			terracotta: 'hsl(var(--terracotta))',
+			terracotta: 'hsl(var(--terracotta))',
+			coral: 'hsl(var(--coral))',
   			sage: 'hsl(var(--sage))',
   			lime: 'hsl(var(--lime))',
   			chart: {

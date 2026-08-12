@@ -9,7 +9,7 @@ export default function TradieCard({ tradie, origin = 'Ballarat' }) {
   const initials = (tradie.full_name || '?').split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase();
   return (
     <Link to={`/tradie/${tradie.id}`} className="glass-soft rounded-2xl p-4 flex gap-3 card-lift hover:bg-white/80 block">
-      <div className="w-12 h-12 rounded-xl bg-eucalyptus text-white flex items-center justify-center font-semibold text-sm shrink-0">
+      <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm shrink-0">
         {initials}
       </div>
       <div className="min-w-0 flex-1">

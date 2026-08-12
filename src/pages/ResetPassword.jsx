@@ -80,6 +80,7 @@ export default function ResetPassword() {
               onChange={(e) => setNewPassword(e.target.value)}
               className="pl-10 h-12"
               required
+              minLength={8}
             />
           </div>
         </div>
@@ -96,6 +97,7 @@ export default function ResetPassword() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="pl-10 h-12"
               required
+              minLength={8}
             />
           </div>
         </div>
