@@ -7,16 +7,16 @@ export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 py-6 sm:py-10">
       <BrandBackground />
-      <div className="relative w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/50 bg-white/45 shadow-[0_28px_90px_-32px_rgba(89,45,20,0.45)] backdrop-blur-xl lg:grid lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="relative w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/60 bg-white/55 shadow-[0_28px_90px_-32px_rgba(50,40,120,0.38)] backdrop-blur-xl lg:grid lg:grid-cols-[1.05fr_0.95fr]">
         <aside className="relative hidden min-h-[680px] overflow-hidden bg-eucalyptus p-10 text-white lg:flex lg:flex-col lg:justify-between">
           <div className="absolute -right-28 -top-24 h-72 w-72 rounded-full bg-lime/25 blur-3xl" />
-          <div className="absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-terracotta/40 blur-3xl" />
+          <div className="absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-coral/40 blur-3xl" />
 
           <div className="relative flex items-center gap-3">
             <Logo size={48} className="drop-shadow-lg" />
             <div>
               <p className="text-xl font-bold tracking-tight">OneForAll</p>
-              <p className="text-xs text-white/70">Ballarat's local job marketplace</p>
+              <p className="text-xs text-white/85">Ballarat's local job marketplace</p>
             </div>
           </div>
 
@@ -27,7 +27,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = 
             <h2 className="text-4xl font-bold leading-[1.08] tracking-tight text-balance">
               Good local work, matched with good local people.
             </h2>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-white/75">
+            <p className="mt-4 max-w-sm text-sm leading-6 text-white/85">
               Post a job for free or discover nearby opportunities—without commissions getting in the way.
             </p>
           </div>

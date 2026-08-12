@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { BadgeCheck, Crown, Save, ShieldCheck } from 'lucide-react';
-import { CATEGORIES } from '@/lib/oneforall';
+import { BadgeCheck, Crown, LogOut, Repeat, Save, ShieldCheck } from 'lucide-react';
+import { CATEGORIES, ensureProfile, setAccountType } from '@/lib/oneforall';
 
 export default function TradieProfile() {
-  const { user } = useAuth();
+  const { user, logout, checkUserAuth } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [p, setP] = useState(null);
   const [subscription, setSubscription] = useState(null);
@@ -37,6 +39,14 @@ export default function TradieProfile() {
     finally { setSaving(false); }
   };
 
+  const switchToCustomer = async () => {
+    await setAccountType('customer');
+    await ensureProfile('customer', user);
+    await checkUserAuth();
+    toast({ title: 'Switched to customer' });
+    navigate('/');
+  };
+
   if (!p) return <div className="glass-soft rounded-2xl h-40 animate-pulse" />;
 
   return (
@@ -47,6 +57,7 @@ export default function TradieProfile() {
           <h1 className="text-xl font-semibold tracking-tight flex items-center gap-1.5">{p.full_name}{p.verified && <BadgeCheck size={18} className="text-eucalyptus" />}{p.founding_badge && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold"><Crown size={11} />Founding</span>}</h1>
           <p className="text-sm text-muted-foreground">{p.business_name || 'Add your business name'}</p>
         </div>
+        <Link to={`/tradie/${p.id}`} className="ml-auto text-xs font-semibold text-eucalyptus-deep">View public profile</Link>
       </div>
 
       <div className="glass rounded-2xl p-4">
@@ -99,6 +110,12 @@ export default function TradieProfile() {
       </div>
 
       <button disabled={saving} onClick={save} className="w-full px-4 py-3 rounded-xl bg-eucalyptus text-white font-semibold btn-tactile inline-flex items-center justify-center gap-2 disabled:opacity-50"><Save size={16} /> {saving ? 'Saving…' : 'Save profile'}</button>
+
+      <div className="glass rounded-2xl p-4 space-y-2">
+        <h2 className="text-sm font-semibold">Account</h2>
+        <button onClick={switchToCustomer} className="w-full flex items-center gap-2 p-3 rounded-xl glass-soft btn-tactile text-sm font-medium"><Repeat size={16} className="text-eucalyptus-deep" /> Switch to customer account</button>
+        <button onClick={() => logout()} className="w-full flex items-center gap-2 p-3 rounded-xl glass-soft btn-tactile text-sm font-medium text-terracotta"><LogOut size={16} /> Log out</button>
+      </div>
     </div>
   );
 }

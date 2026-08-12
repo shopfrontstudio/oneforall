@@ -168,7 +168,7 @@ function Info({ icon: Icon, label, value }) {
 
 function TradieRespond({ job, profile, onSend, busy = false }) {
   const range = estimateRange(job.category_slug, job.urgency);
-  const [qL, setQL] = useState(String(range.low)); const [qH, setQH] = useState(String(range.high)); const [avail, setAvail] = useState(''); const [msg, setMsg] = useState('');
+  const [qL, setQL] = useState(String(range.low)); const [qH, setQH] = useState(String(range.high)); const [avail, setAvail] = useState(() => new Date(Date.now() + 864e5).toISOString().slice(0, 10)); const [msg, setMsg] = useState('');
   if (!profile) return <p className="text-sm text-muted-foreground">Complete your tradie profile first.</p>;
   return (
     <div className="space-y-2">

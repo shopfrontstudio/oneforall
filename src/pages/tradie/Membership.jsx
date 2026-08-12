@@ -64,7 +64,7 @@ export default function Membership() {
 
       {isFounding && (
         <div className="glass-soft rounded-2xl p-4 text-sm flex items-start gap-2">
-          <Sparkles size={16} className="text-lime mt-0.5" />
+          <Sparkles size={16} className="text-terracotta mt-0.5" />
           <p className="text-foreground/80">You're a <b>Founding Tradie</b> — free Pro access for 30 days from launch. No payment details required, and it won't auto-convert to a paid plan.</p>
         </div>
       )}

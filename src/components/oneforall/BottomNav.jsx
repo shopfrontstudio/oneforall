@@ -8,14 +8,14 @@ const CUSTOMER_NAV = [
   { to: '/my-jobs', label: 'Jobs', icon: Briefcase },
   { to: '/post-job', label: 'Post', icon: Plus, primary: true },
   { to: '/messages', label: 'Chat', icon: MessageSquare },
-  { to: '/tradie-profile', label: 'Me', icon: User },
+  { to: '/profile', label: 'Me', icon: User },
 ];
 const TRADIE_NAV = [
   { to: '/', label: 'Discover', icon: Compass },
   { to: '/invites', label: 'Invites', icon: Ticket },
   { to: '/messages', label: 'Chat', icon: MessageSquare },
   { to: '/membership', label: 'Plan', icon: Crown },
-  { to: '/profile', label: 'Me', icon: User },
+  { to: '/tradie-profile', label: 'Me', icon: User },
 ];
 
 export default function BottomNav() {

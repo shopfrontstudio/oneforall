@@ -138,7 +138,7 @@ export default function Discover() {
 function RespondForm({ job, onSend, onCancel, busy = false }) {
   const [quoteLow, setQuoteLow] = useState(job.indicative_low || '');
   const [quoteHigh, setQuoteHigh] = useState(job.indicative_high || '');
-  const [availability, setAvailability] = useState('');
+  const [availability, setAvailability] = useState(() => new Date(Date.now() + 864e5).toISOString().slice(0, 10));
   const [message, setMessage] = useState('');
   return (
     <div className="glass rounded-2xl p-3.5 space-y-2">

@@ -75,7 +75,7 @@ export default function Invites() {
                   </div>
                 </div>
               ) : (
-                <button disabled={!canRespond} onClick={() => setRespondId(inv.id)} className="mt-3 w-full px-3 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-45">Respond with quote</button>
+                <button disabled={!canRespond} onClick={() => { setRespondId(inv.id); setForm(current => ({ ...current, [inv.id]: { availability: new Date(Date.now() + 864e5).toISOString().slice(0, 10), ...current[inv.id] } })); }} className="mt-3 w-full px-3 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-45">Respond with quote</button>
               )
             )}
             {inv.status === 'responded' && (

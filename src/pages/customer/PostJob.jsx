@@ -28,6 +28,7 @@ export default function PostJob() {
   const [saving, setSaving] = useState(false);
   const [draftId, setDraftId] = useState(null);
   const [loadingDraft, setLoadingDraft] = useState(false);
+  const invitedTradieProfileId = params.get('tradie');
   const [form, setForm] = useState({
     category_slug: '', freeText: '', title: '', description: '',
     suburb: 'Ballarat', preferred_date: '', urgency: 'flexible',
@@ -72,7 +73,7 @@ export default function PostJob() {
     const categorySlug = form.category_slug || suggestCategory();
     const range = estimateRange(categorySlug, form.urgency);
     const cat = CATEGORY_MAP[categorySlug];
-    return {
+    const payload = {
       customer_id: user.id,
       customer_name: user.full_name || user.email,
       customer_suburb: form.suburb.trim() || 'Ballarat',
@@ -81,18 +82,19 @@ export default function PostJob() {
       category_slug: categorySlug,
       category_name: cat?.name,
       suburb: form.suburb.trim() || 'Ballarat',
-      preferred_date: form.preferred_date || null,
       urgency: form.urgency,
       access_notes: form.access_notes.trim(),
       parking: form.parking,
       safety_info: form.safety_info.trim(),
-      budget: Number(form.budget) || null,
       indicative_low: range.low,
       indicative_high: range.high,
       photos: form.photos,
       status,
       boosted: false,
     };
+    if (form.preferred_date) payload.preferred_date = form.preferred_date;
+    if (form.budget !== '' && Number.isFinite(Number(form.budget))) payload.budget = Number(form.budget);
+    return payload;
   };
 
   const goNext = () => {
@@ -164,6 +166,14 @@ export default function PostJob() {
       const job = draftId
         ? await base44.entities.Job.update(draftId, payload)
         : await base44.entities.Job.create(payload);
+
+      if (invitedTradieProfileId) {
+        const invitedTradie = await base44.entities.TradieProfile.get(invitedTradieProfileId);
+        if (invitedTradie?.user_id) {
+          await base44.entities.Invitation.create({ job_id: job.id, job_title: job.title, customer_id: user.id, customer_name: user.full_name || user.email, tradie_id: invitedTradie.user_id, tradie_name: invitedTradie.business_name || invitedTradie.full_name, status: 'pending' });
+          await base44.entities.Notification.create({ user_id: invitedTradie.user_id, type: 'invitation', title: 'Direct job invitation', body: `${user.full_name || user.email} invited you to "${job.title}"`, link: '/invites', read: false });
+        }
+      }
 
       const tradies = await base44.entities.TradieProfile.filter({ verified: true, open_to_work: true });
       const eligible = tradies.filter(tradie =>

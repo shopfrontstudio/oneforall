@@ -10,14 +10,14 @@ const CUSTOMER_NAV = [
   { to: '/my-jobs', label: 'My Jobs', icon: Briefcase },
   { to: '/post-job', label: 'Post Job', icon: Plus, primary: true },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
-  { to: '/tradie-profile', label: 'Profile', icon: User },
+  { to: '/profile', label: 'Profile', icon: User },
 ];
 const TRADIE_NAV = [
   { to: '/', label: 'Discover', icon: Compass },
   { to: '/invites', label: 'Invites', icon: Ticket },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
   { to: '/membership', label: 'Membership', icon: Crown },
-  { to: '/profile', label: 'Profile', icon: User },
+  { to: '/tradie-profile', label: 'Profile', icon: User },
 ];
 
 export default function TopBar() {
