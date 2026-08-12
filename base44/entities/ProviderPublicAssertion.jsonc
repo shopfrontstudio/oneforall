@@ -1,0 +1,21 @@
+{
+  "name": "ProviderPublicAssertion",
+  "type": "object",
+  "properties": {
+    "provider_id": { "type": "string" },
+    "display_name": { "type": "string" },
+    "approved_service_ids": { "type": "array", "items": { "type": "string" } },
+    "general_service_area": { "type": "array", "items": { "type": "string" } },
+    "evidence_checked_date": { "type": "string", "format": "date" },
+    "credential_type": { "type": "string" },
+    "credential_scope": { "type": "array", "items": { "type": "string" } },
+    "valid_through": { "type": "string", "format": "date" }
+  },
+  "required": ["provider_id", "display_name", "approved_service_ids", "evidence_checked_date"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

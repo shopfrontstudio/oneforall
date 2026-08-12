@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import { ok, fail, forbidden, unauthorized, serverError } from '../../shared/http.js';
 import { currentUser } from '../../shared/guards.js';
 import { matchingTradies, notifyUser } from '../../shared/notify.js';
+import { getPhase1Service } from '../../shared/phase1-catalogue.js';
 
 const FREE_BOOSTS_PER_MONTH = 5;
 const COOLDOWN_MS = 12 * 3600e3;
@@ -22,6 +23,8 @@ export default async function (req) {
     if (!job) return fail('That job no longer exists.', 404);
     if (job.customer_id !== user.id) return forbidden('You can only boost your own jobs.');
     if (job.status !== 'published') return fail('Only open jobs can be boosted.');
+    const definition = getPhase1Service(job.service_key);
+    if (!definition?.flags.public_release_enabled || !definition.flags.request_enabled) return fail('This service is not released.', 403);
 
     const boosts = await base44.asServiceRole.entities.Boost.filter({ customer_id: user.id });
 

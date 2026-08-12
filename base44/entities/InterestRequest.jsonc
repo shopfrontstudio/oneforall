@@ -8,12 +8,17 @@
     "job_title": {
       "type": "string"
     },
+    "service_key": { "type": "string" },
+    "idempotency_key": { "type": "string" },
+    "policy_version": { "type": "string" },
+    "booking_id": { "type": "string" },
     "customer_id": {
       "type": "string"
     },
     "tradie_id": {
       "type": "string"
     },
+    "attending_worker_id": { "type": "string" },
     "tradie_name": {
       "type": "string"
     },

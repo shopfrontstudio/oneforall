@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { Ticket, CheckCircle2, Lock, Crown } from 'lucide-react';
+import { Ticket, CheckCircle2, Lock } from 'lucide-react';
 import { EmptyState } from '@/components/oneforall/Bits';
-import { callFunction, formatAUDRange } from '@/lib/oneforall';
+import { callFunction, formatAUDRange, MARKETPLACE_RELEASE_OPEN } from '@/lib/oneforall';
 
 export default function Invites() {
   const { user } = useAuth();
@@ -13,24 +13,22 @@ export default function Invites() {
   const [invites, setInvites] = useState(null);
   const [respondId, setRespondId] = useState(null);
   const [form, setForm] = useState({});
-  const [subscription, setSubscription] = useState(null);
   const [working, setWorking] = useState(null);
 
   const load = async () => {
-    const [list, subscriptions] = await Promise.all([base44.entities.Invitation.filter({ tradie_id: user.id }), base44.entities.Subscription.filter({ tradie_id: user.id })]);
+    const list = await base44.entities.Invitation.filter({ tradie_id: user.id });
     setInvites(list.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime()));
-    setSubscription(subscriptions[0] || null);
   };
   useEffect(() => { load(); }, [user.id]);
 
   const respond = async (inv) => {
     const f = form[inv.id] || {};
     const low = Number(f.quote_low); const high = Number(f.quote_high);
-    if (!canRespond || !f.availability || !Number.isFinite(low) || low <= 0 || !Number.isFinite(high) || high < low) { toast({ title: 'Check your response', description: canRespond ? 'Add an availability date and valid quote range.' : 'An active paid plan is required to respond.', variant: 'destructive' }); return; }
+    if (!canRespond || !f.availability || !Number.isFinite(low) || low <= 0 || !Number.isFinite(high) || high < low) { toast({ title: 'Check your response', description: canRespond ? 'Add an availability date and valid quote range.' : 'This service is not open for quotes yet.', variant: 'destructive' }); return; }
     setWorking(inv.id);
     try {
       // respond-invitation confirms the invitation was addressed to us and re-runs
-      // the paid-plan check before creating the matching interest request.
+      // service, evidence, coverage, availability and standing checks.
       await callFunction('respond-invitation', {
         invitation_id: inv.id,
         action: 'quote',
@@ -38,6 +36,7 @@ export default function Invites() {
         quote_high: high,
         earliest_availability: f.availability,
         message: f.message,
+        idempotency_key: crypto.randomUUID(),
       });
       toast({ title: 'Response sent' }); await load();
     } catch (error) { toast({ title: 'Could not send response', description: error.message, variant: 'destructive' }); }
@@ -53,7 +52,7 @@ export default function Invites() {
     finally { setWorking(null); }
   };
 
-  const canRespond = subscription && ['active', 'trial'].includes(subscription.status) && subscription.plan !== 'free';
+  const canRespond = MARKETPLACE_RELEASE_OPEN;
 
   if (invites === null) return <div className="glass-soft rounded-2xl h-40 animate-pulse" />;
   if (!invites.length) return <EmptyState icon={Ticket} title="No direct invitations" body="Customers can invite you directly from your profile. Invitations will appear here." />;
@@ -61,7 +60,7 @@ export default function Invites() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-semibold tracking-tight">Direct invitations</h1>
-      {!canRespond && <div className="glass-soft rounded-2xl p-4 flex items-center gap-3"><Crown size={18} className="text-terracotta" /><p className="text-sm flex-1">You can view invitations on Free. Activate a plan to send a quote.</p><Link to="/membership" className="text-sm font-semibold text-eucalyptus-deep">View plans</Link></div>}
+      {!canRespond && <div className="glass-soft rounded-2xl p-4 flex items-center gap-3"><Lock size={18} className="text-terracotta" /><p className="text-sm flex-1">Provider participation is fee-free. Quote responses remain closed until service verification and release gates are ready.</p></div>}
       <div className="space-y-3">
         {invites.map(inv => (
           <div key={inv.id} className="glass rounded-2xl p-4">

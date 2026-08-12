@@ -51,7 +51,7 @@
   ],
   // customer_name is disclosed to the invited tradie on purpose, so invite-tradie
   // proves the caller owns the job before attaching it. Responses go through
-  // respond-invitation, which is also what enforces the paid-plan check.
+  // respond-invitation, which enforces server-owned service eligibility.
   "rls": {
     "create": { "user_condition": { "role": "admin" } },
     "read": {

@@ -1,0 +1,26 @@
+{
+  "name": "ProviderOffering",
+  "type": "object",
+  "properties": {
+    "provider_id": { "type": "string" },
+    "service_key": { "type": "string" },
+    "review_status": { "type": "string", "enum": ["pending", "approved", "rejected", "suspended"], "default": "pending" },
+    "active": { "type": "boolean", "default": false },
+    "available": { "type": "boolean", "default": false },
+    "capacity_remaining": { "type": "number", "default": 0 },
+    "coverage_suburbs": { "type": "array", "items": { "type": "string" } },
+    "availability_days": { "type": "array", "items": { "type": "string" } },
+    "approved_scope": { "type": "array", "items": { "type": "string" } },
+    "reviewed_by": { "type": "string" },
+    "reviewed_at": { "type": "string", "format": "date-time" },
+    "reverification_required": { "type": "boolean", "default": true },
+    "reverification_reason": { "type": "string" }
+  },
+  "required": ["provider_id", "service_key", "review_status"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "data.provider_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

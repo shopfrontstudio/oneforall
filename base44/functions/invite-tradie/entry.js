@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import { ok, fail, forbidden, unauthorized, serverError } from '../../shared/http.js';
 import { currentUser, displayName } from '../../shared/guards.js';
+import { loadServiceEligibility } from '../../shared/marketplace.js';
 import { notifyUser } from '../../shared/notify.js';
 
 // A customer invites a specific tradie to quote on one of their own jobs.
@@ -25,6 +26,13 @@ export default async function (req) {
     const profile = await base44.asServiceRole.entities.TradieProfile.get(tradie_profile_id);
     if (!profile?.user_id) return fail('That tradie profile no longer exists.', 404);
     if (profile.user_id === user.id) return forbidden('You cannot invite yourself.');
+
+    const eligibility = await loadServiceEligibility(base44, {
+      providerId: profile.user_id,
+      serviceKey: job.service_key,
+      suburb: job.suburb,
+    });
+    if (!eligibility.eligible) return fail(`This provider cannot be invited for this service: ${eligibility.reason}.`, 403);
 
     const existing = await base44.asServiceRole.entities.Invitation.filter({
       job_id: job.id,

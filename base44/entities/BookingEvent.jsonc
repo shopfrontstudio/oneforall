@@ -1,0 +1,25 @@
+{
+  "name": "BookingEvent",
+  "type": "object",
+  "properties": {
+    "booking_id": { "type": "string" },
+    "job_id": { "type": "string" },
+    "customer_id": { "type": "string" },
+    "provider_id": { "type": "string" },
+    "actor_id": { "type": "string" },
+    "actor_role": { "type": "string", "enum": ["customer", "provider", "admin", "system"] },
+    "event_type": { "type": "string" },
+    "from_state": { "type": "string" },
+    "to_state": { "type": "string" },
+    "idempotency_key": { "type": "string" },
+    "policy_version": { "type": "string" },
+    "metadata": { "type": "object" }
+  },
+  "required": ["booking_id", "job_id", "customer_id", "provider_id", "actor_id", "actor_role", "event_type", "idempotency_key"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.provider_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "update": false,
+    "delete": false
+  }
+}

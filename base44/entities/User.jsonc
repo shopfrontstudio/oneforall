@@ -8,6 +8,15 @@
         "tradie"
       ]
     },
+    "account_standing": {
+      "type": "string",
+      "description": "Server-owned operational standing used by marketplace eligibility.",
+      "enum": ["active", "suspended", "closed"],
+      "default": "active",
+      "rls": {
+        "write": { "user_condition": { "role": "admin" } }
+      }
+    },
     "role": {
       "type": "string",
       "description": "The role of the user in the app",

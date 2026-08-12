@@ -1,0 +1,23 @@
+{
+  "name": "RecurringSeries",
+  "type": "object",
+  "properties": {
+    "customer_id": { "type": "string" },
+    "provider_id": { "type": "string" },
+    "service_key": { "type": "string" },
+    "source_job_id": { "type": "string" },
+    "frequency": { "type": "string", "enum": ["weekly", "fortnightly", "monthly", "custom"] },
+    "interval_days": { "type": "number" },
+    "next_occurrence": { "type": "string", "format": "date-time" },
+    "status": { "type": "string", "enum": ["active", "paused", "completed", "cancelled"], "default": "active" },
+    "policy_version": { "type": "string" },
+    "idempotency_key": { "type": "string" }
+  },
+  "required": ["customer_id", "provider_id", "service_key", "frequency", "status"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.provider_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": false
+  }
+}

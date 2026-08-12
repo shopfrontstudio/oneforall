@@ -43,6 +43,23 @@
     "category_name": {
       "type": "string"
     },
+    "service_key": { "type": "string" },
+    "service_pathway": { "type": "string", "enum": ["scheduled_or_recurring", "managed_quote", "licensed_diagnostic"] },
+    "policy_version": { "type": "string" },
+    "request_idempotency_key": { "type": "string" },
+    "recurrence_requested": { "type": "boolean", "default": false },
+    "recurrence_frequency": { "type": "string", "enum": ["weekly", "fortnightly", "monthly", "custom"] },
+    "scope_decision": { "type": "string", "enum": ["allowed", "manual_review", "blocked"] },
+    "scope_reason": { "type": "string" },
+    "hazard_screen_status": { "type": "string", "enum": ["pending", "passed", "manual_review", "blocked"], "default": "pending" },
+    "accepted_quote_id": {
+      "type": "string",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
+    "booking_id": {
+      "type": "string",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
+    },
     "suburb": {
       "type": "string"
     },
@@ -132,7 +149,8 @@
         "completed",
         "cancelled"
       ],
-      "default": "draft"
+      "default": "draft",
+      "rls": { "write": { "user_condition": { "role": "admin" } } }
     },
     "boosted": {
       "type": "boolean",
@@ -161,7 +179,7 @@
   // Browsing is limited to `published` — once a job is matched it is only visible
   // to the customer and the tradie they accepted.
   "rls": {
-    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "create": { "user_condition": { "role": "admin" } },
     "read": {
       "$and": [
         { "user_condition": { "id": "{{user.id}}" } },
@@ -175,27 +193,7 @@
         }
       ]
     },
-    "update": {
-      "$or": [
-        {
-          "$and": [
-            { "created_by": "{{user.email}}" },
-            { "data.customer_id": "{{user.id}}" }
-          ]
-        },
-        { "user_condition": { "role": "admin" } }
-      ]
-    },
-    "delete": {
-      "$or": [
-        {
-          "$and": [
-            { "created_by": "{{user.email}}" },
-            { "data.customer_id": "{{user.id}}" }
-          ]
-        },
-        { "user_condition": { "role": "admin" } }
-      ]
-    }
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
   }
 }

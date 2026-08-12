@@ -19,16 +19,6 @@ export function displayName(user) {
   return user.full_name || user.email;
 }
 
-// A tradie may only quote on a paid or trial plan. This used to be checked only in
-// the browser, where it could be skipped by calling the entity API directly.
-export async function hasPaidPlan(base44, tradieId) {
-  const subscriptions = await base44.asServiceRole.entities.Subscription.filter({ tradie_id: tradieId });
-  return subscriptions.some(
-    (subscription) =>
-      ['active', 'trial'].includes(subscription.status) && subscription.plan && subscription.plan !== 'free',
-  );
-}
-
 // Quote ranges arrive as strings from number inputs.
 export function parseQuote({ quote_low, quote_high, earliest_availability }) {
   const low = Number(quote_low);

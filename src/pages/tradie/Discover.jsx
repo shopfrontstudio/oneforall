@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { Compass, ArrowDownUp, Lock, Send, CheckCircle2 } from 'lucide-react';
 import JobCard from '@/components/oneforall/JobCard';
 import { EmptyState } from '@/components/oneforall/Bits';
-import { callFunction, matchScore, pseudoDistance } from '@/lib/oneforall';
+import { callFunction, MARKETPLACE_RELEASE_OPEN, matchScore, pseudoDistance } from '@/lib/oneforall';
 
 const SORTS = [
   { value: 'recommended', label: 'Recommended' },
@@ -18,11 +17,9 @@ const SORTS = [
 
 export default function Discover() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [jobs, setJobs] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [sub, setSub] = useState(null);
   const [sort, setSort] = useState('recommended');
   const [respond, setRespond] = useState(null);
   const [sent, setSent] = useState({});
@@ -30,20 +27,18 @@ export default function Discover() {
 
   useEffect(() => {
     (async () => {
-      const [p, s, allJobs, requests] = await Promise.all([
+      const [p, allJobs, requests] = await Promise.all([
         base44.entities.TradieProfile.filter({ user_id: user.id }),
-        base44.entities.Subscription.filter({ tradie_id: user.id }),
         base44.entities.Job.filter({ status: 'published' }),
         base44.entities.InterestRequest.filter({ tradie_id: user.id }),
       ]);
       setProfile(p[0] || null);
-      setSub(s[0] || null);
       setJobs(allJobs.filter(j => j.customer_id !== user.id));
       setSent(Object.fromEntries(requests.filter(request => request.status !== 'declined').map(request => [request.job_id, true])));
     })();
   }, [user.id]);
 
-  const canRequest = (sub?.status === 'active' || sub?.status === 'trial') && sub?.plan && sub.plan !== 'free';
+  const canRequest = MARKETPLACE_RELEASE_OPEN;
 
   const ranked = useMemo(() => {
     if (!jobs || !profile) return [];
@@ -59,7 +54,7 @@ export default function Discover() {
   }, [jobs, profile, sort]);
 
   const sendRequest = async (job, data) => {
-    if (!canRequest) { toast({ title: 'Subscription required', description: 'Activate a plan to send interest requests.', variant: 'destructive' }); navigate('/membership'); return; }
+    if (!canRequest) { toast({ title: 'Marketplace requests are not open yet', variant: 'destructive' }); return; }
     const low = Number(data.quote_low);
     const high = Number(data.quote_high);
     if (!data.availability || !Number.isFinite(low) || low <= 0 || !Number.isFinite(high) || high < low) {
@@ -76,6 +71,7 @@ export default function Discover() {
         quote_high: high,
         earliest_availability: data.availability,
         message: data.message,
+        idempotency_key: crypto.randomUUID(),
       });
       setSent(s => ({ ...s, [job.id]: true }));
       setRespond(null);
@@ -107,8 +103,7 @@ export default function Discover() {
       {!canRequest && (
         <div className="glass-soft rounded-2xl p-4 flex items-center gap-3">
           <Lock size={18} className="text-terracotta" />
-          <p className="text-sm text-foreground/80 flex-1">You're on the <b>Free</b> plan — browse freely, then subscribe to send interest requests.</p>
-          <button onClick={() => navigate('/membership')} className="text-sm font-semibold text-eucalyptus-deep">View plans</button>
+          <p className="text-sm text-foreground/80 flex-1">Provider participation is fee-free. Quotes remain closed until service-level verification and release gates are ready.</p>
         </div>
       )}
 
@@ -130,7 +125,7 @@ export default function Discover() {
           ))}
         </div>
       )}
-      <p className="text-xs text-muted-foreground text-center pt-2">Showing top {ranked.length} matches · ranking never depends on subscription level.</p>
+      <p className="text-xs text-muted-foreground text-center pt-2">Showing top {ranked.length} matches · ranking never depends on membership.</p>
     </div>
   );
 }

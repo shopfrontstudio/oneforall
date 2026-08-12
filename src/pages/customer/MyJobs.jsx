@@ -29,7 +29,7 @@ export default function MyJobs() {
   const freeLeft = Math.max(0, 5 - boosts);
 
   const boost = async (job) => {
-    if (freeLeft <= 0) { toast({ title: 'No free boosts left', description: 'Extra boosts are $4.99 — demo billing only.', variant: 'destructive' }); return; }
+    if (freeLeft <= 0) { toast({ title: 'No boosts left', description: 'Paid boosts are not part of Phase 1.', variant: 'destructive' }); return; }
     if (job.status !== 'published') { toast({ title: 'Only open jobs can be boosted', variant: 'destructive' }); return; }
     setWorkingId(job.id);
     try {
@@ -48,8 +48,11 @@ export default function MyJobs() {
   const updateStatus = async (job, status) => {
     setWorkingId(job.id);
     try {
-      if (status === 'discarded') await base44.entities.Job.delete(job.id);
-      else await base44.entities.Job.update(job.id, { status });
+      if (status === 'completed') {
+        await callFunction('transition-booking', { job_id: job.id, to_state: 'completed', idempotency_key: crypto.randomUUID() });
+      } else {
+        await callFunction('transition-request', { job_id: job.id, to_state: 'cancelled', idempotency_key: crypto.randomUUID() });
+      }
       toast({ title: status === 'completed' ? 'Job marked complete' : status === 'discarded' ? 'Draft discarded' : 'Job cancelled' });
       await load();
     } catch (error) {
@@ -81,7 +84,7 @@ export default function MyJobs() {
       {confirmAction && (
         <ConfirmAction
           title={confirmAction.type === 'complete' ? 'Mark this job complete?' : confirmAction.type === 'discard' ? 'Discard this draft?' : 'Cancel this job?'}
-          body={confirmAction.type === 'complete' ? 'This closes the job and enables the review step.' : confirmAction.type === 'discard' ? 'This permanently removes the saved draft.' : 'Tradies will no longer see this job. This cannot be reopened.'}
+          body={confirmAction.type === 'complete' ? 'This closes the job and enables the review step.' : confirmAction.type === 'discard' ? 'This closes the saved draft without deleting its audit history.' : 'Providers will no longer see this job. This cannot be reopened.'}
           confirmLabel={confirmAction.type === 'complete' ? 'Mark complete' : confirmAction.type === 'discard' ? 'Discard draft' : 'Cancel job'}
           destructive={confirmAction.type !== 'complete'}
           busy={workingId === confirmAction.job.id}

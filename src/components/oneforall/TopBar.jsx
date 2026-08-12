@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
-import { Bell, Home as HomeIcon, Briefcase, Plus, MessageSquare, User, Compass, Ticket, Crown, CheckCheck } from 'lucide-react';
+import { Bell, Home as HomeIcon, Briefcase, Plus, MessageSquare, User, Compass, Ticket, CheckCheck } from 'lucide-react';
 import Logo from './Logo';
 
 const CUSTOMER_NAV = [
@@ -16,7 +16,6 @@ const TRADIE_NAV = [
   { to: '/', label: 'Discover', icon: Compass },
   { to: '/invites', label: 'Invites', icon: Ticket },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
-  { to: '/membership', label: 'Membership', icon: Crown },
   { to: '/tradie-profile', label: 'Profile', icon: User },
 ];
 

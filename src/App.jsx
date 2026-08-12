@@ -21,7 +21,6 @@ import Messages from '@/pages/Messages';
 import Profile from '@/pages/customer/Profile';
 import Discover from '@/pages/tradie/Discover';
 import Invites from '@/pages/tradie/Invites';
-import Membership from '@/pages/tradie/Membership';
 import TradieProfile from '@/pages/tradie/Profile';
 import TradieProfileView from '@/pages/tradie/TradieProfileView';
 import JobDetail from '@/pages/JobDetail';
@@ -68,7 +67,6 @@ const AuthenticatedApp = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/discover" element={<Discover />} />
           <Route path="/invites" element={<Invites />} />
-          <Route path="/membership" element={<Membership />} />
           <Route path="/tradie-profile" element={<TradieProfile />} />
           <Route path="/tradie/:id" element={<TradieProfileView />} />
           <Route path="/job/:id" element={<JobDetail />} />

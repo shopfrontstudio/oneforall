@@ -2,18 +2,7 @@
 // backend has already authorised. Notification.create is closed to the client, so
 // a notification's title, body and link can no longer be chosen by a stranger.
 
-// Mirrors pseudoDistance in src/lib/oneforall.js — the two must agree, or a tradie
-// would be notified about jobs the UI then refuses to rank for them.
-function hashStr(s) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-export function pseudoDistance(a = '', b = '') {
-  const h = Math.abs(hashStr((a || '').toLowerCase() + (b || '').toLowerCase())) % 24;
-  return h + 0.8;
-}
+import { loadServiceEligibility } from './marketplace.js';
 
 // Best-effort: a failed notification must never fail the action that triggered it.
 export async function notifyUser(base44, userId, { type, title, body, link }) {
@@ -32,17 +21,18 @@ export async function notifyUser(base44, userId, { type, title, body, link }) {
   }
 }
 
-// Verified, available tradies whose trades and radius cover this job.
+// Server-approved offerings whose evidence, coverage, availability, capacity and
+// account standing all pass. A profile checkbox or generic verified badge is never
+// an eligibility input.
 export async function matchingTradies(base44, job) {
-  const tradies = await base44.asServiceRole.entities.TradieProfile.filter({
-    verified: true,
-    open_to_work: true,
-  });
-  return tradies.filter(
-    (tradie) =>
-      (tradie.trade_categories || []).includes(job.category_slug) &&
-      pseudoDistance(job.suburb, tradie.suburb) <= (tradie.service_radius_km || 20),
-  );
+  const offerings = await base44.asServiceRole.entities.ProviderOffering.filter({ service_key: job.service_key, review_status: 'approved' });
+  const eligible = await Promise.all(offerings.map(async (offering) => {
+    const result = await loadServiceEligibility(base44, { providerId: offering.provider_id, serviceKey: job.service_key, suburb: job.suburb });
+    if (!result.eligible) return null;
+    const profiles = await base44.asServiceRole.entities.TradieProfile.filter({ user_id: offering.provider_id });
+    return profiles[0] || null;
+  }));
+  return eligible.filter(Boolean);
 }
 
 export async function notifyMatchingTradies(base44, job, notification) {

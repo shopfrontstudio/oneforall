@@ -1,0 +1,28 @@
+{
+  "name": "ServiceDefinition",
+  "type": "object",
+  "properties": {
+    "service_key": { "type": "string" },
+    "category": { "type": "string" },
+    "name": { "type": "string" },
+    "pathway": { "type": "string", "enum": ["scheduled_or_recurring", "managed_quote", "licensed_diagnostic"] },
+    "policy_version": { "type": "string" },
+    "allowed_scope": { "type": "array", "items": { "type": "string" } },
+    "excluded_scope": { "type": "array", "items": { "type": "string" } },
+    "required_evidence": { "type": "array", "items": { "type": "string" } },
+    "publicly_visible": { "type": "boolean", "default": false },
+    "request_enabled": { "type": "boolean", "default": false },
+    "provider_onboarding_enabled": { "type": "boolean", "default": false },
+    "quote_enabled": { "type": "boolean", "default": false },
+    "booking_enabled": { "type": "boolean", "default": false },
+    "recurrence_enabled": { "type": "boolean", "default": false },
+    "public_release_enabled": { "type": "boolean", "default": false }
+  },
+  "required": ["service_key", "category", "name", "pathway", "policy_version"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "id": "{{user.id}}" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

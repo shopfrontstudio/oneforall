@@ -1,17 +1,18 @@
 import { base44 } from '@/api/base44Client';
+import { PHASE1_SERVICES, PHASE1_SERVICE_MAP } from '../../base44/shared/phase1-catalogue.js';
 
 export const CATEGORIES = [
-  { slug: 'electrical', name: 'Electrical', icon: 'Zap', tint: 'terracotta', low: 120, high: 450 },
-  { slug: 'plumbing', name: 'Plumbing', icon: 'Droplets', tint: 'mist', low: 110, high: 600 },
-  { slug: 'carpentry', name: 'Carpentry', icon: 'Hammer', tint: 'sandstone', low: 200, high: 1200 },
-  { slug: 'building', name: 'Building & Renovation', icon: 'HardHat', tint: 'eucalyptus', low: 2000, high: 25000 },
-  { slug: 'painting', name: 'Painting', icon: 'PaintRoller', tint: 'terracotta', low: 350, high: 2500 },
-  { slug: 'gardening', name: 'Gardening & Outdoor', icon: 'Trees', tint: 'sage', low: 150, high: 1200 },
-  { slug: 'cleaning', name: 'Cleaning', icon: 'Sparkles', tint: 'mist', low: 120, high: 500 },
-  { slug: 'maintenance', name: 'General Maintenance', icon: 'Wrench', tint: 'sandstone', low: 100, high: 800 },
-  { slug: 'unsure', name: "Not sure what I need", icon: 'HelpCircle', tint: 'lime', low: 150, high: 1000 },
+  { slug: 'cleaning', name: 'Cleaning', icon: 'Sparkles', tint: 'mist', low: 120, high: 500, service_key: 'cleaning.routine_domestic' },
+  { slug: 'gardening', name: 'Gardening', icon: 'Trees', tint: 'sage', low: 120, high: 800, service_key: 'gardening.basic_maintenance' },
+  { slug: 'beauty', name: 'Beauty', icon: 'Sparkles', tint: 'terracotta', low: 60, high: 250, service_key: 'beauty.adult_low_risk' },
+  { slug: 'handyman', name: 'Handyman', icon: 'Wrench', tint: 'sandstone', low: 100, high: 800, service_key: 'handyman.minor_tasks' },
+  { slug: 'rubbish-removal', name: 'Rubbish Removal', icon: 'Wrench', tint: 'eucalyptus', low: 120, high: 900, service_key: 'rubbish-removal.ordinary' },
+  { slug: 'pest-control', name: 'Pest Control', icon: 'ShieldCheck', tint: 'lime', low: 120, high: 500, service_key: 'pest-control.diagnostic' },
 ];
 export const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map(c => [c.slug, c]));
+export const PRIMARY_SERVICE_BY_CATEGORY = Object.freeze(Object.fromEntries(CATEGORIES.map(c => [c.slug, c.service_key])));
+export { PHASE1_SERVICES, PHASE1_SERVICE_MAP };
+export const MARKETPLACE_RELEASE_OPEN = PHASE1_SERVICES.some(service => service.flags.public_release_enabled);
 
 export const URGENCY_OPTIONS = [
   { value: 'flexible', label: 'Flexible', mult: 1.0 },
@@ -19,17 +20,11 @@ export const URGENCY_OPTIONS = [
   { value: 'urgent', label: 'Urgent', mult: 1.4 },
 ];
 
-export const PLAN_INFO = {
-  free: { name: 'Free', price: 0, radius: 0, perks: ['Verified profile', 'Anonymous job browsing', 'Suitable-job notifications'] },
-  local: { name: 'Local', price: 69, radius: 20, perks: ['One service area', '20 km radius', 'Unlimited interest requests', 'Messaging & quotes', 'Contact unlocks'] },
-  pro: { name: 'Pro', price: 99, radius: 60, perks: ['60 km radius', 'Multiple saved service areas', 'Broader notifications', 'Future business tools'] },
-};
-
 export const formatAUD = (n) => (n == null ? '—' : '$' + Math.round(n).toLocaleString('en-AU'));
 export const formatAUDRange = (lo, hi) => (lo == null && hi == null ? '—' : `${formatAUD(lo)} – ${formatAUD(hi)}`);
 
 export function estimateRange(slug, urgency = 'flexible') {
-  const c = CATEGORY_MAP[slug] || CATEGORY_MAP.unsure;
+  const c = CATEGORY_MAP[slug] || CATEGORIES[0];
   const m = (URGENCY_OPTIONS.find(u => u.value === urgency) || URGENCY_OPTIONS[0]).mult;
   return { low: Math.round((c.low * m) / 10) * 10, high: Math.round((c.high * m) / 10) * 10 };
 }
@@ -65,17 +60,9 @@ export async function ensureProfile(type, user) {
   if (type === 'tradie') {
     const ex = await base44.entities.TradieProfile.filter({ user_id: user.id });
     if (!ex.length) await base44.entities.TradieProfile.create({ user_id: user.id, full_name: user.full_name || user.email, open_to_work: true, service_radius_km: 20 });
-    await ensureSubscription(user.id);
   } else {
     const ex = await base44.entities.CustomerProfile.filter({ user_id: user.id });
     if (!ex.length) await base44.entities.CustomerProfile.create({ user_id: user.id, full_name: user.full_name || user.email, suburb: 'Ballarat' });
-  }
-}
-
-async function ensureSubscription(tradieId) {
-  const ex = await base44.entities.Subscription.filter({ tradie_id: tradieId });
-  if (!ex.length) {
-    await base44.entities.Subscription.create({ tradie_id: tradieId, plan: 'pro', status: 'trial', founding_trial: true, started_date: new Date().toISOString(), expires_date: new Date(Date.now() + 30 * 864e5).toISOString() });
   }
 }
 

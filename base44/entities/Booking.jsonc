@@ -1,0 +1,28 @@
+{
+  "name": "Booking",
+  "type": "object",
+  "properties": {
+    "job_id": { "type": "string" },
+    "quote_id": { "type": "string" },
+    "customer_id": { "type": "string" },
+    "provider_id": { "type": "string" },
+    "attending_worker_id": { "type": "string" },
+    "hazard_screen_status": { "type": "string", "enum": ["pending", "passed", "manual_review", "blocked"], "default": "pending" },
+    "scope_decision": { "type": "string", "enum": ["allowed", "manual_review", "blocked"] },
+    "substitution_disclosed": { "type": "boolean", "default": false },
+    "service_key": { "type": "string" },
+    "state": { "type": "string", "enum": ["accepted", "scheduled", "in_progress", "completed", "cancelled", "disputed", "superseded"], "default": "accepted" },
+    "scheduled_start": { "type": "string", "format": "date-time" },
+    "recurring_series_id": { "type": "string" },
+    "idempotency_key": { "type": "string" },
+    "policy_version": { "type": "string" },
+    "version": { "type": "number", "default": 1 }
+  },
+  "required": ["job_id", "quote_id", "customer_id", "provider_id", "attending_worker_id", "service_key", "state", "idempotency_key"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.provider_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": false
+  }
+}

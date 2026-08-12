@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { Home as HomeIcon, Briefcase, Plus, MessageSquare, User, Compass, Ticket, Crown } from 'lucide-react';
+import { Home as HomeIcon, Briefcase, Plus, MessageSquare, User, Compass, Ticket } from 'lucide-react';
 
 const CUSTOMER_NAV = [
   { to: '/', label: 'Home', icon: HomeIcon },
@@ -14,7 +14,6 @@ const TRADIE_NAV = [
   { to: '/', label: 'Discover', icon: Compass },
   { to: '/invites', label: 'Invites', icon: Ticket },
   { to: '/messages', label: 'Chat', icon: MessageSquare },
-  { to: '/membership', label: 'Plan', icon: Crown },
   { to: '/tradie-profile', label: 'Me', icon: User },
 ];
 

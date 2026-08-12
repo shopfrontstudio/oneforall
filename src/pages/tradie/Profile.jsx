@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { BadgeCheck, Crown, LogOut, Repeat, Save, ShieldCheck } from 'lucide-react';
+import { Crown, LogOut, Repeat, Save, ShieldCheck } from 'lucide-react';
 import { CATEGORIES, ensureProfile, setAccountType } from '@/lib/oneforall';
 
 export default function TradieProfile() {
@@ -11,13 +11,11 @@ export default function TradieProfile() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [p, setP] = useState(null);
-  const [subscription, setSubscription] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    const [profiles, subscriptions] = await Promise.all([base44.entities.TradieProfile.filter({ user_id: user.id }), base44.entities.Subscription.filter({ tradie_id: user.id })]);
+    const profiles = await base44.entities.TradieProfile.filter({ user_id: user.id });
     setP(profiles[0] || null);
-    setSubscription(subscriptions[0] || null);
   };
   useEffect(() => { load(); }, [user.id]);
 
@@ -26,7 +24,7 @@ export default function TradieProfile() {
 
   const save = async () => {
     const abn = (p.abn || '').replace(/\s/g, '');
-    const maxRadius = subscription?.plan === 'pro' ? 80 : subscription?.plan === 'local' ? 35 : 20;
+    const maxRadius = 80;
     if (abn && !/^\d{11}$/.test(abn)) { toast({ title: 'ABN must contain 11 digits', variant: 'destructive' }); return; }
     if (!(p.trade_categories || []).length) { toast({ title: 'Choose at least one trade category', variant: 'destructive' }); return; }
     setSaving(true);
@@ -34,7 +32,7 @@ export default function TradieProfile() {
       const editable = { full_name: p.full_name?.trim(), business_name: p.business_name?.trim(), abn, suburb: p.suburb?.trim(), licence_number: p.licence_number?.trim(), licence_type: p.licence_type?.trim(), insurance_provider: p.insurance_provider?.trim(), insurance_policy_number: p.insurance_policy_number?.trim(), public_liability: !!p.public_liability, trade_categories: p.trade_categories, experience_years: Math.max(0, Number(p.experience_years) || 0), service_radius_km: Math.min(maxRadius, Math.max(1, Number(p.service_radius_km) || 20)), service_areas: p.service_areas, bio: p.bio?.trim(), open_to_work: !!p.open_to_work };
       await base44.entities.TradieProfile.update(p.id, editable);
       setP(prev => ({ ...prev, ...editable }));
-      toast({ title: 'Profile saved', description: editable.service_radius_km < p.service_radius_km ? `Radius capped at ${maxRadius} km for your plan.` : undefined });
+      toast({ title: 'Profile saved', description: editable.service_radius_km < p.service_radius_km ? `Radius capped at ${maxRadius} km pending coverage verification.` : undefined });
     } catch (error) { toast({ title: 'Could not save profile', description: error.message, variant: 'destructive' }); }
     finally { setSaving(false); }
   };
@@ -54,7 +52,7 @@ export default function TradieProfile() {
       <div className="flex items-center gap-3">
         <div className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-semibold text-lg">{(p.full_name || '?')[0]}</div>
         <div>
-          <h1 className="text-xl font-semibold tracking-tight flex items-center gap-1.5">{p.full_name}{p.verified && <BadgeCheck size={18} className="text-eucalyptus" />}{p.founding_badge && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold"><Crown size={11} />Founding</span>}</h1>
+          <h1 className="text-xl font-semibold tracking-tight flex items-center gap-1.5">{p.full_name}{p.founding_badge && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold"><Crown size={11} />Founding</span>}</h1>
           <p className="text-sm text-muted-foreground">{p.business_name || 'Add your business name'}</p>
         </div>
         <Link to={`/tradie/${p.id}`} className="ml-auto text-xs font-semibold text-eucalyptus-deep">View public profile</Link>
@@ -67,10 +65,9 @@ export default function TradieProfile() {
           <CheckRow label="Licence" ok={!!p.licence_number} />
           <CheckRow label="Insurance" ok={!!p.insurance_provider} />
           <CheckRow label="Public liability" ok={p.public_liability} />
-          <CheckRow label="Identity verified" ok={p.verified} />
           <CheckRow label="Trade categories" ok={(p.trade_categories || []).length > 0} />
         </div>
-        {!p.verified && <p className="text-xs text-muted-foreground mt-2">Verified status is granted by OneForAll once your ABN, licence and insurance are confirmed.</p>}
+        <p className="text-xs text-muted-foreground mt-2">Public approval will come only from service-specific evidence review; this legacy profile checklist does not grant access.</p>
       </div>
 
       <div className="glass rounded-2xl p-4 space-y-3">

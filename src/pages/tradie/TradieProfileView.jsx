@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
-import { BadgeCheck, Crown, MapPin, ShieldCheck, Lock, Send } from 'lucide-react';
+import { MapPin, ShieldCheck, Lock, Send } from 'lucide-react';
 import { StarRating, EmptyState } from '@/components/oneforall/Bits';
 import { callFunction, pseudoDistance } from '@/lib/oneforall';
 import { useToast } from '@/components/ui/use-toast';
@@ -59,7 +59,7 @@ export default function TradieProfileView() {
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-semibold text-2xl">{(t.full_name || '?')[0]}</div>
           <div className="flex-1">
-            <h1 className="text-xl font-semibold tracking-tight flex items-center gap-1.5">{t.business_name || t.full_name}{t.verified && <BadgeCheck size={18} className="text-eucalyptus" />}{t.founding_badge && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold"><Crown size={11} />Founding</span>}</h1>
+            <h1 className="text-xl font-semibold tracking-tight">{t.business_name || t.full_name}</h1>
             <p className="text-sm text-muted-foreground">{(t.trade_categories || []).join(' · ')}</p>
             <div className="flex items-center gap-3 mt-1.5"><StarRating value={displayedRating} count={displayedRatingCount} /><span className="text-xs text-muted-foreground inline-flex items-center gap-1"><MapPin size={12} />{t.suburb} · {pseudoDistance('Ballarat', t.suburb).toFixed(0)} km</span></div>
           </div>

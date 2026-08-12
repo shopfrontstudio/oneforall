@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { MapPin, Clock, DollarSign, CheckCircle2, ShieldCheck, Lock, Star, MessageSquare, Send } from 'lucide-react';
-import { formatAUDRange, URGENCY_LABEL, JOB_STATUS_LABEL, estimateRange, callFunction } from '@/lib/oneforall';
+import { formatAUDRange, URGENCY_LABEL, JOB_STATUS_LABEL, estimateRange, callFunction, MARKETPLACE_RELEASE_OPEN, PHASE1_SERVICE_MAP } from '@/lib/oneforall';
 import { StatusBadge, EmptyState } from '@/components/oneforall/Bits';
 
 export default function JobDetail() {
@@ -18,7 +18,6 @@ export default function JobDetail() {
   const [myRequest, setMyRequest] = useState(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [working, setWorking] = useState(false);
-  const [subscription, setSubscription] = useState(null);
   const [reviewed, setReviewed] = useState(false);
 
   const load = async () => {
@@ -32,8 +31,6 @@ export default function JobDetail() {
       const tp = await base44.entities.TradieProfile.filter({ user_id: user.id });
       setProfile(tp[0] || null);
       setMyRequest(reqs.find(r => r.tradie_id === user.id) || null);
-      const subscriptions = await base44.entities.Subscription.filter({ tradie_id: user.id });
-      setSubscription(subscriptions[0] || null);
     }
   };
   useEffect(() => { load(); }, [id, user?.id]);
@@ -49,7 +46,7 @@ export default function JobDetail() {
   const accept = async (req) => {
     setWorking(true);
     try {
-      await callFunction('accept-interest', { request_id: req.id, action: 'accept' });
+      await callFunction('accept-interest', { request_id: req.id, action: 'accept', idempotency_key: crypto.randomUUID() });
       toast({ title: 'Request accepted', description: 'Contact details unlocked — you can message now.' });
       navigate('/messages');
     } catch (error) { toast({ title: 'Could not accept request', description: error.message, variant: 'destructive' }); }
@@ -57,13 +54,13 @@ export default function JobDetail() {
   };
   const decline = async (req) => {
     try {
-      await callFunction('accept-interest', { request_id: req.id, action: 'decline' });
+      await callFunction('accept-interest', { request_id: req.id, action: 'decline', idempotency_key: crypto.randomUUID() });
       toast({ title: 'Declined' });
       load();
     } catch (error) { toast({ title: 'Could not decline request', description: error.message, variant: 'destructive' }); }
   };
-  const startWork = async () => { await base44.entities.Job.update(job.id, { status: 'in_progress' }); toast({ title: 'Marked in progress' }); load(); };
-  const complete = async () => { await base44.entities.Job.update(job.id, { status: 'completed' }); toast({ title: 'Job completed' }); load(); };
+  const startWork = async () => { await callFunction('transition-booking', { job_id: job.id, to_state: 'in_progress', idempotency_key: crypto.randomUUID() }); toast({ title: 'Marked in progress' }); load(); };
+  const complete = async () => { await callFunction('transition-booking', { job_id: job.id, to_state: 'completed', idempotency_key: crypto.randomUUID() }); toast({ title: 'Job completed' }); load(); };
 
   // submit-review verifies the job is completed and that this account posted it,
   // then recomputes the tradie's aggregate rating server-side.
@@ -77,12 +74,11 @@ export default function JobDetail() {
 
   const sendInterest = async (data) => {
     const low = Number(data.quote_low); const high = Number(data.quote_high);
-    const entitled = subscription && ['active', 'trial'].includes(subscription.status) && subscription.plan !== 'free';
-    if (!entitled) { toast({ title: 'Subscription required', variant: 'destructive' }); navigate('/membership'); return; }
+    if (!MARKETPLACE_RELEASE_OPEN) { toast({ title: 'Marketplace requests are not open yet', variant: 'destructive' }); return; }
     if (!data.availability || !Number.isFinite(low) || low <= 0 || !Number.isFinite(high) || high < low) { toast({ title: 'Add a valid quote and availability', variant: 'destructive' }); return; }
     setWorking(true);
     try {
-      await callFunction('send-interest', { job_id: job.id, quote_low: low, quote_high: high, earliest_availability: data.availability, message: data.message });
+      await callFunction('send-interest', { job_id: job.id, quote_low: low, quote_high: high, earliest_availability: data.availability, message: data.message, idempotency_key: crypto.randomUUID() });
       toast({ title: 'Interest sent' }); await load();
     } catch (error) { toast({ title: 'Could not send interest', description: error.message, variant: 'destructive' }); }
     finally { setWorking(false); }
@@ -134,7 +130,7 @@ export default function JobDetail() {
                   <div className="text-xs text-muted-foreground mt-2">Indicative quote: {formatAUDRange(r.quote_low, r.quote_high)} · Available {r.earliest_availability || 'flexible'}</div>
                   {r.status === 'pending' && (
                     <div className="flex gap-2 mt-3">
-                      <button disabled={working} onClick={() => accept(r)} className="flex-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-50">{working ? 'Working…' : 'Accept & unlock'}</button>
+                      <button disabled={working || !PHASE1_SERVICE_MAP[job.service_key]?.flags.booking_enabled} onClick={() => accept(r)} className="flex-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-50">{working ? 'Working…' : 'Accept & unlock'}</button>
                       <button onClick={() => decline(r)} className="px-4 py-2 rounded-xl glass-soft text-sm font-medium btn-tactile">Decline</button>
                     </div>
                   )}
@@ -166,7 +162,7 @@ export default function JobDetail() {
               <div className="glass-soft rounded-xl p-2.5 mt-2 text-xs text-muted-foreground inline-flex items-center gap-1"><Lock size={12} /> Contact details unlock when the customer accepts.</div>
             </div>
           ) : (
-            <TradieRespond job={job} profile={profile} busy={working} onSend={sendInterest} />
+            <TradieRespond job={job} profile={profile} busy={working} marketplaceOpen={MARKETPLACE_RELEASE_OPEN} onSend={sendInterest} />
           )}
         </section>
       )}
@@ -178,7 +174,7 @@ function Info({ icon: Icon, label, value }) {
   return <div className="flex items-start gap-2"><Icon size={15} className="text-eucalyptus-deep mt-0.5 shrink-0" /><div><div className="text-xs text-muted-foreground">{label}</div><div className="font-medium text-sm">{value}</div></div></div>;
 }
 
-function TradieRespond({ job, profile, onSend, busy = false }) {
+function TradieRespond({ job, profile, onSend, marketplaceOpen, busy = false }) {
   const range = estimateRange(job.category_slug, job.urgency);
   const [qL, setQL] = useState(String(range.low)); const [qH, setQH] = useState(String(range.high)); const [avail, setAvail] = useState(() => new Date(Date.now() + 864e5).toISOString().slice(0, 10)); const [msg, setMsg] = useState('');
   if (!profile) return <p className="text-sm text-muted-foreground">Complete your tradie profile first.</p>;
@@ -191,7 +187,7 @@ function TradieRespond({ job, profile, onSend, busy = false }) {
       </div>
       <input type="date" value={avail} onChange={e => setAvail(e.target.value)} className="inp-mini" />
       <textarea rows={2} value={msg} onChange={e => setMsg(e.target.value)} placeholder="Short message + link to your verified profile" className="inp-mini" />
-      <button disabled={busy} onClick={() => onSend({ quote_low: qL, quote_high: qH, availability: avail, message: msg })} className="w-full px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile inline-flex items-center justify-center gap-1.5 disabled:opacity-50"><Send size={15} /> {busy ? 'Sending…' : 'Send interest request'}</button>
+      <button disabled={busy || !marketplaceOpen} onClick={() => onSend({ quote_low: qL, quote_high: qH, availability: avail, message: msg })} className="w-full px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile inline-flex items-center justify-center gap-1.5 disabled:opacity-50"><Send size={15} /> {busy ? 'Sending…' : marketplaceOpen ? 'Send interest request' : 'Requests not open'}</button>
     </div>
   );
 }

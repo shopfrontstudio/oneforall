@@ -4,19 +4,16 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { Check, ChevronLeft, ChevronRight, Info, Save, Sparkles, Upload, X } from 'lucide-react';
-import { CATEGORY_MAP, URGENCY_OPTIONS, callFunction, estimateRange, formatAUDRange } from '@/lib/oneforall';
+import { CATEGORY_MAP, PRIMARY_SERVICE_BY_CATEGORY, URGENCY_OPTIONS, callFunction, estimateRange, formatAUDRange } from '@/lib/oneforall';
 import CategoryGrid from '@/components/oneforall/CategoryGrid';
 
 const PHOTO_GUIDE = {
-  electrical: 'Photograph the switchboard, the affected outlet/fitting, and any visible wiring. Include the whole room for context.',
-  plumbing: 'Show the leak/source, the fixture, and where the pipes run. A wide shot of under-sink or behind-toilet helps.',
-  carpentry: 'Include the area to repair/build from multiple angles, plus any existing structure or damage.',
-  building: 'Wide shots of the room/space, plus walls, floor and ceiling. Include plans or sketches if you have them.',
-  painting: 'Photograph each wall, close-ups of existing paint condition, and any patches or damage.',
   gardening: 'Show the whole yard, then specific areas (lawn, beds, fences). Note sun direction if possible.',
   cleaning: 'Photograph each room/space needing cleaning and any specific problem areas.',
-  maintenance: 'Photograph the issue from a couple of angles and include the surrounding area for context.',
-  unsure: 'Take a few wide shots of the area and a close-up of the main concern — the tradie will advise.',
+  beauty: 'Only photograph the requested style or non-sensitive area. Do not upload health records.',
+  handyman: 'Photograph the item, fixing surface and surrounding area from multiple angles.',
+  'rubbish-removal': 'Show the complete load and close-ups of any item that may need special disposal.',
+  'pest-control': 'Show signs of activity and accessible affected areas without approaching the pest.',
 };
 
 export default function PostJob() {
@@ -64,9 +61,9 @@ export default function PostJob() {
 
   const suggestCategory = (text = form.freeText) => {
     const t = (text || '').toLowerCase();
-    const map = { tap: 'plumbing', leak: 'plumbing', pipe: 'plumbing', drain: 'plumbing', power: 'electrical', light: 'electrical', switch: 'electrical', wire: 'electrical', fence: 'carpentry', deck: 'carpentry', wood: 'carpentry', wall: 'building', renovat: 'building', kitchen: 'building', bathroom: 'building', paint: 'painting', garden: 'gardening', lawn: 'gardening', tree: 'gardening', clean: 'cleaning' };
+    const map = { clean: 'cleaning', vacuum: 'cleaning', garden: 'gardening', lawn: 'gardening', weed: 'gardening', hair: 'beauty', makeup: 'beauty', nail: 'beauty', rubbish: 'rubbish-removal', junk: 'rubbish-removal', waste: 'rubbish-removal', pest: 'pest-control', termite: 'pest-control', ant: 'pest-control', rodent: 'pest-control' };
     for (const k in map) if (t.includes(k)) return map[k];
-    return 'maintenance';
+    return 'handyman';
   };
 
   const buildPayload = (status) => {
@@ -74,13 +71,12 @@ export default function PostJob() {
     const range = estimateRange(categorySlug, form.urgency);
     const cat = CATEGORY_MAP[categorySlug];
     const payload = {
-      customer_id: user.id,
-      customer_name: user.full_name || user.email,
       customer_suburb: form.suburb.trim() || 'Ballarat',
       title: form.title.trim() || form.freeText.trim().slice(0, 80) || `${cat?.name || 'Local'} job`,
       description: form.description.trim() || form.freeText.trim(),
       category_slug: categorySlug,
       category_name: cat?.name,
+      service_key: PRIMARY_SERVICE_BY_CATEGORY[categorySlug],
       suburb: form.suburb.trim() || 'Ballarat',
       urgency: form.urgency,
       access_notes: form.access_notes.trim(),
@@ -90,6 +86,8 @@ export default function PostJob() {
       indicative_high: range.high,
       photos: form.photos,
       status,
+      job_id: draftId || undefined,
+      idempotency_key: crypto.randomUUID(),
       // `boosted` is deliberately absent: it is admin-write only now, owned by the
       // boost-job function, so sending it here would be rejected.
     };
@@ -130,9 +128,7 @@ export default function PostJob() {
     setSaving(true);
     try {
       const payload = buildPayload('draft');
-      const draft = draftId
-        ? await base44.entities.Job.update(draftId, payload)
-        : await base44.entities.Job.create(payload);
+      const { job: draft } = await callFunction('submit-request', payload);
       setDraftId(draft?.id || draftId);
       toast({ title: 'Draft saved', description: 'You can continue it from My Jobs.' });
       navigate('/my-jobs');
@@ -164,12 +160,10 @@ export default function PostJob() {
     setSaving(true);
     try {
       const payload = buildPayload('published');
-      const job = draftId
-        ? await base44.entities.Job.update(draftId, payload)
-        : await base44.entities.Job.create(payload);
+      const { job } = await callFunction('submit-request', payload);
 
-      // The job itself is still written directly (the customer owns it), but the
-      // notification fan-out and the direct invite are authorised server-side.
+      // The request, notification fan-out and direct invite are all authorised
+      // server-side. Release flags currently keep public publishing fail-closed.
       if (invitedTradieProfileId) {
         await callFunction('invite-tradie', { job_id: job.id, tradie_profile_id: invitedTradieProfileId })
           .catch(() => toast({ title: 'Job published, but the invite could not be sent', variant: 'destructive' }));
