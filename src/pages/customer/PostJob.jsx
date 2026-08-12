@@ -210,7 +210,7 @@ export default function PostJob() {
         {step > 1 && <button onClick={() => setStep(step - 1)} className="w-9 h-9 rounded-xl glass-soft flex items-center justify-center btn-tactile"><ChevronLeft size={18} /></button>}
         <h1 className="text-xl font-semibold tracking-tight">Post a job</h1>
         <div className="flex-1 flex gap-1.5 ml-2">
-          {steps.map(s => <span key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-eucalyptus' : 'bg-border'}`} />)}
+          {steps.map(s => <span key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-primary' : 'bg-border'}`} />)}
         </div>
         <span className="text-xs text-muted-foreground">Step {step}/5</span>
       </div>
@@ -222,7 +222,7 @@ export default function PostJob() {
               <CategoryGrid activeSlug={form.category_slug} onSelect={(slug) => set('category_slug', slug)} />
             </div>
             <label className="text-xs font-medium text-muted-foreground">Or describe it in your words</label>
-            <textarea value={form.freeText} onChange={e => set('freeText', e.target.value)} rows={3} placeholder="My kitchen tap is leaking…" className="mt-1 w-full rounded-xl bg-white/70 border border-border p-3 text-sm focus:ring-2 ring-eucalyptus outline-none" />
+            <textarea value={form.freeText} onChange={e => set('freeText', e.target.value)} rows={3} placeholder="My kitchen tap is leaking…" className="mt-1 w-full rounded-xl bg-white/70 border border-border p-3 text-sm focus:ring-2 ring-primary outline-none" />
             {form.freeText && !form.category_slug && (
             <button type="button" onClick={() => set('category_slug', suggestCategory())} className="mt-3 inline-flex items-center gap-2 text-sm text-eucalyptus-deep font-medium"><Sparkles size={15} /> Suggest a trade for me</button>
             )}
@@ -239,7 +239,7 @@ export default function PostJob() {
               <Field label="Preferred date"><input type="date" value={form.preferred_date} onChange={e => set('preferred_date', e.target.value)} className="inp" /></Field>
             </div>
             <Field label="Urgency">
-              <div className="flex gap-2">{URGENCY_OPTIONS.map(u => <button type="button" key={u.value} onClick={() => set('urgency', u.value)} className={`px-3 py-2 rounded-xl text-sm btn-tactile ${form.urgency === u.value ? 'bg-eucalyptus text-white' : 'glass-soft'}`}>{u.label}</button>)}</div>
+              <div className="flex gap-2">{URGENCY_OPTIONS.map(u => <button type="button" key={u.value} onClick={() => set('urgency', u.value)} className={`px-3 py-2 rounded-xl text-sm btn-tactile ${form.urgency === u.value ? 'bg-primary text-primary-foreground' : 'glass-soft'}`}>{u.label}</button>)}</div>
             </Field>
             <Field label="Property access notes"><input value={form.access_notes} onChange={e => set('access_notes', e.target.value)} placeholder="e.g. Side gate, dog in yard" className="inp" /></Field>
             <div className="grid grid-cols-2 gap-3">
@@ -294,9 +294,9 @@ export default function PostJob() {
         <div className="flex justify-between mt-6">
           {step > 1 ? <button onClick={() => setStep(step - 1)} className="px-4 py-2.5 rounded-xl glass-soft text-sm font-medium btn-tactile">Back</button> : <span />}
           {step < 5 ? (
-            <button type="button" onClick={goNext} disabled={!canContinue} className="px-5 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-45 disabled:cursor-not-allowed">Continue <ChevronRight size={16} className="inline" /></button>
+            <button type="button" onClick={goNext} disabled={!canContinue} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-45 disabled:cursor-not-allowed">Continue <ChevronRight size={16} className="inline" /></button>
           ) : (
-            <button onClick={publish} disabled={saving || !form.title || !form.category_slug} className="px-5 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-50">{saving ? 'Publishing…' : 'Publish job'}</button>
+            <button onClick={publish} disabled={saving || !form.title || !form.category_slug} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-50">{saving ? 'Publishing…' : 'Publish job'}</button>
           )}
         </div>
       </div>

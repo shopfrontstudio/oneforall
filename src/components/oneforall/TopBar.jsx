@@ -70,7 +70,7 @@ export default function TopBar() {
             {nav.map(n => {
               const active = n.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(n.to);
               return (
-                <Link key={n.to} to={n.to} className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-1.5 transition ${active ? 'bg-eucalyptus text-white shadow' : 'text-foreground/70 hover:bg-white/60'}`}>
+                <Link key={n.to} to={n.to} className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-1.5 transition ${active ? 'bg-primary text-primary-foreground shadow' : 'text-foreground/70 hover:bg-white/60'}`}>
                   <n.icon size={16} />{n.label}
                 </Link>
               );
@@ -81,7 +81,7 @@ export default function TopBar() {
               <Bell size={18} className="text-eucalyptus-deep" />
               {unread > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">{unread > 99 ? '99+' : unread}</span>}
             </button>
-            <Link to={isTradie ? '/tradie-profile' : '/profile'} className="w-10 h-10 rounded-xl bg-eucalyptus text-white flex items-center justify-center btn-tactile" aria-label="Open profile"><User size={17} /></Link>
+            <Link to={isTradie ? '/tradie-profile' : '/profile'} className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center btn-tactile" aria-label="Open profile"><User size={17} /></Link>
             {showNotifications && <div className="absolute right-0 top-12 w-[min(22rem,calc(100vw-2rem))] glass rounded-2xl shadow-xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border/50"><b className="text-sm">Notifications</b>{unread > 0 && <button onClick={markAllRead} className="text-xs text-eucalyptus-deep inline-flex items-center gap-1"><CheckCheck size={13} /> Mark all read</button>}</div>
               {notifications.length ? notifications.map(item => <button key={item.id} onClick={() => openNotification(item)} className={`w-full text-left px-4 py-3 border-b border-border/40 last:border-0 hover:bg-white/60 ${item.read ? '' : 'bg-sage/20'}`}><span className="block text-sm font-medium">{item.title}</span><span className="block text-xs text-muted-foreground mt-0.5">{item.body}</span></button>) : <p className="p-6 text-center text-sm text-muted-foreground">You’re all caught up.</p>}

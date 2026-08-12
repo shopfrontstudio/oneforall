@@ -81,7 +81,7 @@ export default function MyJobs() {
   };
 
   if (jobs === null) return <div className="glass-soft rounded-2xl h-40 animate-pulse" />;
-  if (!jobs.length) return <EmptyState icon={Briefcase} title="No jobs yet" body="Post your first job and verified Ballarat tradies will come to you." action={<Link to="/post-job" className="bg-eucalyptus text-white px-4 py-2.5 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-2"><Plus size={16} /> Post a job</Link>} />;
+  if (!jobs.length) return <EmptyState icon={Briefcase} title="No jobs yet" body="Post your first job and verified Ballarat tradies will come to you." action={<Link to="/post-job" className="bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-2"><Plus size={16} /> Post a job</Link>} />;
 
   const open = jobs.filter(j => j.status !== 'completed' && j.status !== 'cancelled');
   const closed = jobs.filter(j => j.status === 'completed' || j.status === 'cancelled');
@@ -90,7 +90,7 @@ export default function MyJobs() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">My jobs</h1>
-        <Link to="/post-job" className="bg-eucalyptus text-white px-4 py-2 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-1.5"><Plus size={16} /> New</Link>
+        <Link to="/post-job" className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-1.5"><Plus size={16} /> New</Link>
       </div>
       <div className="glass-soft rounded-2xl p-3 flex items-center gap-2 text-sm">
         <Zap size={16} className="text-terracotta" />
@@ -141,7 +141,7 @@ function ConfirmAction({ title, body, confirmLabel, destructive, busy, onCancel,
         <p className="mt-2 text-sm text-muted-foreground">{body}</p>
         <div className="mt-5 flex gap-2">
           <button disabled={busy} onClick={onCancel} className="flex-1 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold">Keep job</button>
-          <button disabled={busy} onClick={onConfirm} className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white ${destructive ? 'bg-destructive' : 'bg-eucalyptus'}`}>{busy ? 'Updating…' : confirmLabel}</button>
+          <button disabled={busy} onClick={onConfirm} className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold ${destructive ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'}`}>{busy ? 'Updating…' : confirmLabel}</button>
         </div>
       </div>
     </div>

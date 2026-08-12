@@ -122,7 +122,7 @@ export default function JobDetail() {
                   <div className="text-xs text-muted-foreground mt-2">Indicative quote: {formatAUDRange(r.quote_low, r.quote_high)} · Available {r.earliest_availability || 'flexible'}</div>
                   {r.status === 'pending' && (
                     <div className="flex gap-2 mt-3">
-                      <button disabled={working} onClick={() => accept(r)} className="flex-1 px-3 py-2 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-50">{working ? 'Working…' : 'Accept & unlock'}</button>
+                      <button disabled={working} onClick={() => accept(r)} className="flex-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-50">{working ? 'Working…' : 'Accept & unlock'}</button>
                       <button onClick={() => decline(r)} className="px-4 py-2 rounded-xl glass-soft text-sm font-medium btn-tactile">Decline</button>
                     </div>
                   )}
@@ -138,7 +138,7 @@ export default function JobDetail() {
             </div>
           )}
           {job.status === 'completed' && !reviewOpen && !reviewed && (
-            <button onClick={() => setReviewOpen(true)} className="mt-3 w-full px-4 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile inline-flex items-center justify-center gap-2"><Star size={16} /> Leave a review</button>
+            <button onClick={() => setReviewOpen(true)} className="mt-3 w-full px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile inline-flex items-center justify-center gap-2"><Star size={16} /> Leave a review</button>
           )}
           {reviewOpen && <ReviewForm onSubmit={submitReview} onCancel={() => setReviewOpen(false)} />}
         </section>
@@ -179,7 +179,7 @@ function TradieRespond({ job, profile, onSend, busy = false }) {
       </div>
       <input type="date" value={avail} onChange={e => setAvail(e.target.value)} className="inp-mini" />
       <textarea rows={2} value={msg} onChange={e => setMsg(e.target.value)} placeholder="Short message + link to your verified profile" className="inp-mini" />
-      <button disabled={busy} onClick={() => onSend({ quote_low: qL, quote_high: qH, availability: avail, message: msg })} className="w-full px-4 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile inline-flex items-center justify-center gap-1.5 disabled:opacity-50"><Send size={15} /> {busy ? 'Sending…' : 'Send interest request'}</button>
+      <button disabled={busy} onClick={() => onSend({ quote_low: qL, quote_high: qH, availability: avail, message: msg })} className="w-full px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile inline-flex items-center justify-center gap-1.5 disabled:opacity-50"><Send size={15} /> {busy ? 'Sending…' : 'Send interest request'}</button>
     </div>
   );
 }
@@ -191,7 +191,7 @@ function ReviewForm({ onSubmit, onCancel }) {
       <h3 className="font-semibold text-sm">Rate your tradie</h3>
       <div className="flex gap-1">{[1, 2, 3, 4, 5].map(i => <button key={i} onClick={() => setRating(i)}><Star size={26} className={i <= rating ? 'fill-terracotta text-terracotta' : 'text-muted-foreground/40'} /></button>)}</div>
       <textarea rows={3} value={body} onChange={e => setBody(e.target.value)} placeholder="How was the work? Punctual, tidy, good value?" className="inp" />
-      <div className="flex gap-2"><button onClick={onCancel} className="flex-1 px-3 py-2 rounded-xl glass-soft text-sm font-medium btn-tactile">Cancel</button><button onClick={() => onSubmit(rating, body)} className="flex-1 px-3 py-2 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile">Submit review</button></div>
+      <div className="flex gap-2"><button onClick={onCancel} className="flex-1 px-3 py-2 rounded-xl glass-soft text-sm font-medium btn-tactile">Cancel</button><button onClick={() => onSubmit(rating, body)} className="flex-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile">Submit review</button></div>
     </div>
   );
 }

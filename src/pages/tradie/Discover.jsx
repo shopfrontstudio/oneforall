@@ -97,7 +97,7 @@ export default function Discover() {
           <p className="text-sm text-muted-foreground">Recommended for you around {profile?.suburb || 'Ballarat'}</p>
         </div>
         <div className="relative">
-          <select value={sort} onChange={e => setSort(e.target.value)} className="appearance-none bg-white/70 border border-border rounded-xl pl-9 pr-8 py-2 text-sm font-medium outline-none focus:ring-2 ring-eucalyptus">
+          <select value={sort} onChange={e => setSort(e.target.value)} className="appearance-none bg-white/70 border border-border rounded-xl pl-9 pr-8 py-2 text-sm font-medium outline-none focus:ring-2 ring-primary">
             {SORTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <ArrowDownUp size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -124,7 +124,7 @@ export default function Discover() {
               ) : respond?.job.id === job.id ? (
                 <RespondForm job={job} busy={sending} onCancel={() => setRespond(null)} onSend={(d) => sendRequest(job, d)} />
               ) : (
-                <button onClick={() => setRespond({ job })} className="w-full text-sm font-semibold px-3 py-2.5 rounded-xl bg-eucalyptus text-white btn-tactile inline-flex items-center justify-center gap-1.5"><Send size={14} /> Send interest request</button>
+                <button onClick={() => setRespond({ job })} className="w-full text-sm font-semibold px-3 py-2.5 rounded-xl bg-primary text-primary-foreground btn-tactile inline-flex items-center justify-center gap-1.5"><Send size={14} /> Send interest request</button>
               )}
             </div>
           ))}
@@ -151,7 +151,7 @@ function RespondForm({ job, onSend, onCancel, busy = false }) {
       <textarea value={message} onChange={e => setMessage(e.target.value)} rows={2} placeholder="Short message + link to your verified profile" className="inp-mini" />
       <div className="flex gap-2">
         <button disabled={busy} onClick={onCancel} className="flex-1 px-3 py-2 rounded-xl glass-soft text-sm font-medium btn-tactile">Cancel</button>
-        <button disabled={busy} onClick={() => onSend({ quote_low: quoteLow, quote_high: quoteHigh, availability, message })} className="flex-1 px-3 py-2 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-50">{busy ? 'Sending…' : 'Send'}</button>
+        <button disabled={busy} onClick={() => onSend({ quote_low: quoteLow, quote_high: quoteHigh, availability, message })} className="flex-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-50">{busy ? 'Sending…' : 'Send'}</button>
       </div>
     </div>
   );

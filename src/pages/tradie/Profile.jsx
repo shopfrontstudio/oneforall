@@ -52,7 +52,7 @@ export default function TradieProfile() {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <div className="w-14 h-14 rounded-2xl bg-eucalyptus text-white flex items-center justify-center font-semibold text-lg">{(p.full_name || '?')[0]}</div>
+        <div className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-semibold text-lg">{(p.full_name || '?')[0]}</div>
         <div>
           <h1 className="text-xl font-semibold tracking-tight flex items-center gap-1.5">{p.full_name}{p.verified && <BadgeCheck size={18} className="text-eucalyptus" />}{p.founding_badge && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold"><Crown size={11} />Founding</span>}</h1>
           <p className="text-sm text-muted-foreground">{p.business_name || 'Add your business name'}</p>
@@ -94,7 +94,7 @@ export default function TradieProfile() {
         <h2 className="text-sm font-semibold">Trade categories</h2>
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.filter(c => c.slug !== 'unsure').map(c => (
-            <button key={c.slug} onClick={() => toggleCat(c.slug)} className={`px-3 py-1.5 rounded-full text-xs font-medium btn-tactile ${(p.trade_categories || []).includes(c.slug) ? 'bg-eucalyptus text-white' : 'glass-soft'}`}>{c.name}</button>
+            <button key={c.slug} onClick={() => toggleCat(c.slug)} className={`px-3 py-1.5 rounded-full text-xs font-medium btn-tactile ${(p.trade_categories || []).includes(c.slug) ? 'bg-primary text-primary-foreground' : 'glass-soft'}`}>{c.name}</button>
           ))}
         </div>
         <div className="grid sm:grid-cols-2 gap-3">
@@ -109,7 +109,7 @@ export default function TradieProfile() {
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.open_to_work} onChange={e => upd('open_to_work', e.target.checked)} /> Open to work</label>
       </div>
 
-      <button disabled={saving} onClick={save} className="w-full px-4 py-3 rounded-xl bg-eucalyptus text-white font-semibold btn-tactile inline-flex items-center justify-center gap-2 disabled:opacity-50"><Save size={16} /> {saving ? 'Saving…' : 'Save profile'}</button>
+      <button disabled={saving} onClick={save} className="w-full px-4 py-3 rounded-xl bg-primary text-primary-foreground font-semibold btn-tactile inline-flex items-center justify-center gap-2 disabled:opacity-50"><Save size={16} /> {saving ? 'Saving…' : 'Save profile'}</button>
 
       <div className="glass rounded-2xl p-4 space-y-2">
         <h2 className="text-sm font-semibold">Account</h2>

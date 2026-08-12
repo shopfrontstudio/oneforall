@@ -46,7 +46,7 @@ export default function Onboarding() {
 
           <div className="grid gap-3 mt-7">
             <button disabled={busy} onClick={() => choose('tradie')} className="glass rounded-3xl p-5 text-left flex items-center gap-4 btn-tactile hover:bg-white/80 disabled:opacity-60">
-              <span className="w-14 h-14 rounded-2xl bg-eucalyptus text-white flex items-center justify-center shrink-0"><HardHat size={26} /></span>
+              <span className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shrink-0"><HardHat size={26} /></span>
               <span className="flex-1">
                 <span className="block font-semibold text-foreground">I'm a tradie</span>
                 <span className="block text-xs text-muted-foreground">Find local jobs, get verified, subscribe when ready.</span>

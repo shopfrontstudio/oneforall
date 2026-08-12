@@ -74,7 +74,7 @@ export default function Membership() {
           const info = PLAN_INFO[plan];
           const current = sub?.plan === plan;
           return (
-            <div key={plan} className={`glass rounded-2xl p-5 flex flex-col ${plan === 'pro' ? 'ring-2 ring-eucalyptus' : ''}`}>
+            <div key={plan} className={`glass rounded-2xl p-5 flex flex-col ${plan === 'pro' ? 'ring-2 ring-primary' : ''}`}>
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">{info.name}</h3>
                 {plan === 'pro' && <span className="text-[10px] px-2 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold">Popular</span>}
@@ -88,7 +88,7 @@ export default function Membership() {
               ) : current || (isFounding && plan === 'local') ? (
                 <div className="mt-4 text-center text-sm font-semibold text-eucalyptus-deep py-2.5">{current ? 'Current plan' : 'Included with Pro'}</div>
               ) : (
-                <button onClick={() => setConfirm(plan)} className="mt-4 px-4 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile">{plan === 'local' ? 'Subscribe' : 'Go Pro'}</button>
+                <button onClick={() => setConfirm(plan)} className="mt-4 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile">{plan === 'local' ? 'Subscribe' : 'Go Pro'}</button>
               )}
             </div>
           );
@@ -103,7 +103,7 @@ export default function Membership() {
             <div className="flex justify-between items-start"><h3 className="font-semibold text-lg">Confirm {PLAN_INFO[confirm].name}</h3><button onClick={() => setConfirm(null)}><X size={18} /></button></div>
             <p className="text-sm text-muted-foreground mt-2">{PLAN_INFO[confirm].price === 0 ? '' : `$${PLAN_INFO[confirm].price}/month, `}recurring AUD. Cancel anytime — access stays until period end.</p>
             <div className="glass-soft rounded-xl p-3 mt-3 text-xs text-foreground/70">Demo billing — no payment details taken. Entitlement recorded on your account.</div>
-            <button onClick={() => subscribe(confirm)} className="mt-4 w-full px-4 py-3 rounded-xl bg-eucalyptus text-white font-semibold btn-tactile">Start {PLAN_INFO[confirm].name}</button>
+            <button onClick={() => subscribe(confirm)} className="mt-4 w-full px-4 py-3 rounded-xl bg-primary text-primary-foreground font-semibold btn-tactile">Start {PLAN_INFO[confirm].name}</button>
           </div>
         </div>
       )}

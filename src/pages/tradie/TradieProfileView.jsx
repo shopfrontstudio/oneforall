@@ -58,7 +58,7 @@ export default function TradieProfileView() {
     <div className="space-y-5">
       <div className="glass rounded-3xl p-5">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-eucalyptus text-white flex items-center justify-center font-semibold text-2xl">{(t.full_name || '?')[0]}</div>
+          <div className="w-16 h-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-semibold text-2xl">{(t.full_name || '?')[0]}</div>
           <div className="flex-1">
             <h1 className="text-xl font-semibold tracking-tight flex items-center gap-1.5">{t.business_name || t.full_name}{t.verified && <BadgeCheck size={18} className="text-eucalyptus" />}{t.founding_badge && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-lime/25 text-eucalyptus-deep font-semibold"><Crown size={11} />Founding</span>}</h1>
             <p className="text-sm text-muted-foreground">{(t.trade_categories || []).join(' · ')}</p>
@@ -97,13 +97,13 @@ export default function TradieProfileView() {
       {user?.account_type === 'customer' && t.user_id !== user.id && (
         <div className="glass rounded-2xl p-4">
           <h2 className="text-sm font-semibold">Work with this tradie</h2>
-          {jobs.length > 0 && !inviteOpen && <button onClick={() => setInviteOpen(true)} className="mt-3 w-full rounded-xl bg-eucalyptus px-4 py-2.5 text-sm font-semibold text-white btn-tactile inline-flex items-center justify-center gap-2"><Send size={15} /> Invite to an open job</button>}
+          {jobs.length > 0 && !inviteOpen && <button onClick={() => setInviteOpen(true)} className="mt-3 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground btn-tactile inline-flex items-center justify-center gap-2"><Send size={15} /> Invite to an open job</button>}
           {inviteOpen && (
             <div className="mt-3 space-y-2">
               <select value={selectedJob} onChange={event => setSelectedJob(event.target.value)} className="inp">
                 {jobs.map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
               </select>
-              <div className="flex gap-2"><button onClick={() => setInviteOpen(false)} className="flex-1 rounded-xl glass-soft px-3 py-2 text-sm font-medium">Cancel</button><button disabled={sending || !selectedJob} onClick={invite} className="flex-1 rounded-xl bg-eucalyptus px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{sending ? 'Sending…' : 'Send invite'}</button></div>
+              <div className="flex gap-2"><button onClick={() => setInviteOpen(false)} className="flex-1 rounded-xl glass-soft px-3 py-2 text-sm font-medium">Cancel</button><button disabled={sending || !selectedJob} onClick={invite} className="flex-1 rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">{sending ? 'Sending…' : 'Send invite'}</button></div>
             </div>
           )}
           <Link to={`/post-job?tradie=${encodeURIComponent(t.id)}`} className="mt-3 block text-center text-sm text-eucalyptus-deep font-medium">Post a new job for this tradie →</Link>

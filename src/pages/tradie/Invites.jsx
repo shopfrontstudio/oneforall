@@ -71,11 +71,11 @@ export default function Invites() {
                   <textarea rows={2} placeholder="Message" className="inp-mini" value={form[inv.id]?.message || ''} onChange={e => setForm(f => ({ ...f, [inv.id]: { ...f[inv.id], message: e.target.value } }))} />
                   <div className="flex gap-2">
                     <button disabled={working === inv.id} onClick={() => decline(inv)} className="flex-1 px-3 py-2 rounded-xl glass-soft text-sm font-medium btn-tactile">Decline</button>
-                    <button disabled={!canRespond || working === inv.id} onClick={() => respond(inv)} className="flex-1 px-3 py-2 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-45">{working === inv.id ? 'Sending…' : 'Send response'}</button>
+                    <button disabled={!canRespond || working === inv.id} onClick={() => respond(inv)} className="flex-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-45">{working === inv.id ? 'Sending…' : 'Send response'}</button>
                   </div>
                 </div>
               ) : (
-                <button disabled={!canRespond} onClick={() => { setRespondId(inv.id); setForm(current => ({ ...current, [inv.id]: { availability: new Date(Date.now() + 864e5).toISOString().slice(0, 10), ...current[inv.id] } })); }} className="mt-3 w-full px-3 py-2.5 rounded-xl bg-eucalyptus text-white text-sm font-semibold btn-tactile disabled:opacity-45">Respond with quote</button>
+                <button disabled={!canRespond} onClick={() => { setRespondId(inv.id); setForm(current => ({ ...current, [inv.id]: { availability: new Date(Date.now() + 864e5).toISOString().slice(0, 10), ...current[inv.id] } })); }} className="mt-3 w-full px-3 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold btn-tactile disabled:opacity-45">Respond with quote</button>
               )
             )}
             {inv.status === 'responded' && (

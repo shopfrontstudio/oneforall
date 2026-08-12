@@ -82,13 +82,13 @@ export default function Messages() {
               <div className="flex-1 overflow-y-auto p-3.5 space-y-2">
                 {messages.map(m => {
                   const mine = m.sender_id === user.id;
-                  return <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-sm ${mine ? 'bg-eucalyptus text-white rounded-br-md' : 'bg-white/80 text-foreground rounded-bl-md'}`}>{m.body}</div></div>;
+                  return <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-sm ${mine ? 'bg-primary text-primary-foreground rounded-br-md' : 'bg-white/80 text-foreground rounded-bl-md'}`}>{m.body}</div></div>;
                 })}
                 <div ref={endRef} />
               </div>
               <div className="p-3 border-t border-border/50 flex gap-2">
-                <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Type a message…" className="flex-1 bg-white/70 border border-border rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-eucalyptus" />
-                <button disabled={sending || !text.trim()} onClick={send} className="w-11 h-11 rounded-xl bg-eucalyptus text-white flex items-center justify-center btn-tactile disabled:opacity-45"><Send size={18} /></button>
+                <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Type a message…" className="flex-1 bg-white/70 border border-border rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-primary" />
+                <button disabled={sending || !text.trim()} onClick={send} className="w-11 h-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center btn-tactile disabled:opacity-45"><Send size={18} /></button>
               </div>
             </div>
           ) : (

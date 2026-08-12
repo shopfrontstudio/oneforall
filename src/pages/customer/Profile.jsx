@@ -28,7 +28,7 @@ export default function Profile() {
   return (
     <div className="space-y-5 max-w-2xl mx-auto">
       <div className="glass rounded-3xl p-5 flex items-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-eucalyptus text-white flex items-center justify-center font-semibold text-2xl">{(user.full_name || user.email || '?')[0].toUpperCase()}</div>
+        <div className="w-16 h-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-semibold text-2xl">{(user.full_name || user.email || '?')[0].toUpperCase()}</div>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-semibold tracking-tight truncate">{user.full_name || 'Member'}</h1>
           <p className="text-sm text-muted-foreground truncate">{user.email}</p>

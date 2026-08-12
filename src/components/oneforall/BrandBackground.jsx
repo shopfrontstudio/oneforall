@@ -1,27 +1,34 @@
 import React from 'react';
 
-// Layered brand atmosphere built from lightweight CSS gradients and SVG grain.
+// Civic Warmth: mineral atmosphere with a brighter burnt-orange focal glow.
 const NOISE =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E\")";
+
+const CONTOURS =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='420' viewBox='0 0 640 420'%3E%3Cg fill='none' stroke='%23546f5b' stroke-opacity='.12' stroke-width='1'%3E%3Cpath d='M-80 76C56 8 111 145 249 84S469 21 721 91'/%3E%3Cpath d='M-63 111C71 42 121 176 258 119S469 55 701 124'/%3E%3Cpath d='M-41 146C83 79 137 207 270 154S481 94 682 158'/%3E%3C/g%3E%3C/svg%3E\")";
 
 export default function BrandBackground() {
   return (
     <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden">
       <div
         className="absolute inset-0"
-        style={{ background: 'linear-gradient(145deg, #fbfaff 0%, #f1effb 48%, #e7e5f5 100%)' }}
+        style={{ background: 'linear-gradient(145deg, #faf7ef 0%, #f4efe4 48%, #ece3d5 100%)' }}
       />
       <div
         className="absolute inset-0"
-        style={{ background: 'radial-gradient(70% 55% at 8% 4%, rgba(245,106,81,0.18), transparent 66%), radial-gradient(65% 55% at 92% 8%, rgba(98,76,220,0.24), transparent 68%), radial-gradient(55% 50% at 52% 100%, rgba(67,199,168,0.13), transparent 70%)' }}
+        style={{ background: 'radial-gradient(72% 60% at 2% 2%, rgba(74,106,82,0.18), transparent 64%), radial-gradient(68% 58% at 98% 96%, rgba(242,107,46,0.30), transparent 66%), radial-gradient(48% 42% at 70% -2%, rgba(239,199,95,0.21), transparent 72%)' }}
       />
       <div
         className="absolute inset-0"
-        style={{ backgroundImage: NOISE, backgroundSize: '180px 180px', opacity: 0.035, mixBlendMode: 'multiply' }}
+        style={{ backgroundImage: CONTOURS, backgroundRepeat: 'repeat-x', backgroundPosition: 'center top', backgroundSize: 'min(840px, 86vw) auto', opacity: 0.42 }}
       />
       <div
         className="absolute inset-0"
-        style={{ background: 'radial-gradient(110% 95% at 50% 42%, transparent 58%, rgba(29,27,69,0.10) 100%)' }}
+        style={{ backgroundImage: NOISE, backgroundSize: '180px 180px', opacity: 0.04, mixBlendMode: 'multiply' }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{ background: 'radial-gradient(112% 98% at 50% 42%, transparent 58%, rgba(34,50,41,0.09) 100%)' }}
       />
     </div>
   );

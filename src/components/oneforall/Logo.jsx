@@ -5,8 +5,8 @@ export default function Logo({ size = 40, className = '' }) {
     <svg viewBox="0 0 48 48" width={size} height={size} className={className} aria-label="OneForAll" role="img">
       <defs>
         <linearGradient id="ofa-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="hsl(var(--eucalyptus))" />
-          <stop offset="1" stopColor="hsl(var(--eucalyptus-deep))" />
+          <stop offset="0" stopColor="hsl(var(--primary))" />
+          <stop offset="1" stopColor="hsl(var(--terracotta))" />
         </linearGradient>
       </defs>
       <rect x="2" y="2" width="44" height="44" rx="14" fill="url(#ofa-g)" />
