@@ -22,10 +22,24 @@
     "customer_id",
     "type"
   ],
+  // Boost records are the free-boost ledger and each one fans out notifications to
+  // every matching tradie, so they are written only by boost-job — which enforces
+  // the 5-per-month allowance, the 12-hour per-job cooldown, and job ownership.
+  // With create closed, customer_id is server-derived and safe to read against.
   "rls": {
-    "create": true,
-    "read": { "data.customer_id": "{{user.id}}" },
-    "update": { "data.customer_id": "{{user.id}}" },
-    "delete": { "data.customer_id": "{{user.id}}" }
+    "create": { "user_condition": { "role": "admin" } },
+    "read": {
+      "$and": [
+        { "user_condition": { "id": "{{user.id}}" } },
+        {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      ]
+    },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
   }
 }

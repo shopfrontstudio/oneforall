@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { Ticket, CheckCircle2, Lock, Crown } from 'lucide-react';
 import { EmptyState } from '@/components/oneforall/Bits';
-import { formatAUDRange } from '@/lib/oneforall';
+import { callFunction, formatAUDRange } from '@/lib/oneforall';
 
 export default function Invites() {
   const { user } = useAuth();
@@ -29,15 +29,29 @@ export default function Invites() {
     if (!canRespond || !f.availability || !Number.isFinite(low) || low <= 0 || !Number.isFinite(high) || high < low) { toast({ title: 'Check your response', description: canRespond ? 'Add an availability date and valid quote range.' : 'An active paid plan is required to respond.', variant: 'destructive' }); return; }
     setWorking(inv.id);
     try {
-      const existing = await base44.entities.InterestRequest.filter({ job_id: inv.job_id, tradie_id: user.id });
-      if (!existing.some(request => request.status !== 'declined')) await base44.entities.InterestRequest.create({ job_id: inv.job_id, job_title: inv.job_title, customer_id: inv.customer_id, tradie_id: user.id, tradie_name: inv.tradie_name, quote_low: low, quote_high: high, earliest_availability: f.availability, message: f.message?.trim(), status: 'pending', response_deadline: new Date(Date.now() + 12 * 3600e3).toISOString() });
-      await base44.entities.Invitation.update(inv.id, { status: 'responded', quote_low: low, quote_high: high, earliest_availability: f.availability, message: f.message?.trim() });
-      await base44.entities.Notification.create({ user_id: inv.customer_id, type: 'invite_response', title: 'Invitation response', body: `${inv.tradie_name} responded to your invitation`, link: `/job/${inv.job_id}`, read: false });
+      // respond-invitation confirms the invitation was addressed to us and re-runs
+      // the paid-plan check before creating the matching interest request.
+      await callFunction('respond-invitation', {
+        invitation_id: inv.id,
+        action: 'quote',
+        quote_low: low,
+        quote_high: high,
+        earliest_availability: f.availability,
+        message: f.message,
+      });
       toast({ title: 'Response sent' }); await load();
     } catch (error) { toast({ title: 'Could not send response', description: error.message, variant: 'destructive' }); }
     finally { setWorking(null); }
   };
-  const decline = async (inv) => { setWorking(inv.id); try { await base44.entities.Invitation.update(inv.id, { status: 'declined' }); toast({ title: 'Invitation declined' }); await load(); } finally { setWorking(null); } };
+  const decline = async (inv) => {
+    setWorking(inv.id);
+    try {
+      await callFunction('respond-invitation', { invitation_id: inv.id, action: 'decline' });
+      toast({ title: 'Invitation declined' });
+      await load();
+    } catch (error) { toast({ title: 'Could not decline invitation', description: error.message, variant: 'destructive' }); }
+    finally { setWorking(null); }
+  };
 
   const canRespond = subscription && ['active', 'trial'].includes(subscription.status) && subscription.plan !== 'free';
 

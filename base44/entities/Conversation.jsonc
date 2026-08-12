@@ -24,10 +24,25 @@
     "customer_id",
     "tradie_id"
   ],
+  // A conversation now exists only as a consequence of the customer accepting an
+  // interest request (accept-interest), so nobody can open an unsolicited thread
+  // with a stranger, and contact_unlocked cannot be flipped by the tradie who
+  // benefits from it. Both parties still read it directly.
   "rls": {
-    "create": true,
-    "read": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.tradie_id": "{{user.id}}" }] },
-    "update": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.tradie_id": "{{user.id}}" }] },
+    "create": { "user_condition": { "role": "admin" } },
+    "read": {
+      "$and": [
+        { "user_condition": { "id": "{{user.id}}" } },
+        {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "data.tradie_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      ]
+    },
+    "update": { "user_condition": { "role": "admin" } },
     "delete": false
   }
 }

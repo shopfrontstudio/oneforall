@@ -15,7 +15,8 @@
       "type": "string"
     },
     "link": {
-      "type": "string"
+      "type": "string",
+      "description": "In-app path only. TopBar.jsx additionally rejects anything that is not a single-slash relative path."
     },
     "read": {
       "type": "boolean",
@@ -27,10 +28,46 @@
     "type",
     "title"
   ],
+  // Notifications are addressed to someone else by design, so create could never be
+  // pinned to the recipient. Instead they are now emitted only as a side effect of
+  // an action the backend has already authorised (see base44/shared/notify.js) —
+  // which removes the ability to push arbitrary title/body/link to any user_id.
+  //
+  // Recipients still mark their own notifications read directly.
   "rls": {
-    "create": true,
-    "read": { "data.user_id": "{{user.id}}" },
-    "update": { "data.user_id": "{{user.id}}" },
-    "delete": { "data.user_id": "{{user.id}}" }
+    "create": { "user_condition": { "role": "admin" } },
+    "read": {
+      "$and": [
+        { "user_condition": { "id": "{{user.id}}" } },
+        {
+          "$or": [
+            { "data.user_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      ]
+    },
+    "update": {
+      "$and": [
+        { "user_condition": { "id": "{{user.id}}" } },
+        {
+          "$or": [
+            { "data.user_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      ]
+    },
+    "delete": {
+      "$and": [
+        { "user_condition": { "id": "{{user.id}}" } },
+        {
+          "$or": [
+            { "data.user_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      ]
+    }
   }
 }

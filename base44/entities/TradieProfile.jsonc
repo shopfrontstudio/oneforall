@@ -21,7 +21,16 @@
       }
     },
     "licence_number": {
-      "type": "string"
+      "type": "string",
+      "description": "Trade licence credential. Public pages show licence_type instead, so this stays with its owner.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.user_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
     },
     "licence_type": {
       "type": "string"
@@ -30,7 +39,16 @@
       "type": "string"
     },
     "insurance_policy_number": {
-      "type": "string"
+      "type": "string",
+      "description": "Insurance policy credential — enough to impersonate the tradie to their insurer. Owner and admin only.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.user_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
     },
     "public_liability": {
       "type": "boolean",
@@ -71,19 +89,35 @@
     },
     "verified": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Platform-granted trust badge. Must never be self-awarded.",
+      "rls": {
+        "write": { "user_condition": { "role": "admin" } }
+      }
     },
     "founding_badge": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Platform-granted badge. Must never be self-awarded.",
+      "rls": {
+        "write": { "user_condition": { "role": "admin" } }
+      }
     },
     "rating_avg": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Derived from Review records. Self-writable ratings would make the star display meaningless.",
+      "rls": {
+        "write": { "user_condition": { "role": "admin" } }
+      }
     },
     "rating_count": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Derived from Review records. See rating_avg.",
+      "rls": {
+        "write": { "user_condition": { "role": "admin" } }
+      }
     },
     "suburb": {
       "type": "string"
@@ -97,10 +131,39 @@
     "user_id",
     "full_name"
   ],
+  // The tradie directory is a signed-in feature (every route sits behind
+  // ProtectedRoute), so read requires a session rather than `true`, which would
+  // publish every tradie's name, suburb and user_id to anonymous callers.
+  // Writes are pinned to created_by so a forged record cannot shadow a real one.
   "rls": {
-    "create": true,
-    "read": true,
-    "update": { "data.user_id": "{{user.id}}" },
-    "delete": { "data.user_id": "{{user.id}}" }
+    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "read": {
+      "$or": [
+        { "user_condition": { "id": "{{user.id}}" } },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "$and": [
+            { "created_by": "{{user.email}}" },
+            { "data.user_id": "{{user.id}}" }
+          ]
+        },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "$and": [
+            { "created_by": "{{user.email}}" },
+            { "data.user_id": "{{user.id}}" }
+          ]
+        },
+        { "user_condition": { "role": "admin" } }
+      ]
+    }
   }
 }

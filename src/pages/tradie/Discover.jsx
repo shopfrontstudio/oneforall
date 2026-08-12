@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Compass, ArrowDownUp, Lock, Send, CheckCircle2 } from 'lucide-react';
 import JobCard from '@/components/oneforall/JobCard';
 import { EmptyState } from '@/components/oneforall/Bits';
-import { matchScore, pseudoDistance } from '@/lib/oneforall';
+import { callFunction, matchScore, pseudoDistance } from '@/lib/oneforall';
 
 const SORTS = [
   { value: 'recommended', label: 'Recommended' },
@@ -68,18 +68,18 @@ export default function Discover() {
     }
     setSending(true);
     try {
-      const existing = await base44.entities.InterestRequest.filter({ job_id: job.id, tradie_id: user.id });
-      if (existing.some(request => request.status !== 'declined')) { setSent(s => ({ ...s, [job.id]: true })); setRespond(null); return; }
-      const deadline = new Date(Date.now() + 12 * 3600e3).toISOString();
-      await base44.entities.InterestRequest.create({
-      job_id: job.id, job_title: job.title, tradie_id: user.id, tradie_name: profile.full_name, tradie_business: profile.business_name,
-      customer_id: job.customer_id, quote_low: low, quote_high: high, earliest_availability: data.availability, message: data.message?.trim(),
-      status: 'pending', response_deadline: deadline,
+      // send-interest re-checks the plan, the job's status and the duplicate guard
+      // server-side, and derives the tradie and customer ids from the session.
+      const result = await callFunction('send-interest', {
+        job_id: job.id,
+        quote_low: low,
+        quote_high: high,
+        earliest_availability: data.availability,
+        message: data.message,
       });
-      await base44.entities.Notification.create({ user_id: job.customer_id, type: 'interest', title: 'New interest request', body: `${profile.business_name || profile.full_name} is interested in "${job.title}"`, link: `/job/${job.id}`, read: false });
       setSent(s => ({ ...s, [job.id]: true }));
       setRespond(null);
-      toast({ title: 'Interest sent', description: 'The customer has 12 hours to respond.' });
+      if (!result.already_sent) toast({ title: 'Interest sent', description: 'The customer has 12 hours to respond.' });
     } catch (error) {
       toast({ title: 'Could not send interest', description: error.message, variant: 'destructive' });
     } finally {

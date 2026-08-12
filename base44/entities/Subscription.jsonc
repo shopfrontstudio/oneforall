@@ -45,10 +45,38 @@
     "tradie_id",
     "plan"
   ],
+  // Entitlement is read as `filter({ tradie_id })[0]`, so a record planted by
+  // another account with the victim's tradie_id could shadow their real plan.
+  // created_by is server-stamped, so a forged row is invisible to the victim.
+  //
+  // NOTE: plan/status are still written by the client (see Membership.jsx, which
+  // is a clearly-labelled demo billing flow). Before real payments are taken these
+  // fields must move behind a backend function keyed to the payment provider —
+  // RLS alone cannot tell a paid upgrade from a self-granted one.
   "rls": {
-    "create": true,
-    "read": { "data.tradie_id": "{{user.id}}" },
-    "update": { "data.tradie_id": "{{user.id}}" },
-    "delete": { "data.tradie_id": "{{user.id}}" }
+    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "read": {
+      "$or": [
+        {
+          "$and": [
+            { "created_by": "{{user.email}}" },
+            { "data.tradie_id": "{{user.id}}" }
+          ]
+        },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "update": {
+      "$and": [
+        { "created_by": "{{user.email}}" },
+        { "data.tradie_id": "{{user.id}}" }
+      ]
+    },
+    "delete": {
+      "$and": [
+        { "created_by": "{{user.email}}" },
+        { "data.tradie_id": "{{user.id}}" }
+      ]
+    }
   }
 }

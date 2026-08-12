@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { MessageSquare, Send, ShieldCheck, ArrowLeft, Lock } from 'lucide-react';
 import { EmptyState } from '@/components/oneforall/Bits';
 import { useToast } from '@/components/ui/use-toast';
+import { callFunction } from '@/lib/oneforall';
 
 export default function Messages() {
   const { user } = useAuth();
@@ -38,8 +39,9 @@ export default function Messages() {
     if (!text.trim() || !active) return;
     setSending(true);
     try {
-      const msg = await base44.entities.Message.create({ conversation_id: active.id, customer_id: active.customer_id, tradie_id: active.tradie_id, sender_id: user.id, sender_name: user.full_name || user.email, body: text.trim() });
-      setMessages(m => [...m, msg]); setText('');
+      // send-message verifies we are a participant and stamps the sender itself.
+      const { message } = await callFunction('send-message', { conversation_id: active.id, body: text.trim() });
+      setMessages(m => [...m, message]); setText('');
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
     } catch (error) {
       toast({ title: 'Message not sent', description: error.message, variant: 'destructive' });
@@ -81,6 +83,10 @@ export default function Messages() {
               </div>
               <div className="flex-1 overflow-y-auto p-3.5 space-y-2">
                 {messages.map(m => {
+                  // sender_id is now stamped by send-message from the caller's session,
+                  // so it is authoritative. (created_by is not usable here — the
+                  // function writes with the service role, so it is the same for every
+                  // message regardless of who sent it.)
                   const mine = m.sender_id === user.id;
                   return <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-sm ${mine ? 'bg-primary text-primary-foreground rounded-br-md' : 'bg-white/80 text-foreground rounded-bl-md'}`}>{m.body}</div></div>;
                 })}

@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { MapPin, Clock, DollarSign, CheckCircle2, ShieldCheck, Lock, Star, MessageSquare, Send } from 'lucide-react';
-import { formatAUDRange, URGENCY_LABEL, JOB_STATUS_LABEL, estimateRange, notify } from '@/lib/oneforall';
+import { formatAUDRange, URGENCY_LABEL, JOB_STATUS_LABEL, estimateRange, callFunction } from '@/lib/oneforall';
 import { StatusBadge, EmptyState } from '@/components/oneforall/Bits';
 
 export default function JobDetail() {
@@ -43,29 +43,36 @@ export default function JobDetail() {
   const isCustomer = job.customer_id === user.id;
   const isTradie = user.account_type === 'tradie';
 
+  // accept-interest owns the whole transition: it declines the other requests, sets
+  // assigned_tradie_id (which is what releases the private job fields) and opens the
+  // conversation — all after proving this account posted the job.
   const accept = async (req) => {
     setWorking(true);
     try {
-      await base44.entities.InterestRequest.update(req.id, { status: 'accepted' });
-      await Promise.all(requests.filter(item => item.id !== req.id && item.status === 'pending').map(item => base44.entities.InterestRequest.update(item.id, { status: 'declined' })));
-      await base44.entities.Job.update(job.id, { status: 'matched', assigned_tradie_id: req.tradie_id });
-      const existing = await base44.entities.Conversation.filter({ job_id: job.id, tradie_id: req.tradie_id });
-      if (!existing.length) await base44.entities.Conversation.create({ job_id: job.id, job_title: job.title, customer_id: user.id, tradie_id: req.tradie_id, contact_unlocked: true });
-      await notify(req.tradie_id, 'accepted', 'Request accepted', `Your interest in "${job.title}" was accepted.`, `/messages`);
+      await callFunction('accept-interest', { request_id: req.id, action: 'accept' });
       toast({ title: 'Request accepted', description: 'Contact details unlocked — you can message now.' });
       navigate('/messages');
     } catch (error) { toast({ title: 'Could not accept request', description: error.message, variant: 'destructive' }); }
     finally { setWorking(false); }
   };
-  const decline = async (req) => { await base44.entities.InterestRequest.update(req.id, { status: 'declined' }); toast({ title: 'Declined' }); load(); };
+  const decline = async (req) => {
+    try {
+      await callFunction('accept-interest', { request_id: req.id, action: 'decline' });
+      toast({ title: 'Declined' });
+      load();
+    } catch (error) { toast({ title: 'Could not decline request', description: error.message, variant: 'destructive' }); }
+  };
   const startWork = async () => { await base44.entities.Job.update(job.id, { status: 'in_progress' }); toast({ title: 'Marked in progress' }); load(); };
   const complete = async () => { await base44.entities.Job.update(job.id, { status: 'completed' }); toast({ title: 'Job completed' }); load(); };
 
+  // submit-review verifies the job is completed and that this account posted it,
+  // then recomputes the tradie's aggregate rating server-side.
   const submitReview = async (rating, body) => {
     if (reviewed) { toast({ title: 'Review already submitted', variant: 'destructive' }); return; }
-    const tradieId = job.assigned_tradie_id || requests.find(r => r.status === 'accepted')?.tradie_id;
-    await base44.entities.Review.create({ job_id: job.id, reviewer_id: user.id, reviewer_name: user.full_name || user.email, reviewee_id: tradieId, rating, body, role: 'customer_to_tradie' });
-    setReviewOpen(false); toast({ title: 'Review submitted — thank you!' }); load();
+    try {
+      await callFunction('submit-review', { job_id: job.id, rating, body });
+      setReviewOpen(false); toast({ title: 'Review submitted — thank you!' }); load();
+    } catch (error) { toast({ title: 'Could not submit review', description: error.message, variant: 'destructive' }); }
   };
 
   const sendInterest = async (data) => {
@@ -75,8 +82,7 @@ export default function JobDetail() {
     if (!data.availability || !Number.isFinite(low) || low <= 0 || !Number.isFinite(high) || high < low) { toast({ title: 'Add a valid quote and availability', variant: 'destructive' }); return; }
     setWorking(true);
     try {
-      await base44.entities.InterestRequest.create({ job_id: job.id, job_title: job.title, customer_id: job.customer_id, tradie_id: user.id, tradie_name: profile.full_name, tradie_business: profile.business_name, quote_low: low, quote_high: high, earliest_availability: data.availability, message: data.message?.trim(), status: 'pending', response_deadline: new Date(Date.now() + 12 * 3600e3).toISOString() });
-      await notify(job.customer_id, 'interest', 'New interest request', `${profile.business_name || profile.full_name} is interested in "${job.title}"`, `/job/${job.id}`);
+      await callFunction('send-interest', { job_id: job.id, quote_low: low, quote_high: high, earliest_availability: data.availability, message: data.message });
       toast({ title: 'Interest sent' }); await load();
     } catch (error) { toast({ title: 'Could not send interest', description: error.message, variant: 'destructive' }); }
     finally { setWorking(false); }
@@ -96,9 +102,15 @@ export default function JobDetail() {
           <Info icon={MapPin} label="Location" value={`${job.suburb}, VIC`} />
           <Info icon={Clock} label="Timing" value={`${URGENCY_LABEL[job.urgency]}${job.preferred_date ? ` · ${job.preferred_date}` : ''}`} />
           <Info icon={DollarSign} label="Indicative range" value={formatAUDRange(job.indicative_low, job.indicative_high)} />
-          <Info icon={ShieldCheck} label="Customer" value={isTradie ? `${job.customer_name}` : 'You'} />
+          {/* customer_name is withheld by field-level RLS until this tradie is the accepted one. */}
+          <Info icon={ShieldCheck} label="Customer" value={isCustomer ? 'You' : job.customer_name || 'Shared once accepted'} />
         </div>
-        {job.access_notes && <p className="text-xs text-muted-foreground mt-3">Access: {job.access_notes} · Parking: {job.parking}</p>}
+        <p className="text-xs text-muted-foreground mt-3">
+          Parking: {job.parking}
+          {job.access_notes
+            ? ` · Access: ${job.access_notes}`
+            : !isCustomer && ' · Access details are shared once the customer accepts you'}
+        </p>
         {job.photos?.length > 0 && (
           <div className="grid grid-cols-3 gap-2 mt-4">{job.photos.map((u, i) => <div key={i} className="aspect-square rounded-xl overflow-hidden"><img src={u} alt={`Job attachment ${i + 1}`} className="w-full h-full object-cover" /></div>)}</div>
         )}

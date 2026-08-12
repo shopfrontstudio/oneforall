@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Plus, Zap, Ban, CheckCircle2, Briefcase, Pencil, Loader2 } from 'lucide-react';
 import JobCard from '@/components/oneforall/JobCard';
 import { EmptyState } from '@/components/oneforall/Bits';
-import { pseudoDistance } from '@/lib/oneforall';
+import { callFunction } from '@/lib/oneforall';
 
 export default function MyJobs() {
   const { user } = useAuth();
@@ -33,31 +33,11 @@ export default function MyJobs() {
     if (job.status !== 'published') { toast({ title: 'Only open jobs can be boosted', variant: 'destructive' }); return; }
     setWorkingId(job.id);
     try {
-    const last = await base44.entities.Boost.filter({ job_id: job.id });
-    if (last.length) { const latest = last.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime())[0]; if (Date.now() - new Date(latest.created_date).getTime() < 12 * 3600e3) { toast({ title: 'Boosted recently', description: 'One boost per job every 12 hours.', variant: 'destructive' }); return; } }
-
-    const tradies = await base44.entities.TradieProfile.filter({ verified: true, open_to_work: true });
-    const eligible = tradies.filter(tradie =>
-      (tradie.trade_categories || []).includes(job.category_slug) &&
-      pseudoDistance(job.suburb, tradie.suburb) <= (tradie.service_radius_km || 20)
-    );
-    if (!eligible.length) {
-      toast({ title: 'No eligible tradies reached', description: 'Your boost was not used. Try again later.', variant: 'destructive' });
-      return;
-    }
-
-    await base44.entities.Boost.create({ job_id: job.id, customer_id: user.id, type: 'free' });
-    await base44.entities.Job.update(job.id, { boosted: true });
-    await Promise.allSettled(eligible.map(tradie => base44.entities.Notification.create({
-      user_id: tradie.user_id,
-      type: 'boosted_job',
-      title: 'Boosted job near you',
-      body: `${job.title} · ${job.suburb}`,
-      link: `/job/${job.id}`,
-      read: false,
-    })));
-    toast({ title: 'Job boosted', description: `${eligible.length} matching tradie${eligible.length === 1 ? '' : 's'} notified · ${freeLeft - 1} free boosts left.` });
-    load();
+      // boost-job enforces the monthly allowance, the 12-hour per-job cooldown and
+      // job ownership server-side, and refuses to spend a boost that reaches nobody.
+      const result = await callFunction('boost-job', { job_id: job.id });
+      toast({ title: 'Job boosted', description: `${result.notified} matching tradie${result.notified === 1 ? '' : 's'} notified · ${result.remaining} free boosts left.` });
+      await load();
     } catch (error) {
       toast({ title: 'Could not boost job', description: error.message, variant: 'destructive' });
     } finally {

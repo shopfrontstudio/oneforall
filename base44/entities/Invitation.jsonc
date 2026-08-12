@@ -49,10 +49,24 @@
     "tradie_id",
     "status"
   ],
+  // customer_name is disclosed to the invited tradie on purpose, so invite-tradie
+  // proves the caller owns the job before attaching it. Responses go through
+  // respond-invitation, which is also what enforces the paid-plan check.
   "rls": {
-    "create": true,
-    "read": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.tradie_id": "{{user.id}}" }] },
-    "update": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.tradie_id": "{{user.id}}" }] },
-    "delete": { "data.customer_id": "{{user.id}}" }
+    "create": { "user_condition": { "role": "admin" } },
+    "read": {
+      "$and": [
+        { "user_condition": { "id": "{{user.id}}" } },
+        {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "data.tradie_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      ]
+    },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
   }
 }

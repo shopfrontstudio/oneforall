@@ -36,10 +36,22 @@
     "reviewee_id",
     "rating"
   ],
+  // submit-review is the only writer: it proves the caller posted the job, that the
+  // job is completed, that they have not already reviewed it, and it derives
+  // reviewer_id / reviewee_id itself. That is the review-bombing fix — RLS cannot
+  // check a relationship that lives in another entity.
+  //
+  // reviewer_name is a real name, so reading requires a session rather than `true`,
+  // which in Base44 would include anonymous callers.
   "rls": {
-    "create": true,
-    "read": true,
-    "update": { "data.reviewer_id": "{{user.id}}" },
-    "delete": { "data.reviewer_id": "{{user.id}}" }
+    "create": { "user_condition": { "role": "admin" } },
+    "read": {
+      "$or": [
+        { "user_condition": { "id": "{{user.id}}" } },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
   }
 }

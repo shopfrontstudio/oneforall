@@ -47,10 +47,28 @@
     "user_id",
     "full_name"
   ],
+  // created_by is stamped by the server and cannot be forged, unlike data.user_id
+  // which the client supplies. Pinning to both stops another account from planting
+  // a record that the victim's `filter({ user_id })` would pick up as their own.
   "rls": {
-    "create": true,
-    "read": { "data.user_id": "{{user.id}}" },
-    "update": { "data.user_id": "{{user.id}}" },
-    "delete": { "data.user_id": "{{user.id}}" }
+    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "read": {
+      "$and": [
+        { "created_by": "{{user.email}}" },
+        { "data.user_id": "{{user.id}}" }
+      ]
+    },
+    "update": {
+      "$and": [
+        { "created_by": "{{user.email}}" },
+        { "data.user_id": "{{user.id}}" }
+      ]
+    },
+    "delete": {
+      "$and": [
+        { "created_by": "{{user.email}}" },
+        { "data.user_id": "{{user.id}}" }
+      ]
+    }
   }
 }

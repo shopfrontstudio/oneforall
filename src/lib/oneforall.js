@@ -79,11 +79,17 @@ async function ensureSubscription(tradieId) {
   }
 }
 
-export async function notify(userId, type, title, body, link) {
+// Every write that involves another person now goes through a backend function, so
+// the server can check ownership, entitlement and quotas before it happens. invoke()
+// resolves to the raw axios response and throws on non-2xx, with the function's own
+// message at err.response.data.error — unwrap both so callers get a plain result and
+// a readable Error.
+export async function callFunction(name, payload = {}) {
   try {
-    await base44.entities.Notification.create({ user_id: userId, type, title, body, link, read: false });
-  } catch {
-    // The primary action should still succeed if a secondary notification is unavailable.
+    const response = await base44.functions.invoke(name, payload);
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.response?.data?.error || error?.message || 'Something went wrong. Please try again.');
   }
 }
 

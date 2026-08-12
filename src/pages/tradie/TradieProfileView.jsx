@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { BadgeCheck, Crown, MapPin, ShieldCheck, Lock, Send } from 'lucide-react';
 import { StarRating, EmptyState } from '@/components/oneforall/Bits';
-import { notify, pseudoDistance } from '@/lib/oneforall';
+import { callFunction, pseudoDistance } from '@/lib/oneforall';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function TradieProfileView() {
@@ -35,15 +35,14 @@ export default function TradieProfileView() {
     if (!job || !t?.user_id) return;
     setSending(true);
     try {
-      const existing = await base44.entities.Invitation.filter({ job_id: job.id, tradie_id: t.user_id });
-      if (existing.some(item => item.status !== 'declined')) {
-        toast({ title: 'Already invited', description: 'This tradie already has an invitation for that job.' });
-        return;
-      }
-      await base44.entities.Invitation.create({ job_id: job.id, job_title: job.title, customer_id: user.id, customer_name: user.full_name || user.email, tradie_id: t.user_id, tradie_name: t.business_name || t.full_name, status: 'pending' });
-      await notify(t.user_id, 'invitation', 'Direct job invitation', `${user.full_name || user.email} invited you to "${job.title}"`, '/invites');
+      // invite-tradie proves we own the job before attaching our name to the invite.
+      const result = await callFunction('invite-tradie', { job_id: job.id, tradie_profile_id: t.id });
       setInviteOpen(false);
-      toast({ title: 'Invitation sent', description: 'The tradie can respond with a quote from their Invites page.' });
+      if (result.already_invited) {
+        toast({ title: 'Already invited', description: 'This tradie already has an invitation for that job.' });
+      } else {
+        toast({ title: 'Invitation sent', description: 'The tradie can respond with a quote from their Invites page.' });
+      }
     } catch (error) {
       toast({ title: 'Could not send invitation', description: error.message, variant: 'destructive' });
     } finally {
@@ -72,8 +71,10 @@ export default function TradieProfileView() {
       <div className="glass-soft rounded-2xl p-4">
         <h2 className="text-sm font-semibold flex items-center gap-1.5"><ShieldCheck size={15} className="text-eucalyptus-deep" /> Verification</h2>
         <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+          {/* Licence and policy numbers are withheld by field-level RLS, so this public
+              checklist reads the non-credential fields (licence_type, insurance provider). */}
           <V k="ABN" ok={!!t.abn} />
-          <V k="Licence" ok={!!t.licence_number} />
+          <V k="Licence" ok={!!t.licence_type} val={t.licence_type || null} />
           <V k="Insurance" ok={!!t.insurance_provider} />
           <V k="Public liability" ok={t.public_liability} />
           <V k="Experience" ok={t.experience_years > 0} val={`${t.experience_years} yrs`} />

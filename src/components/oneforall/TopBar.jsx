@@ -20,6 +20,16 @@ const TRADIE_NAV = [
   { to: '/tradie-profile', label: 'Profile', icon: User },
 ];
 
+// Notification.link is written by whichever account triggered the notification, so
+// it is untrusted input. Only single-slash in-app paths are followed — "//evil.com"
+// or a full URL is dropped rather than navigated to.
+function safeNotificationLink(link) {
+  if (typeof link !== 'string') return null;
+  const path = link.trim();
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\')) return null;
+  return path;
+}
+
 export default function TopBar() {
   const { user } = useAuth();
   const loc = useLocation();
@@ -47,7 +57,8 @@ export default function TopBar() {
     if (!notification.read) await base44.entities.Notification.update(notification.id, { read: true });
     setShowNotifications(false);
     await refreshUnread();
-    if (notification.link) navigate(notification.link);
+    const target = safeNotificationLink(notification.link);
+    if (target) navigate(target);
   };
 
   const markAllRead = async () => {

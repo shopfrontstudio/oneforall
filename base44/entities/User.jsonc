@@ -14,7 +14,15 @@
       "enum": [
         "admin",
         "user"
-      ]
+      ],
+      // account_type is self-service (Onboarding and the profile switcher both call
+      // auth.updateMe), and role sits on the same record — so without this rule a
+      // crafted updateMe({ role: "admin" }) would grant admin, which ServiceCategory
+      // writes and every `user_condition: { role: "admin" }` rule trust.
+      // `update` only: leave create alone so signup can still stamp the default role.
+      "rls": {
+        "update": { "user_condition": { "role": "admin" } }
+      }
     }
   },
   "required": [

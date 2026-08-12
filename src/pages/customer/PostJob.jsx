@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { Check, ChevronLeft, ChevronRight, Info, Save, Sparkles, Upload, X } from 'lucide-react';
-import { CATEGORY_MAP, URGENCY_OPTIONS, estimateRange, formatAUDRange, pseudoDistance } from '@/lib/oneforall';
+import { CATEGORY_MAP, URGENCY_OPTIONS, callFunction, estimateRange, formatAUDRange } from '@/lib/oneforall';
 import CategoryGrid from '@/components/oneforall/CategoryGrid';
 
 const PHOTO_GUIDE = {
@@ -90,7 +90,8 @@ export default function PostJob() {
       indicative_high: range.high,
       photos: form.photos,
       status,
-      boosted: false,
+      // `boosted` is deliberately absent: it is admin-write only now, owned by the
+      // boost-job function, so sending it here would be rejected.
     };
     if (form.preferred_date) payload.preferred_date = form.preferred_date;
     if (form.budget !== '' && Number.isFinite(Number(form.budget))) payload.budget = Number(form.budget);
@@ -167,27 +168,14 @@ export default function PostJob() {
         ? await base44.entities.Job.update(draftId, payload)
         : await base44.entities.Job.create(payload);
 
+      // The job itself is still written directly (the customer owns it), but the
+      // notification fan-out and the direct invite are authorised server-side.
       if (invitedTradieProfileId) {
-        const invitedTradie = await base44.entities.TradieProfile.get(invitedTradieProfileId);
-        if (invitedTradie?.user_id) {
-          await base44.entities.Invitation.create({ job_id: job.id, job_title: job.title, customer_id: user.id, customer_name: user.full_name || user.email, tradie_id: invitedTradie.user_id, tradie_name: invitedTradie.business_name || invitedTradie.full_name, status: 'pending' });
-          await base44.entities.Notification.create({ user_id: invitedTradie.user_id, type: 'invitation', title: 'Direct job invitation', body: `${user.full_name || user.email} invited you to "${job.title}"`, link: '/invites', read: false });
-        }
+        await callFunction('invite-tradie', { job_id: job.id, tradie_profile_id: invitedTradieProfileId })
+          .catch(() => toast({ title: 'Job published, but the invite could not be sent', variant: 'destructive' }));
       }
 
-      const tradies = await base44.entities.TradieProfile.filter({ verified: true, open_to_work: true });
-      const eligible = tradies.filter(tradie =>
-        (tradie.trade_categories || []).includes(payload.category_slug) &&
-        pseudoDistance(payload.suburb, tradie.suburb) <= (tradie.service_radius_km || 20)
-      );
-      await Promise.allSettled(eligible.map(tradie => base44.entities.Notification.create({
-        user_id: tradie.user_id,
-        type: 'job_match',
-        title: `New ${payload.category_name} job nearby`,
-        body: `${payload.title} · ${payload.suburb}`,
-        link: `/job/${job.id}`,
-        read: false,
-      })));
+      await callFunction('announce-job', { job_id: job.id }).catch(() => {});
       toast({ title: 'Job published!', description: 'Nearby verified tradies have been notified.' });
       navigate(`/job/${job.id}`);
     } catch (e) { toast({ title: 'Could not publish', description: e.message, variant: 'destructive' }); }

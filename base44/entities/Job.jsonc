@@ -6,10 +6,30 @@
       "type": "string"
     },
     "customer_name": {
-      "type": "string"
+      "type": "string",
+      "description": "Customer's real name. Only the customer and the tradie they accepted may read it.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "data.assigned_tradie_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
     },
     "customer_suburb": {
-      "type": "string"
+      "type": "string",
+      "description": "Customer's home suburb. Not needed to quote — `suburb` carries the job location.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "data.assigned_tradie_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
     },
     "title": {
       "type": "string"
@@ -44,7 +64,17 @@
       "default": "flexible"
     },
     "access_notes": {
-      "type": "string"
+      "type": "string",
+      "description": "How to get onto the property (gates, keys, dogs). Never expose to tradies who have not been accepted.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "data.assigned_tradie_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
     },
     "parking": {
       "type": "string",
@@ -56,10 +86,29 @@
       "default": "on_street"
     },
     "safety_info": {
-      "type": "string"
+      "type": "string",
+      "description": "Site/occupant safety details. Same disclosure boundary as access_notes.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "data.assigned_tradie_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
     },
     "budget": {
-      "type": "number"
+      "type": "number",
+      "description": "The customer's private ceiling. Tradies quote against indicative_low/indicative_high instead.",
+      "rls": {
+        "read": {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      }
     },
     "indicative_low": {
       "type": "number"
@@ -87,10 +136,18 @@
     },
     "boosted": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Set by the boost-job function once the monthly quota and cooldown pass.",
+      "rls": {
+        "write": { "user_condition": { "role": "admin" } }
+      }
     },
     "assigned_tradie_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Written only by accept-interest. This field releases access_notes and customer_name, so it must not be settable directly.",
+      "rls": {
+        "write": { "user_condition": { "role": "admin" } }
+      }
     }
   },
   "required": [
@@ -98,10 +155,47 @@
     "title",
     "category_slug"
   ],
+  // Every rule is wrapped in an authentication check: `true` in Base44 RLS means
+  // "including anonymous/unauthenticated", so a bare `data.*` condition must never
+  // be the only gate on a job board that carries photos of people's homes.
+  // Browsing is limited to `published` — once a job is matched it is only visible
+  // to the customer and the tradie they accepted.
   "rls": {
-    "create": true,
-    "read": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.status": { "$nin": ["draft", "cancelled"] } }] },
-    "update": { "data.customer_id": "{{user.id}}" },
-    "delete": { "data.customer_id": "{{user.id}}" }
+    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "read": {
+      "$and": [
+        { "user_condition": { "id": "{{user.id}}" } },
+        {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "data.assigned_tradie_id": "{{user.id}}" },
+            { "data.status": "published" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "$and": [
+            { "created_by": "{{user.email}}" },
+            { "data.customer_id": "{{user.id}}" }
+          ]
+        },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "$and": [
+            { "created_by": "{{user.email}}" },
+            { "data.customer_id": "{{user.id}}" }
+          ]
+        },
+        { "user_condition": { "role": "admin" } }
+      ]
+    }
   }
 }

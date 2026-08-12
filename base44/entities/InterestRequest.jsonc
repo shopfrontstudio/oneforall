@@ -53,10 +53,25 @@
     "tradie_id",
     "status"
   ],
+  // Created by send-interest / respond-invitation, which verify the job is open and
+  // the tradie holds a paid or trial plan — an entitlement check that used to live
+  // only in the browser. Status transitions belong to accept-interest, which proves
+  // the caller owns the job, so update stays closed to the client.
   "rls": {
-    "create": true,
-    "read": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.tradie_id": "{{user.id}}" }] },
-    "update": { "$or": [{ "data.customer_id": "{{user.id}}" }, { "data.tradie_id": "{{user.id}}" }] },
+    "create": { "user_condition": { "role": "admin" } },
+    "read": {
+      "$and": [
+        { "user_condition": { "id": "{{user.id}}" } },
+        {
+          "$or": [
+            { "data.customer_id": "{{user.id}}" },
+            { "data.tradie_id": "{{user.id}}" },
+            { "user_condition": { "role": "admin" } }
+          ]
+        }
+      ]
+    },
+    "update": { "user_condition": { "role": "admin" } },
     "delete": false
   }
 }
