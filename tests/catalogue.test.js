@@ -1,9 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PHASE1_SERVICES, classifyServiceScope, collectAdditionalRiskText } from '../base44/shared/phase1-catalogue.js';
+import { CATEGORY_META, groupedServices } from '../src/lib/catalogue.js';
 
-test('catalogue covers six Phase 1 categories with positive scopes, structured evidence and every release flag false', () => {
-  assert.deepEqual([...new Set(PHASE1_SERVICES.map((item) => item.category))].sort(), ['beauty', 'cleaning', 'gardening', 'handyman', 'pest-control', 'rubbish-removal']);
+test('all original and current service sections have request pathways', () => {
+  const groups = groupedServices();
+  assert.deepEqual(CATEGORY_META.map(({ name }) => name), ['Cleaning', 'Gardening & Outdoor', 'Beauty', 'Handyman & General Maintenance', 'Electrical', 'Plumbing', 'Carpentry', 'Building & Renovation', 'Painting', 'Rubbish Removal', 'Pest Control', 'Not sure what I need?']);
+  assert.ok(groups.every((group) => group.services.length > 0));
+});
+
+test('catalogue services have positive scopes, structured evidence and every release flag false', () => {
+  assert.deepEqual([...new Set(PHASE1_SERVICES.map((item) => item.category))].sort(), ['beauty', 'building-renovation', 'carpentry', 'cleaning', 'electrical', 'gardening', 'handyman', 'not-sure', 'painting', 'pest-control', 'plumbing', 'rubbish-removal']);
   for (const item of PHASE1_SERVICES) {
     assert.ok(item.scope_options.length && item.scope_options.every((option) => option.id && option.label && option.match_terms.length));
     assert.ok(item.evidence_requirements.length && item.evidence_requirements.every((requirement) => ['provider', 'worker'].includes(requirement.subject) && typeof requirement.expiry_required === 'boolean'));

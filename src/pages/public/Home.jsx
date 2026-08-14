@@ -28,7 +28,7 @@ export default function PublicHome() {
       </section>
 
       <section aria-labelledby="categories-heading">
-        <div className="mb-4 flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-terracotta">Phase 1</p><h2 id="categories-heading" className="mt-1 text-2xl font-semibold">Six practical service categories</h2></div><Link to="/services" className="hidden text-sm font-semibold text-eucalyptus-deep sm:inline">See every service</Link></div>
+        <div className="mb-4 flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-terracotta">Service marketplace</p><h2 id="categories-heading" className="mt-1 text-2xl font-semibold">{CATEGORY_META.length} practical service categories</h2></div><Link to="/services" className="hidden text-sm font-semibold text-eucalyptus-deep sm:inline">See every service</Link></div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {CATEGORY_META.map((category) => <Link key={category.key} to={`/services#${category.key}`} className="glass-soft min-w-0 rounded-2xl p-4 text-center focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"><span className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-sage/55 text-eucalyptus-deep"><CategoryIcon category={category.key} /></span><span className="mt-2 block text-sm font-semibold">{category.name}</span></Link>)}
         </div>

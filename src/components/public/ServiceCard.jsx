@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Bug, Hammer, Scissors, Sparkles, Trees, Trash2 } from 'lucide-react';
+import { ArrowRight, Bug, Building2, CircleHelp, Droplets, Hammer, Paintbrush, Scissors, Sparkles, Trees, Trash2, Zap } from 'lucide-react';
 import { CATEGORY_META_MAP, PATHWAY_LABELS, serviceAvailability } from '@/lib/catalogue';
 import { PUBLIC_PATHS } from '@/lib/routes';
 
-const ICONS = { cleaning: Sparkles, gardening: Trees, beauty: Scissors, handyman: Hammer, 'rubbish-removal': Trash2, 'pest-control': Bug };
+const ICONS = { cleaning: Sparkles, gardening: Trees, beauty: Scissors, handyman: Hammer, 'rubbish-removal': Trash2, 'pest-control': Bug, electrical: Zap, plumbing: Droplets, carpentry: Hammer, 'building-renovation': Building2, painting: Paintbrush, 'not-sure': CircleHelp };
 
 export function CategoryIcon({ category, size = 22 }) {
   const Icon = ICONS[category] || Sparkles;
