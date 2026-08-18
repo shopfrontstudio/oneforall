@@ -2,33 +2,29 @@
 
 ## Project Context
 
-This is a Base44 app repository. Treat it as user-owned application code, keep changes focused on the user's request, and preserve existing project conventions.
+OneForAll — a marketplace connecting customers with local tradespeople.
+React + Vite frontend, Supabase backend (auth, Postgres + RLS, storage),
+deployed on Vercel, wrapped as a Trusted Web Activity for Google Play.
 
-Start with `README.md` for local setup, environment variables, and publish workflow.
-
-## Base44 References
-
-- CLI overview: https://docs.base44.com/developers/references/cli/get-started/overview.md
-- Agent skills: https://docs.base44.com/developers/backend/overview/skills.md
-
-If your agent supports Agent Skills, install or update Base44 skills before Base44-specific work:
-
-```bash
-npx skills add base44/skills
-```
+Start with `README.md` for setup, environment variables, and deploy workflow.
 
 ## Key Files
 
 - `src/`: frontend application source.
-- `src/api/base44Client.js`: frontend Base44 SDK client.
-- `vite.config.js`: Vite config and Base44 Vite plugin setup.
+- `src/api/base44Client.js`: the data/auth layer. Despite the legacy name, it is
+  a Supabase-backed compatibility layer exposing the original Base44-shaped API
+  (`base44.entities.X.filter/get/create/update`, `base44.auth.*`,
+  `integrations.Core.UploadFile`). All data access goes through it.
+- `src/api/supabase.js`: the raw Supabase client (env-configured).
+- `src/lib/AuthContext.jsx`: session state via Supabase auth.
+- `supabase/migrations/`: SQL schema + row-level-security policies.
+- `public/manifest.json`, `public/sw.js`: PWA assets for the TWA wrapper.
 - `.env.local`: local-only environment values; never commit secrets.
 
 ## Working Notes
 
-- Use `base44 dev` as the default local development command when you need the local Base44 backend. It can run the backend and frontend together.
-- When docs or code mention the frontend being started automatically, that usually means the Base44 project config includes `site.serveCommand`, for example `"serveCommand": "npm run dev"` in `base44/config.jsonc`.
-- Use `npm run dev` only for frontend-only work against the hosted Base44 backend.
-- Prefer the existing Base44 CLI workflow over adding new npm scripts for Base44-specific tasks.
-- Reuse the existing SDK client and Vite plugin patterns before adding new Base44 integration paths.
-- Run the relevant checks from `package.json` before finishing code changes.
+- Preserve the `base44`-shaped call signatures when touching the data layer —
+  23 files consume them.
+- Schema changes need a new SQL file in `supabase/migrations/` and matching
+  RLS policies; mirror the conventions in the initial migration.
+- Run `npm run lint` and `npm run build` before finishing code changes.

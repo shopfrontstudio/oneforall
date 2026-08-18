@@ -1,77 +1,61 @@
-# Base44 Project
+# OneForAll
 
-Use this repository to run and edit the app locally, then publish changes back through Base44.
+Local jobs matched with verified local tradies. React + Vite frontend with a
+Supabase backend (auth, Postgres with row-level security, file storage), and a
+PWA/Trusted-Web-Activity wrapper for the Google Play Store.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+## Stack
 
-## Prerequisites
+- **Frontend**: React 18, Vite, Tailwind, Radix UI, React Router
+- **Backend**: Supabase — email/password + Google auth, Postgres, storage
+- **Hosting**: GitHub Pages with a custom domain (Actions workflow in `.github/workflows/deploy.yml`)
+- **Android**: Trusted Web Activity generated with Bubblewrap
 
-1. Clone the repository using the project's Git URL.
-2. Navigate to the project directory.
-3. Install dependencies: `npm install`.
-4. Install the Base44 CLI: `npm install -g base44@latest`.
+## Local setup
 
-See the [Base44 CLI docs](https://docs.base44.com/developers/references/cli/get-started/overview) if you want to run Base44 commands directly.
+1. `npm install`
+2. Copy `.env.example` to `.env.local` and fill in your Supabase project URL
+   and anon key (Supabase Dashboard → Project Settings → API).
+3. `npm run dev`
 
-## Run Locally
+## Supabase setup (one-time)
 
-Run the full local development environment from the project root:
+1. Create a project at [supabase.com](https://supabase.com).
+2. Open the SQL editor and run `supabase/migrations/20260816000000_init.sql`
+   (tables, row-level security, storage bucket, seed categories).
+3. **Auth → Providers**: enable Email. For Google sign-in, add your Google
+   OAuth client ID/secret (Google Cloud Console → OAuth credentials, with
+   `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback` as the redirect URI).
+4. **Auth → Email Templates → Confirm signup**: the app verifies signups with a
+   6-digit code, so include `{{ .Token }}` in the template body.
+5. **Auth → URL Configuration**: set the Site URL to your deployed domain and
+   add `http://localhost:5173` to the redirect allow-list for local dev.
 
-```bash
-base44 dev
-```
+## Deploying (GitHub Pages)
 
-`base44 dev` starts the local Base44 development backend and, when this app is configured for it, also starts the frontend dev server for you. Use the frontend URL printed by the command.
+Every push to `main` builds and deploys via `.github/workflows/deploy.yml`.
+One-time repo setup:
 
-For example, when the Base44 project config includes a `serveCommand`, `base44 dev` can launch the frontend too:
+1. **Settings → Pages**: set Source to "GitHub Actions", and enter the custom
+   domain (then follow GitHub's DNS instructions; enable "Enforce HTTPS").
+2. **Settings → Secrets and variables → Actions → Variables**: add
+   `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
-```json5
-{
-  "site": {
-    "serveCommand": "npm run dev"
-  }
-}
-```
+GitHub Pages cannot rewrite URLs for SPAs, so `scripts/postbuild-pages.mjs`
+copies `index.html` to `404.html` (deep-link fallback) and pre-creates the
+public routes (`/privacy`, `/login`, …) as real files so they return HTTP 200.
 
-In a Base44 project this lives in `base44/config.jsonc`.
+## Architecture note
 
-## Run Only The Frontend
+The app was originally built on Base44; the data layer was kept call-compatible
+during the migration. All entity and auth calls go through
+`src/api/base44Client.js`, which now re-implements the old
+`base44.entities.X.filter/get/create/update` and `base44.auth.*` API on top of
+`@supabase/supabase-js`. Table schemas and RLS policies live in
+`supabase/migrations/`.
 
-If you only want to work on the frontend against the hosted Base44 backend, run:
+## Checks
 
-```bash
-npm run dev
-```
-
-Open the local URL printed by Vite.
-
-## Use The Hosted Backend
-
-For frontend-only development, create or update `.env.local` in the project root:
-
-```bash
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=https://your-app.base44.app
-```
-
-`VITE_BASE44_APP_ID` identifies the Base44 app.
-
-`VITE_BASE44_APP_BASE_URL` tells the Base44 Vite plugin where to send local `/api` requests. Point it at your deployed Base44 app URL when you want the local frontend to use the hosted backend.
-
-When you use `base44 dev`, the command injects the local Base44 values for you, so `.env.local` is mainly needed for frontend-only workflows.
-
-## Publish Your Changes
-
-After pushing your changes to git, open the Base44 dashboard and publish the app:
-
-```bash
-base44 dashboard open
-```
-
-## Docs & Support
-
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
-
-Base44 CLI command reference: [https://docs.base44.com/developers/references/cli/commands/introduction](https://docs.base44.com/developers/references/cli/commands/introduction)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`

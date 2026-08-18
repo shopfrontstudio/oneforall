@@ -25,6 +25,7 @@ import Membership from '@/pages/tradie/Membership';
 import TradieProfile from '@/pages/tradie/Profile';
 import TradieProfileView from '@/pages/tradie/TradieProfileView';
 import JobDetail from '@/pages/JobDetail';
+import Privacy from '@/pages/Privacy';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -52,6 +53,7 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
+      <Route path="/privacy" element={<Privacy />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
