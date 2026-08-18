@@ -4,6 +4,9 @@ import { fileURLToPath, URL } from 'node:url'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Served from https://anaramarketing.com.au/oneforall/ — a GitHub Pages
+  // project site under the org's custom domain — so assets need this prefix.
+  base: '/oneforall/',
   plugins: [
     react(),
   ],

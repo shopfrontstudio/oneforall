@@ -1,6 +1,9 @@
 // Minimal service worker: network-first for navigations, cache fallback when offline.
-const CACHE = 'oneforall-v1';
-const OFFLINE_URLS = ['/', '/manifest.json'];
+// public/ files are copied verbatim, so Vite's `base` is not applied here.
+// Derive the app root from the worker's own URL instead of hardcoding '/'.
+const ROOT = new URL('./', self.location).href;
+const CACHE = 'oneforall-v2';
+const OFFLINE_URLS = [ROOT, `${ROOT}manifest.json`];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(OFFLINE_URLS)));
@@ -25,10 +28,10 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put('/', copy));
+          caches.open(CACHE).then((cache) => cache.put(ROOT, copy));
           return response;
         })
-        .catch(() => caches.match('/'))
+        .catch(() => caches.match(ROOT))
     );
   }
 });

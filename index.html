@@ -13,10 +13,12 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
+    <script type="module">
+      // Module script so Vite inlines BASE_URL — the app is served from a
+      // subpath, and a root-relative '/sw.js' would 404.
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js');
+          navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
         });
       }
     </script>
