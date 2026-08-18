@@ -153,3 +153,12 @@ test('customer request launch opens intake only and keeps supply-side gates clos
   assert.match(intake, /callFunction\('submit-request'/);
   assert.match(intake, /Send private request/);
 });
+
+test('GitHub Pages prebuilds every public catalogue route with a real 200 entry file', async () => {
+  const pages = await read('../scripts/postbuild-pages.mjs');
+  assert.match(pages, /PHASE1_SERVICES/);
+  assert.match(pages, /'services'/);
+  assert.match(pages, /`services\/\$\{key\}`/);
+  assert.match(pages, /`request\/\$\{key\}`/);
+  assert.match(pages, /copyFileSync\(index, new URL\('index\.html', dir\)\)/);
+});
