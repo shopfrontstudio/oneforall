@@ -1,21 +1,21 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { Home as HomeIcon, Briefcase, Plus, MessageSquare, User, Compass, Ticket, Crown } from 'lucide-react';
+import { Home as HomeIcon, CalendarDays, Shapes, MessageSquare, User, ClipboardList, BriefcaseBusiness, Menu } from 'lucide-react';
 
 const CUSTOMER_NAV = [
   { to: '/', label: 'Home', icon: HomeIcon },
-  { to: '/my-jobs', label: 'Jobs', icon: Briefcase },
-  { to: '/post-job', label: 'Post', icon: Plus, primary: true },
-  { to: '/messages', label: 'Chat', icon: MessageSquare },
-  { to: '/profile', label: 'Me', icon: User },
+  { to: '/services', label: 'Services', icon: Shapes },
+  { to: '/bookings', label: 'Bookings', icon: CalendarDays },
+  { to: '/messages', label: 'Messages', icon: MessageSquare },
+  { to: '/account', label: 'Account', icon: User },
 ];
 const TRADIE_NAV = [
-  { to: '/', label: 'Discover', icon: Compass },
-  { to: '/invites', label: 'Invites', icon: Ticket },
-  { to: '/messages', label: 'Chat', icon: MessageSquare },
-  { to: '/membership', label: 'Plan', icon: Crown },
-  { to: '/tradie-profile', label: 'Me', icon: User },
+  { to: '/provider/today', label: 'Today', icon: HomeIcon },
+  { to: '/provider/requests', label: 'Requests', icon: ClipboardList },
+  { to: '/provider/jobs', label: 'Jobs', icon: BriefcaseBusiness },
+  { to: '/provider/calendar', label: 'Calendar', icon: CalendarDays },
+  { to: '/provider/more', label: 'More', icon: Menu },
 ];
 
 export default function BottomNav() {
@@ -38,7 +38,7 @@ export default function BottomNav() {
             );
           }
           return (
-            <Link key={n.to} to={n.to} className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl ${active ? 'text-eucalyptus-deep' : 'text-muted-foreground'}`}>
+            <Link key={n.to} to={n.to} aria-current={active ? 'page' : undefined} className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 ${active ? 'text-eucalyptus-deep' : 'text-muted-foreground'}`}>
               <n.icon size={20} />
               <span className="text-[11px] font-semibold">{n.label}</span>
             </Link>

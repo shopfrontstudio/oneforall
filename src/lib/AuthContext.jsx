@@ -3,6 +3,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { supabase } from '@/api/supabase';
 import { assignAppPath } from '@/lib/appUrl';
+import { hasPasswordRecoveryIntent, PASSWORD_RECOVERY_MARKER } from '@/lib/passwordRecovery';
 
 const AuthContext = createContext();
 
@@ -12,11 +13,25 @@ export const AuthProvider = ({ children }) => {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
+    let recoveryMarker = '';
+    try { recoveryMarker = window.sessionStorage.getItem(PASSWORD_RECOVERY_MARKER) || ''; } catch { /* URL/session checks still apply. */ }
+    if (window.location.pathname.endsWith('/reset-password') && hasPasswordRecoveryIntent({
+      search: window.location.search,
+      hash: window.location.hash,
+      marker: recoveryMarker,
+    })) {
+      setIsPasswordRecovery(true);
+    }
     checkUserAuth();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+      if (event === 'PASSWORD_RECOVERY') {
+        try { window.sessionStorage.setItem(PASSWORD_RECOVERY_MARKER, 'active'); } catch { /* In-memory state remains authoritative. */ }
+        setIsPasswordRecovery(true);
+        checkUserAuth();
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         checkUserAuth();
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -64,17 +79,24 @@ export const AuthProvider = ({ children }) => {
     assignAppPath('/login');
   };
 
+  const clearPasswordRecovery = () => {
+    try { window.sessionStorage.removeItem(PASSWORD_RECOVERY_MARKER); } catch { /* In-memory state is still cleared. */ }
+    setIsPasswordRecovery(false);
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
       isAuthenticated,
       isLoadingAuth,
-      // Base44 checked platform-level app settings before rendering; Supabase
-      // has no equivalent gate, so these resolve immediately.
+      // Supabase has no separate platform-level public-settings gate, so these
+      // compatibility values resolve immediately.
       isLoadingPublicSettings: false,
       authError,
       appPublicSettings: null,
       authChecked,
+      isPasswordRecovery,
+      clearPasswordRecovery,
       logout,
       navigateToLogin,
       checkUserAuth,

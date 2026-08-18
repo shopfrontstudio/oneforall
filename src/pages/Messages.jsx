@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { MessageSquare, Send, ShieldCheck, ArrowLeft, Lock } from 'lucide-react';
 import { EmptyState } from '@/components/oneforall/Bits';
 import { useToast } from '@/components/ui/use-toast';
+import { callFunction } from '@/lib/oneforall';
 
 export default function Messages() {
   const { user } = useAuth();
@@ -38,8 +39,9 @@ export default function Messages() {
     if (!text.trim() || !active) return;
     setSending(true);
     try {
-      const msg = await base44.entities.Message.create({ conversation_id: active.id, customer_id: active.customer_id, tradie_id: active.tradie_id, sender_id: user.id, sender_name: user.full_name || user.email, body: text.trim() });
-      setMessages(m => [...m, msg]); setText('');
+      // send-message verifies we are a participant and stamps the sender itself.
+      const { message } = await callFunction('send-message', { conversation_id: active.id, body: text.trim() });
+      setMessages(m => [...m, message]); setText('');
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
     } catch (error) {
       toast({ title: 'Message not sent', description: error.message, variant: 'destructive' });
@@ -48,18 +50,18 @@ export default function Messages() {
     }
   };
 
-  if (convos === null) return <div className="glass-soft rounded-2xl h-40 animate-pulse" />;
+  if (convos === null) return <div className="glass-soft h-40 rounded-2xl" role="status" aria-label="Loading booking conversations" />;
 
   return (
     <div>
       <h1 className="text-2xl font-semibold tracking-tight mb-4">Messages</h1>
       {convos.length === 0 ? (
-        <EmptyState icon={MessageSquare} title="No conversations yet" body={user.account_type === 'tradie' ? 'When a customer accepts your interest request, your private chat opens here.' : "Once you accept a tradie's interest request, your private chat opens here."} />
+        <EmptyState icon={MessageSquare} title="No booking conversations yet" body={user.account_type === 'tradie' ? 'A private conversation opens after a customer confirms your eligible quote.' : 'A private conversation opens after you confirm an eligible provider quote.'} />
       ) : (
         <div className="grid md:grid-cols-[300px_1fr] gap-3">
           <div className={`glass-soft rounded-2xl divide-y divide-border/50 ${active ? 'hidden md:block' : ''}`}>
             {convos.map(c => {
-              const other = c.customer_id === user.id ? 'Tradie' : c.customer_name || 'Customer';
+              const other = c.customer_id === user.id ? 'Service provider' : c.customer_name || 'Customer';
               return (
                 <button key={c.id} onClick={() => openConvo(c)} className={`w-full text-left p-3.5 hover:bg-white/60 ${active?.id === c.id ? 'bg-white/70' : ''}`}>
                   <div className="font-medium text-sm truncate">{c.job_title}</div>
@@ -77,10 +79,14 @@ export default function Messages() {
                   <div className="font-semibold text-sm truncate">{active.job_title}</div>
                   <div className="text-xs text-muted-foreground">{active.contact_unlocked ? <span className="inline-flex items-center gap-1 text-eucalyptus-deep"><ShieldCheck size={12} /> Contact unlocked</span> : <span className="inline-flex items-center gap-1"><Lock size={12} /> Contact details private</span>}</div>
                 </div>
-                <Link to={`/job/${active.job_id}`} className="text-xs text-eucalyptus-deep font-medium">View job</Link>
+                <Link to={`/booking/${active.job_id}`} className="text-xs text-eucalyptus-deep font-medium">View booking</Link>
               </div>
               <div className="flex-1 overflow-y-auto p-3.5 space-y-2">
                 {messages.map(m => {
+                  // sender_id is now stamped by send-message from the caller's session,
+                  // so it is authoritative. (created_by is not usable here — the
+                  // function writes with the service role, so it is the same for every
+                  // message regardless of who sent it.)
                   const mine = m.sender_id === user.id;
                   return <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-sm ${mine ? 'bg-primary text-primary-foreground rounded-br-md' : 'bg-white/80 text-foreground rounded-bl-md'}`}>{m.body}</div></div>;
                 })}

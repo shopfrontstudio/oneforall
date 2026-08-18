@@ -1,7 +1,8 @@
 // @ts-nocheck
-import React, { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,15 +10,38 @@ import { Lock, Loader2, AlertTriangle } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { appPath } from "@/lib/appUrl";
 import { toAuthErrorMessage } from "@/lib/authErrors";
+import { useAuth } from "@/lib/AuthContext";
+import { hasPasswordRecoveryIntent, PASSWORD_RECOVERY_MARKER } from "@/lib/passwordRecovery";
 
 export default function ResetPassword() {
-  const [searchParams] = useSearchParams();
-  const resetToken = searchParams.get("token");
-
+  const { isPasswordRecovery, clearPasswordRecovery } = useAuth();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recoveryState, setRecoveryState] = useState("checking");
+
+  useEffect(() => {
+    let active = true;
+    const verifyRecoverySession = async () => {
+      try {
+        let marker = '';
+        try { marker = window.sessionStorage.getItem(PASSWORD_RECOVERY_MARKER) || ''; } catch { /* Supabase URL signal still applies. */ }
+        const hasIntent = isPasswordRecovery || hasPasswordRecoveryIntent({
+          search: window.location.search,
+          hash: window.location.hash,
+          marker,
+        });
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (active) setRecoveryState(hasIntent && session ? "valid" : "invalid");
+      } catch {
+        if (active) setRecoveryState("invalid");
+      }
+    };
+    verifyRecoverySession();
+    return () => { active = false; };
+  }, [isPasswordRecovery]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,7 +52,9 @@ export default function ResetPassword() {
     }
     setLoading(true);
     try {
-      await base44.auth.resetPassword({ resetToken, newPassword });
+      await base44.auth.resetPassword({ newPassword });
+      clearPasswordRecovery();
+      await base44.auth.logout();
       window.location.href = appPath("/login");
     } catch (err) {
       setError(toAuthErrorMessage(err, "Failed to reset password"));
@@ -37,7 +63,11 @@ export default function ResetPassword() {
     }
   };
 
-  if (!resetToken) {
+  if (recoveryState === "checking") {
+    return <AuthLayout icon={Lock} title="Checking reset link" subtitle="Confirming your secure recovery session"><div className="flex items-center justify-center gap-2 text-sm text-muted-foreground" role="status"><Loader2 className="h-4 w-4 animate-spin" />Checking…</div></AuthLayout>;
+  }
+
+  if (recoveryState !== "valid") {
     return (
       <AuthLayout
         icon={AlertTriangle}

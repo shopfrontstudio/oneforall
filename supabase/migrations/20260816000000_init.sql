@@ -1,5 +1,5 @@
 -- OneForAll — initial Supabase schema
--- Translated from base44/entities/*.jsonc (tables, defaults, row-level security).
+-- Base tables, defaults and row-level security for the Supabase runtime.
 -- Run this in the Supabase SQL editor (or `supabase db push`).
 
 -- ============================================================
@@ -15,8 +15,7 @@ end;
 $$;
 
 -- ============================================================
--- App users (mirrors Base44's built-in User entity:
--- account_type + role live here; auth itself is in auth.users)
+-- App users (account_type + role live here; auth itself is in auth.users)
 -- ============================================================
 
 create table public.app_users (
@@ -32,12 +31,10 @@ alter table public.app_users enable row level security;
 
 create policy "read own user row" on public.app_users
   for select to authenticated using (id = auth.uid());
-create policy "update own user row" on public.app_users
-  for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 
 -- Users must not be able to grant themselves admin.
 create or replace function public.prevent_role_escalation()
-returns trigger language plpgsql security definer as $$
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
 begin
   if new.role is distinct from old.role then
     if not exists (select 1 from public.app_users where id = auth.uid() and role = 'admin') then
@@ -56,7 +53,7 @@ create trigger app_users_updated before update on public.app_users
 
 -- Create the app_users row automatically when someone signs up.
 create or replace function public.handle_new_user()
-returns trigger language plpgsql security definer set search_path = public as $$
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
 begin
   insert into public.app_users (id, full_name)
   values (new.id, coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name'))
@@ -69,13 +66,13 @@ create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
 
 create or replace function public.is_admin()
-returns boolean language sql stable security definer as $$
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
   select exists (select 1 from public.app_users where id = auth.uid() and role = 'admin');
 $$;
 
 -- ============================================================
 -- Entity tables
--- Every table carries Base44's built-in columns:
+-- Every table carries consistent application columns:
 -- id, created_date, updated_date, created_by
 -- ============================================================
 
@@ -98,10 +95,7 @@ create table public.customer_profiles (
   updated_date timestamptz not null default now()
 );
 alter table public.customer_profiles enable row level security;
-create policy "cp insert own" on public.customer_profiles for insert to authenticated with check (user_id = auth.uid());
 create policy "cp read own" on public.customer_profiles for select to authenticated using (user_id = auth.uid());
-create policy "cp update own" on public.customer_profiles for update to authenticated using (user_id = auth.uid());
-create policy "cp delete own" on public.customer_profiles for delete to authenticated using (user_id = auth.uid());
 create trigger customer_profiles_updated before update on public.customer_profiles
   for each row execute function public.set_updated_date();
 
@@ -137,10 +131,8 @@ create table public.tradie_profiles (
   updated_date timestamptz not null default now()
 );
 alter table public.tradie_profiles enable row level security;
-create policy "tp insert own" on public.tradie_profiles for insert to authenticated with check (user_id = auth.uid());
-create policy "tp read all" on public.tradie_profiles for select to authenticated using (true);
-create policy "tp update own" on public.tradie_profiles for update to authenticated using (user_id = auth.uid());
-create policy "tp delete own" on public.tradie_profiles for delete to authenticated using (user_id = auth.uid());
+create policy "tp read own or admin" on public.tradie_profiles for select to authenticated
+  using (user_id = auth.uid() or public.is_admin());
 create trigger tradie_profiles_updated before update on public.tradie_profiles
   for each row execute function public.set_updated_date();
 
@@ -173,12 +165,10 @@ create table public.jobs (
   updated_date timestamptz not null default now()
 );
 alter table public.jobs enable row level security;
-create policy "jobs insert own" on public.jobs for insert to authenticated with check (customer_id = auth.uid());
--- Base44 rule: owner sees everything; others see any job that is not draft/cancelled.
-create policy "jobs read" on public.jobs for select to authenticated
-  using (customer_id = auth.uid() or status not in ('draft', 'cancelled'));
-create policy "jobs update own" on public.jobs for update to authenticated using (customer_id = auth.uid());
-create policy "jobs delete own" on public.jobs for delete to authenticated using (customer_id = auth.uid());
+-- Requests are private. Providers receive bounded invitation snapshots instead
+-- of an authenticated open Job feed. Authoritative writes use RPC functions.
+create policy "jobs read participants" on public.jobs for select to authenticated
+  using (customer_id = auth.uid() or assigned_tradie_id = auth.uid() or public.is_admin());
 create trigger jobs_updated before update on public.jobs
   for each row execute function public.set_updated_date();
 
@@ -202,12 +192,7 @@ create table public.interest_requests (
   updated_date timestamptz not null default now()
 );
 alter table public.interest_requests enable row level security;
--- Base44 allowed any authenticated user to create; a participant must be the caller.
-create policy "ir insert" on public.interest_requests for insert to authenticated
-  with check (tradie_id = auth.uid() or customer_id = auth.uid());
 create policy "ir read participants" on public.interest_requests for select to authenticated
-  using (customer_id = auth.uid() or tradie_id = auth.uid());
-create policy "ir update participants" on public.interest_requests for update to authenticated
   using (customer_id = auth.uid() or tradie_id = auth.uid());
 create trigger interest_requests_updated before update on public.interest_requests
   for each row execute function public.set_updated_date();
@@ -231,14 +216,8 @@ create table public.invitations (
   updated_date timestamptz not null default now()
 );
 alter table public.invitations enable row level security;
-create policy "inv insert" on public.invitations for insert to authenticated
-  with check (customer_id = auth.uid() or tradie_id = auth.uid());
 create policy "inv read participants" on public.invitations for select to authenticated
   using (customer_id = auth.uid() or tradie_id = auth.uid());
-create policy "inv update participants" on public.invitations for update to authenticated
-  using (customer_id = auth.uid() or tradie_id = auth.uid());
-create policy "inv delete customer" on public.invitations for delete to authenticated
-  using (customer_id = auth.uid());
 create trigger invitations_updated before update on public.invitations
   for each row execute function public.set_updated_date();
 
@@ -255,11 +234,7 @@ create table public.conversations (
   updated_date timestamptz not null default now()
 );
 alter table public.conversations enable row level security;
-create policy "conv insert" on public.conversations for insert to authenticated
-  with check (customer_id = auth.uid() or tradie_id = auth.uid());
 create policy "conv read participants" on public.conversations for select to authenticated
-  using (customer_id = auth.uid() or tradie_id = auth.uid());
-create policy "conv update participants" on public.conversations for update to authenticated
   using (customer_id = auth.uid() or tradie_id = auth.uid());
 create trigger conversations_updated before update on public.conversations
   for each row execute function public.set_updated_date();
@@ -278,12 +253,8 @@ create table public.messages (
   updated_date timestamptz not null default now()
 );
 alter table public.messages enable row level security;
-create policy "msg insert as self" on public.messages for insert to authenticated
-  with check (sender_id = auth.uid());
 create policy "msg read participants" on public.messages for select to authenticated
   using (customer_id = auth.uid() or tradie_id = auth.uid());
-create policy "msg update own" on public.messages for update to authenticated using (sender_id = auth.uid());
-create policy "msg delete own" on public.messages for delete to authenticated using (sender_id = auth.uid());
 create trigger messages_updated before update on public.messages
   for each row execute function public.set_updated_date();
 
@@ -301,11 +272,7 @@ create table public.notifications (
   updated_date timestamptz not null default now()
 );
 alter table public.notifications enable row level security;
--- Any signed-in user may notify another user (job invites, messages, etc.) — Base44 parity.
-create policy "notif insert" on public.notifications for insert to authenticated with check (true);
 create policy "notif read own" on public.notifications for select to authenticated using (user_id = auth.uid());
-create policy "notif update own" on public.notifications for update to authenticated using (user_id = auth.uid());
-create policy "notif delete own" on public.notifications for delete to authenticated using (user_id = auth.uid());
 create trigger notifications_updated before update on public.notifications
   for each row execute function public.set_updated_date();
 
@@ -324,11 +291,7 @@ create table public.reviews (
   updated_date timestamptz not null default now()
 );
 alter table public.reviews enable row level security;
-create policy "rev insert as self" on public.reviews for insert to authenticated
-  with check (reviewer_id = auth.uid());
 create policy "rev read all" on public.reviews for select to authenticated using (true);
-create policy "rev update own" on public.reviews for update to authenticated using (reviewer_id = auth.uid());
-create policy "rev delete own" on public.reviews for delete to authenticated using (reviewer_id = auth.uid());
 create trigger reviews_updated before update on public.reviews
   for each row execute function public.set_updated_date();
 
@@ -347,10 +310,7 @@ create table public.subscriptions (
   updated_date timestamptz not null default now()
 );
 alter table public.subscriptions enable row level security;
-create policy "sub insert own" on public.subscriptions for insert to authenticated with check (tradie_id = auth.uid());
 create policy "sub read own" on public.subscriptions for select to authenticated using (tradie_id = auth.uid());
-create policy "sub update own" on public.subscriptions for update to authenticated using (tradie_id = auth.uid());
-create policy "sub delete own" on public.subscriptions for delete to authenticated using (tradie_id = auth.uid());
 create trigger subscriptions_updated before update on public.subscriptions
   for each row execute function public.set_updated_date();
 
@@ -365,10 +325,7 @@ create table public.boosts (
   updated_date timestamptz not null default now()
 );
 alter table public.boosts enable row level security;
-create policy "boost insert own" on public.boosts for insert to authenticated with check (customer_id = auth.uid());
 create policy "boost read own" on public.boosts for select to authenticated using (customer_id = auth.uid());
-create policy "boost update own" on public.boosts for update to authenticated using (customer_id = auth.uid());
-create policy "boost delete own" on public.boosts for delete to authenticated using (customer_id = auth.uid());
 create trigger boosts_updated before update on public.boosts
   for each row execute function public.set_updated_date();
 
@@ -386,7 +343,7 @@ create table public.service_categories (
   updated_date timestamptz not null default now()
 );
 alter table public.service_categories enable row level security;
-create policy "cat read all" on public.service_categories for select to authenticated using (true);
+create policy "cat read all" on public.service_categories for select to anon, authenticated using (true);
 create policy "cat admin insert" on public.service_categories for insert to authenticated with check (public.is_admin());
 create policy "cat admin update" on public.service_categories for update to authenticated using (public.is_admin());
 create policy "cat admin delete" on public.service_categories for delete to authenticated using (public.is_admin());
@@ -423,13 +380,12 @@ create index tradie_profiles_user_idx on public.tradie_profiles (user_id);
 create index customer_profiles_user_idx on public.customer_profiles (user_id);
 
 -- ============================================================
--- Storage: public bucket for job photos / portfolios / avatars
+-- Storage: private owner-readable bucket. Upload writes stay unavailable until
+-- a bounded evidence/request upload operation is approved.
 -- ============================================================
 
-insert into storage.buckets (id, name, public) values ('uploads', 'uploads', true)
+insert into storage.buckets (id, name, public) values ('uploads', 'uploads', false)
 on conflict (id) do nothing;
 
-create policy "uploads are publicly readable" on storage.objects
-  for select using (bucket_id = 'uploads');
-create policy "authenticated users can upload" on storage.objects
-  for insert to authenticated with check (bucket_id = 'uploads');
+create policy "uploads owner read" on storage.objects
+  for select to authenticated using (bucket_id = 'uploads' and (storage.foldername(name))[1] = auth.uid()::text);

@@ -12,6 +12,12 @@ export function appPath(path = '/') {
   return BASE + (path.startsWith('/') ? path.slice(1) : path);
 }
 
+// Supabase email and OAuth redirects must be absolute while still respecting
+// the deploy base (for example /oneforall/ on GitHub Pages).
+export function absoluteAppUrl(path = '/') {
+  return new URL(appPath(path), window.location.origin).toString();
+}
+
 // Strip the deploy base off a location path, giving a router-relative path.
 export function stripBase(path) {
   if (BASE === '/') return path;

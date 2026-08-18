@@ -3,85 +3,41 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Zap, Ban, CheckCircle2, Briefcase, Pencil, Loader2 } from 'lucide-react';
+import { Plus, Ban, Briefcase, Pencil } from 'lucide-react';
 import JobCard from '@/components/oneforall/JobCard';
 import { EmptyState } from '@/components/oneforall/Bits';
-import { pseudoDistance } from '@/lib/oneforall';
+import { callFunction } from '@/lib/oneforall';
 
 export default function MyJobs() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [jobs, setJobs] = useState(null);
-  const [boosts, setBoosts] = useState(0);
   const [confirmAction, setConfirmAction] = useState(null);
   const [workingId, setWorkingId] = useState(null);
 
   const load = useCallback(async () => {
     const list = await base44.entities.Job.filter({ customer_id: user.id });
     setJobs(list.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime()));
-    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-    const allBoosts = await base44.entities.Boost.filter({ customer_id: user.id });
-    setBoosts(allBoosts.filter(b => new Date(b.created_date) >= monthStart).length);
   }, [user.id]);
 
   useEffect(() => { load(); }, [load]);
 
-  const freeLeft = Math.max(0, 5 - boosts);
-
-  const boost = async (job) => {
-    if (freeLeft <= 0) { toast({ title: 'No free boosts left', description: 'Extra boosts are $4.99 — demo billing only.', variant: 'destructive' }); return; }
-    if (job.status !== 'published') { toast({ title: 'Only open jobs can be boosted', variant: 'destructive' }); return; }
+  const cancelRequest = async (job, reason, idempotencyKey) => {
     setWorkingId(job.id);
     try {
-    const last = await base44.entities.Boost.filter({ job_id: job.id });
-    if (last.length) { const latest = last.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime())[0]; if (Date.now() - new Date(latest.created_date).getTime() < 12 * 3600e3) { toast({ title: 'Boosted recently', description: 'One boost per job every 12 hours.', variant: 'destructive' }); return; } }
-
-    const tradies = await base44.entities.TradieProfile.filter({ verified: true, open_to_work: true });
-    const eligible = tradies.filter(tradie =>
-      (tradie.trade_categories || []).includes(job.category_slug) &&
-      pseudoDistance(job.suburb, tradie.suburb) <= (tradie.service_radius_km || 20)
-    );
-    if (!eligible.length) {
-      toast({ title: 'No eligible tradies reached', description: 'Your boost was not used. Try again later.', variant: 'destructive' });
-      return;
-    }
-
-    await base44.entities.Boost.create({ job_id: job.id, customer_id: user.id, type: 'free' });
-    await base44.entities.Job.update(job.id, { boosted: true });
-    await Promise.allSettled(eligible.map(tradie => base44.entities.Notification.create({
-      user_id: tradie.user_id,
-      type: 'boosted_job',
-      title: 'Boosted job near you',
-      body: `${job.title} · ${job.suburb}`,
-      link: `/job/${job.id}`,
-      read: false,
-    })));
-    toast({ title: 'Job boosted', description: `${eligible.length} matching tradie${eligible.length === 1 ? '' : 's'} notified · ${freeLeft - 1} free boosts left.` });
-    load();
-    } catch (error) {
-      toast({ title: 'Could not boost job', description: error.message, variant: 'destructive' });
-    } finally {
-      setWorkingId(null);
-    }
-  };
-
-  const updateStatus = async (job, status) => {
-    setWorkingId(job.id);
-    try {
-      if (status === 'discarded') await base44.entities.Job.delete(job.id);
-      else await base44.entities.Job.update(job.id, { status });
-      toast({ title: status === 'completed' ? 'Job marked complete' : status === 'discarded' ? 'Draft discarded' : 'Job cancelled' });
+      await callFunction('transition-request', { job_id: job.id, to_state: 'cancelled', reason: reason.trim(), idempotency_key: idempotencyKey });
+      toast({ title: job.status === 'draft' ? 'Draft closed' : 'Request cancelled' });
       await load();
+      setConfirmAction(null);
     } catch (error) {
-      toast({ title: 'Could not update job', description: error.message, variant: 'destructive' });
+      toast({ title: 'Could not update request', description: error.message, variant: 'destructive' });
     } finally {
       setWorkingId(null);
-      setConfirmAction(null);
     }
   };
 
-  if (jobs === null) return <div className="glass-soft rounded-2xl h-40 animate-pulse" />;
-  if (!jobs.length) return <EmptyState icon={Briefcase} title="No jobs yet" body="Post your first job and verified Ballarat tradies will come to you." action={<Link to="/post-job" className="bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-2"><Plus size={16} /> Post a job</Link>} />;
+  if (jobs === null) return <div className="glass-soft h-40 rounded-2xl" role="status" aria-label="Loading requests and bookings" />;
+  if (!jobs.length) return <EmptyState icon={Briefcase} title="No requests yet" body="Choose any service and send the details for a private availability and scope check." action={<Link to="/services" className="bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-2"><Plus size={16} /> Request a service</Link>} />;
 
   const open = jobs.filter(j => j.status !== 'completed' && j.status !== 'cancelled');
   const closed = jobs.filter(j => j.status === 'completed' || j.status === 'cancelled');
@@ -89,59 +45,58 @@ export default function MyJobs() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">My jobs</h1>
-        <Link to="/post-job" className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-1.5"><Plus size={16} /> New</Link>
+        <h1 className="text-2xl font-semibold tracking-tight">Bookings</h1>
+        <Link to="/services" className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-1.5"><Plus size={16} /> Services</Link>
       </div>
-      <div className="glass-soft rounded-2xl p-3 flex items-center gap-2 text-sm">
-        <Zap size={16} className="text-terracotta" />
-        <span className="text-foreground/80"><b className="text-eucalyptus-deep">{freeLeft}</b> free boosts left this month</span>
-      </div>
-      {open.length > 0 && <div className="grid sm:grid-cols-2 gap-3">{open.map(j => <JobActions key={j.id} job={j} onBoost={boost} onConfirm={setConfirmAction} working={workingId === j.id} canBoost={freeLeft > 0} />)}</div>}
-      {closed.length > 0 && (<div><h2 className="text-sm font-semibold text-muted-foreground mb-2">Closed</h2><div className="grid sm:grid-cols-2 gap-3 opacity-70">{closed.map(j => <JobCard key={j.id} job={j} />)}</div></div>)}
+      <p className="rounded-xl border border-border bg-white/65 p-3 text-sm text-muted-foreground" role="status">This page keeps service requests and their resulting bookings together. Booking progress is recorded by the attending provider; contact support through Messages if something is wrong.</p>
+      {open.length > 0 && <section aria-labelledby="current-bookings"><h2 id="current-bookings" className="mb-2 text-sm font-semibold">Current requests and bookings</h2><div className="grid gap-3 sm:grid-cols-2">{open.map(j => <JobActions key={j.id} job={j} onConfirm={setConfirmAction} working={workingId === j.id} />)}</div></section>}
+      {closed.length > 0 && (<section aria-labelledby="booking-history"><h2 id="booking-history" className="mb-2 text-sm font-semibold text-muted-foreground">Booking history</h2><div className="grid gap-3 opacity-70 sm:grid-cols-2">{closed.map(j => <JobCard key={j.id} job={j} />)}</div></section>)}
       {confirmAction && (
         <ConfirmAction
-          title={confirmAction.type === 'complete' ? 'Mark this job complete?' : confirmAction.type === 'discard' ? 'Discard this draft?' : 'Cancel this job?'}
-          body={confirmAction.type === 'complete' ? 'This closes the job and enables the review step.' : confirmAction.type === 'discard' ? 'This permanently removes the saved draft.' : 'Tradies will no longer see this job. This cannot be reopened.'}
-          confirmLabel={confirmAction.type === 'complete' ? 'Mark complete' : confirmAction.type === 'discard' ? 'Discard draft' : 'Cancel job'}
-          destructive={confirmAction.type !== 'complete'}
+          title={confirmAction.type === 'discard' ? 'Close this draft?' : 'Cancel this request?'}
+          body={confirmAction.type === 'discard' ? 'This closes the saved draft without deleting its audit history.' : 'This closes the unbooked request. Confirmed bookings must be handled from their booking and support pathway.'}
+          confirmLabel={confirmAction.type === 'discard' ? 'Close draft' : 'Cancel request'}
+          destructive
           busy={workingId === confirmAction.job.id}
+          reason={confirmAction.reason}
+          onReasonChange={(reason) => setConfirmAction((current) => ({ ...current, reason }))}
           onCancel={() => setConfirmAction(null)}
-          onConfirm={() => updateStatus(confirmAction.job, confirmAction.type === 'complete' ? 'completed' : confirmAction.type === 'discard' ? 'discarded' : 'cancelled')}
+          onConfirm={() => cancelRequest(confirmAction.job, confirmAction.reason, confirmAction.idempotencyKey)}
         />
       )}
     </div>
   );
 }
 
-function JobActions({ job, onBoost, onConfirm, working, canBoost }) {
+function JobActions({ job, onConfirm, working }) {
   return (
     <div className="space-y-2">
-      <JobCard job={job} to={job.status === 'draft' ? `/post-job?draft=${job.id}` : undefined} />
+      <JobCard job={job} to={job.status === 'draft' ? '/services' : undefined} />
       <div className="flex gap-2">
         {job.status === 'draft' ? (
-          <Link to={`/post-job?draft=${job.id}`} className="flex-1 text-xs font-medium px-3 py-2 rounded-xl glass-soft card-lift inline-flex items-center justify-center gap-1"><Pencil size={13} /> Continue draft</Link>
-        ) : (
-          <button disabled={!canBoost || working || job.status !== 'published'} onClick={() => onBoost(job)} className="flex-1 text-xs font-medium px-3 py-2 rounded-xl glass-soft card-lift inline-flex items-center justify-center gap-1 disabled:opacity-45 disabled:cursor-not-allowed">{working ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />} Boost</button>
-        )}
-        {job.status === 'matched' || job.status === 'in_progress' ? (
-          <button disabled={working} onClick={() => onConfirm({ type: 'complete', job })} className="flex-1 text-xs font-medium px-3 py-2 rounded-xl bg-sage/40 card-lift inline-flex items-center justify-center gap-1 disabled:opacity-50"><CheckCircle2 size={13} /> Complete</button>
-        ) : (
-          <button disabled={working} onClick={() => onConfirm({ type: job.status === 'draft' ? 'discard' : 'cancel', job })} className="flex-1 text-xs font-medium px-3 py-2 rounded-xl glass-soft card-lift inline-flex items-center justify-center gap-1 text-terracotta disabled:opacity-50"><Ban size={13} /> {job.status === 'draft' ? 'Discard draft' : 'Cancel'}</button>
-        )}
+          <Link to="/services" className="flex-1 text-xs font-medium px-3 py-2 rounded-xl glass-soft card-lift inline-flex items-center justify-center gap-1"><Pencil size={13} /> Review services</Link>
+        ) : <span className="flex-1" />}
+        {['draft', 'manual_review', 'submitted', 'published'].includes(job.status) ? (
+          <button disabled={working} onClick={() => onConfirm({ type: job.status === 'draft' ? 'discard' : 'cancel', job, reason: '', idempotencyKey: crypto.randomUUID() })} className="flex-1 text-xs font-medium px-3 py-2 rounded-xl glass-soft card-lift inline-flex items-center justify-center gap-1 text-terracotta disabled:opacity-50"><Ban size={13} /> {job.status === 'draft' ? 'Discard draft' : 'Cancel'}</button>
+        ) : <Link to={`/booking/${job.id}`} className="flex-1 rounded-xl bg-sage/40 px-3 py-2 text-center text-xs font-medium">View booking</Link>}
       </div>
     </div>
   );
 }
 
-function ConfirmAction({ title, body, confirmLabel, destructive, busy, onCancel, onConfirm }) {
+function ConfirmAction({ title, body, confirmLabel, destructive, busy, reason, onReasonChange, onCancel, onConfirm }) {
+  const reasonValid = reason.trim().length >= 10;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
       <div className="glass w-full max-w-sm rounded-3xl p-5" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
         <h2 id="confirm-title" className="text-lg font-semibold">{title}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+        <label htmlFor="request-cancellation-reason" className="mt-4 block text-sm font-semibold">Reason (required)</label>
+        <textarea id="request-cancellation-reason" value={reason} onChange={(event) => onReasonChange(event.target.value)} minLength={10} maxLength={1000} required autoFocus rows={3} className="inp mt-2" placeholder="Briefly explain why you are closing this request." />
+        <p className="mt-1 text-xs text-muted-foreground">At least 10 characters. This is kept in the request audit history.</p>
         <div className="mt-5 flex gap-2">
-          <button disabled={busy} onClick={onCancel} className="flex-1 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold">Keep job</button>
-          <button disabled={busy} onClick={onConfirm} className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold ${destructive ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'}`}>{busy ? 'Updating…' : confirmLabel}</button>
+          <button disabled={busy} onClick={onCancel} className="flex-1 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold">Keep request</button>
+          <button disabled={busy || !reasonValid} onClick={onConfirm} className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50 ${destructive ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'}`}>{busy ? 'Updating…' : confirmLabel}</button>
         </div>
       </div>
     </div>
