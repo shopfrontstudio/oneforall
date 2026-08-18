@@ -39,25 +39,20 @@ export default function Privacy() {
             collect and verify your mobile number.
           </p>
           <p>
-            <strong className="text-foreground">Customer profile and job posts.</strong> If you post a job, we collect
-            your suburb and state, and the details you include in the job — such as the description, category, budget,
-            location and any photos. Job details are shown to tradies so they can respond.
+            <strong className="text-foreground">Customer profile and service requests.</strong> If service requests are
+            enabled, we collect your suburb and state and the details you provide — such as the description, category,
+            timing and any photos. Requests are kept private and may be routed only to eligible providers.
           </p>
           <p>
             <strong className="text-foreground">Tradie profile and verification details.</strong> If you register as a
             tradie, we collect business information used to present and verify your profile: business name, ABN, trade
             categories, licence number and type, insurance provider and policy number, qualifications, years of
-            experience, service areas and bio. Parts of this profile are visible to customers so they can choose who to
-            hire.
+            experience, service areas and bio. Raw identity, licence and insurance evidence remains private. Only
+            separately approved trust details may be shown to customers.
           </p>
           <p>
             <strong className="text-foreground">Messages and reviews.</strong> We store the messages you exchange with
             other users through the app, and the reviews and ratings you give or receive.
-          </p>
-          <p>
-            <strong className="text-foreground">Payment information.</strong> Tradie memberships and boosts are billed
-            through Stripe. Your card details are collected and processed by Stripe directly — we never see or store
-            your full card number. We keep records of your subscription status and billing history.
           </p>
           <p>
             <strong className="text-foreground">Usage and device information.</strong> Like most online services, we
@@ -68,9 +63,8 @@ export default function Privacy() {
 
         <Section title="How we use your information">
           <ul className="list-disc pl-5 space-y-2">
-            <li>To operate the marketplace: matching jobs with tradies, showing profiles, enabling messaging.</li>
+            <li>To operate managed fulfilment: reviewing requests, routing eligible providers and enabling private messaging.</li>
             <li>To verify tradie credentials and help keep the platform trustworthy.</li>
-            <li>To process membership payments and manage subscriptions.</li>
             <li>To send service notifications, such as new job invites, messages and account updates.</li>
             <li>To provide support, prevent fraud and abuse, and meet our legal obligations.</li>
           </ul>
@@ -80,16 +74,13 @@ export default function Privacy() {
         <Section title="When we share information">
           <p>
             Information is shared between users only as needed for the service to work — for example, a tradie&rsquo;s
-            public profile is visible to customers, and a customer&rsquo;s job details and first name are visible to
-            tradies who respond. We also share information with service providers who help us run OneForAll:
+            approved trust summary may be visible to a customer, and a customer&rsquo;s request details are shared only
+            through a private managed pathway. We also share information with service providers who help us run OneForAll:
           </p>
           <ul className="list-disc pl-5 space-y-2">
             <li>
-              <strong className="text-foreground">Base44</strong> — our application hosting and backend platform, which
-              stores app data on our behalf.
-            </li>
-            <li>
-              <strong className="text-foreground">Stripe</strong> — payment processing for memberships and boosts.
+              <strong className="text-foreground">Supabase</strong> — our authentication, database and file-storage
+              platform, which stores app data on our behalf.
             </li>
             <li>
               <strong className="text-foreground">Google</strong> — if you choose to sign in with Google.

@@ -16,7 +16,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = 
             <Logo size={48} className="drop-shadow-lg" />
             <div>
               <p className="text-xl font-bold tracking-tight">OneForAll</p>
-              <p className="text-xs text-primary-foreground/80">Ballarat's local job marketplace</p>
+              <p className="text-xs text-primary-foreground/80">Ballarat's managed local service</p>
             </div>
           </div>
 
@@ -28,7 +28,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = 
               Good local work, matched with good local people.
             </h2>
             <p className="mt-4 max-w-sm text-sm leading-6 text-primary-foreground/80">
-              Post a job for free or discover nearby opportunities—without commissions getting in the way.
+              Tell us what you need. OneForAll privately routes suitable work to eligible local providers and keeps the booking supported.
             </p>
           </div>
 
@@ -43,7 +43,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = 
             <Logo size={42} />
             <div>
               <p className="font-bold tracking-tight">OneForAll</p>
-              <p className="text-[11px] text-muted-foreground">Local jobs · verified tradies</p>
+              <p className="text-[11px] text-muted-foreground">Managed local services · eligible providers</p>
             </div>
           </div>
 
