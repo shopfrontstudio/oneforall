@@ -2,6 +2,7 @@
 // against (entities.X.filter/get/create/update/delete, auth.*, integrations.*)
 // but backed entirely by Supabase. Consumers import { base44 } unchanged.
 import { supabase } from '@/api/supabase';
+import { assignAppPath } from '@/lib/appUrl';
 
 const TABLES = {
   Job: 'jobs',
@@ -156,13 +157,13 @@ const auth = {
   async logout(redirectUrl) {
     await supabase.auth.signOut();
     if (redirectUrl !== undefined) {
-      window.location.assign('/login');
+      assignAppPath('/login');
     }
   },
 
   redirectToLogin(fromUrl) {
     const returnTo = fromUrl ? `?returnTo=${encodeURIComponent(fromUrl)}` : '';
-    window.location.assign(`/login${returnTo}`);
+    assignAppPath(`/login${returnTo}`);
   },
 };
 

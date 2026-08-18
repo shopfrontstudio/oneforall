@@ -9,6 +9,8 @@ import { Eye, EyeOff, LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { appPath } from "@/lib/appUrl";
+import { toAuthErrorMessage } from "@/lib/authErrors";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -26,9 +28,9 @@ export default function Login() {
     setLoading(true);
     try {
       await base44.auth.loginViaEmailPassword(email, password);
-      window.location.href = returnTo;
+      window.location.href = appPath(returnTo);
     } catch (err) {
-      setError(err.message || "Invalid email or password");
+      setError(toAuthErrorMessage(err, "Invalid email or password"));
     } finally {
       setLoading(false);
     }
@@ -48,7 +50,7 @@ export default function Login() {
           Don't have an account?{" "}
           <Link
             to={"/register" + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")}
-            className="text-primary font-medium hover:underline"
+            className="-my-3.5 inline-flex items-center py-3.5 font-medium text-primary hover:underline"
           >
             Create one
           </Link>
@@ -56,6 +58,7 @@ export default function Login() {
       }
     >
       <Button
+        type="button"
         variant="outline"
         className="w-full h-12 rounded-xl text-sm font-medium mb-6 bg-white/60"
         onClick={handleGoogle}
@@ -100,7 +103,12 @@ export default function Login() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+            {/* Negative margin cancels the padding, so the row keeps its
+                height while the link gets a 44px touch target, not 16px. */}
+            <Link
+              to="/forgot-password"
+              className="-my-3.5 inline-flex items-center py-3.5 text-xs text-primary hover:underline"
+            >
               Forgot password?
             </Link>
           </div>
@@ -113,13 +121,13 @@ export default function Login() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 pr-11 h-12 bg-white/60"
+              className="pl-10 pr-12 h-12 bg-white/60"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword((visible) => !visible)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground"
+              className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}

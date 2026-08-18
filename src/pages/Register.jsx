@@ -11,6 +11,8 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { appPath } from "@/lib/appUrl";
+import { toAuthErrorMessage } from "@/lib/authErrors";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -33,7 +35,7 @@ export default function Register() {
       await base44.auth.register({ email, password });
       setShowOtp(true);
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(toAuthErrorMessage(err, "Registration failed"));
     } finally {
       setLoading(false);
     }
@@ -47,9 +49,9 @@ export default function Register() {
       if (result?.access_token) {
         base44.auth.setToken(result.access_token);
       }
-      window.location.href = safeReturnTo();
+      window.location.href = appPath(safeReturnTo());
     } catch (err) {
-      setError(err.message || "Invalid verification code");
+      setError(toAuthErrorMessage(err, "Invalid verification code"));
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export default function Register() {
         description: "Check your email for the new code.",
       });
     } catch (err) {
-      setError(err.message || "Failed to resend code");
+      setError(toAuthErrorMessage(err, "Failed to resend code"));
     }
   };
 
@@ -118,7 +120,11 @@ export default function Register() {
         </Button>
         <p className="text-center text-sm text-muted-foreground mt-4">
           Didn't receive the code?{" "}
-          <button onClick={handleResend} className="text-primary font-medium hover:underline">
+          <button
+            type="button"
+            onClick={handleResend}
+            className="-my-3.5 inline-flex items-center py-3.5 font-medium text-primary hover:underline"
+          >
             Resend
           </button>
         </p>
@@ -136,7 +142,7 @@ export default function Register() {
           Already have an account?{" "}
           <Link
             to={"/login" + (safeReturnTo() !== "/" ? "?returnTo=" + encodeURIComponent(safeReturnTo()) : "")}
-            className="text-primary font-medium hover:underline"
+            className="-my-3.5 inline-flex items-center py-3.5 font-medium text-primary hover:underline"
           >
             Log in
           </Link>
@@ -144,6 +150,7 @@ export default function Register() {
       }
     >
       <Button
+        type="button"
         variant="outline"
         className="w-full h-12 rounded-xl text-sm font-medium mb-6 bg-white/60"
         onClick={handleGoogle}

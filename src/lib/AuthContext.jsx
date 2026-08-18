@@ -2,6 +2,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { supabase } from '@/api/supabase';
+import { assignAppPath } from '@/lib/appUrl';
 
 const AuthContext = createContext();
 
@@ -55,12 +56,12 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     if (shouldRedirect) {
-      window.location.assign('/login');
+      assignAppPath('/login');
     }
   };
 
   const navigateToLogin = () => {
-    window.location.assign('/login');
+    assignAppPath('/login');
   };
 
   return (

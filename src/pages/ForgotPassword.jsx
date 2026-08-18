@@ -32,8 +32,11 @@ export default function ForgotPassword() {
       title="Reset password"
       subtitle="We'll send you a link to reset it"
       footer={
-        <Link to="/login" className="text-primary font-medium hover:underline">
-          <ArrowLeft className="w-3 h-3 inline mr-1" />Back to log in
+        <Link
+          to="/login"
+          className="-my-3.5 inline-flex items-center py-3.5 font-medium text-primary hover:underline"
+        >
+          <ArrowLeft className="w-3 h-3 mr-1" aria-hidden="true" />Back to log in
         </Link>
       }
     >

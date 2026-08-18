@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock, Loader2, AlertTriangle } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import { appPath } from "@/lib/appUrl";
+import { toAuthErrorMessage } from "@/lib/authErrors";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -27,9 +29,9 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       await base44.auth.resetPassword({ resetToken, newPassword });
-      window.location.href = "/login";
+      window.location.href = appPath("/login");
     } catch (err) {
-      setError(err.message || "Failed to reset password");
+      setError(toAuthErrorMessage(err, "Failed to reset password"));
     } finally {
       setLoading(false);
     }
@@ -42,7 +44,10 @@ export default function ResetPassword() {
         title="Invalid reset link"
         subtitle="This password reset link is missing or invalid"
         footer={
-          <Link to="/forgot-password" className="text-primary font-medium hover:underline">
+          <Link
+            to="/forgot-password"
+            className="-my-3.5 inline-flex items-center py-3.5 font-medium text-primary hover:underline"
+          >
             Request a new link
           </Link>
         }

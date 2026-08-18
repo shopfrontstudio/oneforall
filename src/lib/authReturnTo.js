@@ -1,3 +1,5 @@
+import { stripBase } from "@/lib/appUrl";
+
 // Shared by the auth pages (Login, Register, and any page that resumes a flow
 // after sign-in, e.g. the MCP OAuth consent page). Keep the redirect
 // validation in one place — it is security-sensitive and easy to drift.
@@ -24,8 +26,14 @@ export function safeReturnTo() {
     for (const p of ["access_token", "clear_access_token", "app_id", "app_base_url", "functions_version", "from_url"]) {
       url.searchParams.delete(p);
     }
-    const path = url.pathname + url.search;
+    let path = url.pathname + url.search;
     if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) return "/";
+    // Return a router-relative path; callers re-add the deploy base via
+    // appPath() when performing a full-page navigation.
+    path = stripBase(path);
+    // Re-check after stripping: removing the base can re-expose a
+    // protocol-relative prefix (/oneforall//evil.com -> //evil.com).
+    if (!path.startsWith("/") || path.startsWith("//")) return "/";
     return path;
   } catch {
     return "/";
