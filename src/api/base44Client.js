@@ -27,6 +27,7 @@ const TABLES = Object.freeze({
 const RPC_ACTIONS = Object.freeze({
   'set-account-type': 'oneforall_set_account_type',
   'ensure-customer-profile': 'oneforall_ensure_customer_profile',
+  'submit-request': 'oneforall_submit_request',
   'transition-request': 'oneforall_transition_request',
   'send-message': 'oneforall_send_message',
 });

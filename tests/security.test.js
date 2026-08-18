@@ -111,6 +111,12 @@ test('Supabase recovery and OAuth redirects respect the deployed base path', asy
   assert.doesNotMatch(reset, /searchParams\.get\("token"\)|resetToken/);
 });
 
+test('signup uses the default confirmation-link flow without requiring custom SMTP templates', async () => {
+  const register = await read('../src/pages/Register.jsx');
+  assert.match(register, /confirmation link/i);
+  assert.doesNotMatch(register, /InputOTP|verifyOtp|otpCode/);
+});
+
 test('customer cancellation and provider detail errors have bounded recovery paths', async () => {
   const [jobs, requestDetail, jobDetail, intake, authLayout] = await Promise.all([
     read('../src/pages/customer/MyJobs.jsx'), read('../src/pages/provider/RequestDetail.jsx'),
@@ -125,4 +131,25 @@ test('customer cancellation and provider detail errors have bounded recovery pat
   assert.match(intake, /OneForAll is not an emergency service/);
   assert.match(intake, /Describe what you need help with \(required\)/);
   assert.doesNotMatch(authLayout, /job marketplace|Post a job for free|discover nearby opportunities/i);
+});
+
+test('customer request launch opens intake only and keeps supply-side gates closed', async () => {
+  const [sql, facade, intake] = await Promise.all([
+    read('../supabase/migrations/20260819010000_customer_request_launch.sql'),
+    read('../src/api/base44Client.js'),
+    read('../src/pages/public/Intake.jsx'),
+  ]);
+  assert.match(sql, /publicly_visible = true/);
+  assert.match(sql, /request_enabled = true/);
+  assert.match(sql, /public_release_enabled = true/);
+  for (const flag of ['provider_onboarding_enabled','quote_enabled','booking_enabled','recurrence_enabled']) {
+    assert.match(sql, new RegExp(`${flag} = false`));
+  }
+  assert.match(sql, /Customer account required/);
+  assert.match(sql, /Service suburb is required/);
+  assert.match(sql, /Preferred date cannot be in the past/);
+  assert.match(sql, /intake_snapshot/);
+  assert.match(facade, /'submit-request': 'oneforall_submit_request'/);
+  assert.match(intake, /callFunction\('submit-request'/);
+  assert.match(intake, /Send private request/);
 });

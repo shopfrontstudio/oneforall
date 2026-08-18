@@ -33,7 +33,7 @@ export default function PublicLayout() {
         </div>
       </header>
       <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-16 pt-6"><Outlet /></main>
-      <footer className="relative z-10 border-t border-border/70 bg-background/80 px-4 py-8 text-center text-sm text-muted-foreground">Managed local service requests · Ballarat founding phase · Public requests are not open yet.</footer>
+      <footer className="relative z-10 border-t border-border/70 bg-background/80 px-4 py-8 text-center text-sm text-muted-foreground">Managed local service requests · Ballarat, Victoria · Availability confirmed before booking.</footer>
     </div>
   );
 }

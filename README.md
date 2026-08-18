@@ -27,8 +27,8 @@ private file storage, with a PWA/Trusted-Web-Activity wrapper for Google Play.
 3. **Auth → Providers**: enable Email. For Google sign-in, add your Google
    OAuth client ID/secret (Google Cloud Console → OAuth credentials, with
    `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback` as the redirect URI).
-4. **Auth → Email Templates → Confirm signup**: the app verifies signups with a
-   6-digit code, so include `{{ .Token }}` in the template body.
+4. **Auth → Email Templates → Confirm signup**: the app uses Supabase's default
+   confirmation-link flow, which works with the included email service.
 5. **Auth → URL Configuration**: set the Site URL to the deployed app URL and
    allow the deployed and local app paths used by OAuth and recovery, including
    `/oneforall/` and `/oneforall/reset-password` (locally under

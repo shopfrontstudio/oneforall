@@ -52,3 +52,9 @@ test('pest diagnostic rejects treatment requests and treatment pathway requires 
   const treatment = { ...createIntakeDraft('pest-control.pesticide_treatment'), selected_scope_ids: ['post-diagnostic-treatment'], suburb: 'Ballarat', reported_pest: 'Ants', observed_signs: 'Diagnostic already completed' };
   assert.equal(evaluateIntakeDraft(treatment).state, 'manual_review');
 });
+
+test('intake drafts carry a bounded stable idempotency key through sanitisation', () => {
+  const draft = createIntakeDraft('cleaning.routine_domestic', 1234);
+  assert.ok(draft.idempotency_key.length >= 8);
+  assert.equal(sanitiseIntakeDraft(draft).idempotency_key, draft.idempotency_key);
+});

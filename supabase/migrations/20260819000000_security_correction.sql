@@ -2,8 +2,6 @@
 -- This migration keeps every release flag off and tightens privacy,
 -- idempotency, emergency handling and exact operational eligibility.
 
-create extension if not exists pgcrypto;
-
 -- ---------------------------------------------------------------------------
 -- Protected state needed for exact-intent replay and provider standing.
 -- ---------------------------------------------------------------------------
@@ -351,11 +349,11 @@ begin
     raise exception 'Reviewed structured scope is not an allowed low-risk target';
   end if;
 
-  v_original_intake_fingerprint := encode(digest(jsonb_build_object(
+  v_original_intake_fingerprint := md5(jsonb_build_object(
     'service_key',v_job.service_key, 'description',v_job.description,
     'access_notes',v_job.access_notes, 'safety_info',v_job.safety_info,
     'selected_scope_ids',v_job.selected_scope_ids, 'policy_version',v_job.policy_version
-  )::text, 'sha256'), 'hex');
+  )::text);
   update public.jobs set service_key = v_target.service_key,
     category_slug = v_target.category_slug, category_name = v_target.name,
     pathway = v_target.pathway, selected_scope_ids = v_scopes,
@@ -745,7 +743,7 @@ language sql
 immutable
 set search_path = public, pg_temp
 as $$
-  select encode(digest((coalesce(p_payload, '{}'::jsonb) - 'idempotency_key')::text, 'sha256'), 'hex');
+  select md5((coalesce(p_payload, '{}'::jsonb) - 'idempotency_key')::text);
 $$;
 
 -- Cancellation is always a bounded close action, including private drafts and

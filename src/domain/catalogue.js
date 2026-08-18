@@ -1,13 +1,16 @@
-export const PHASE1_POLICY_VERSION = 'phase1-foundation-2026-08-12';
+export const PHASE1_POLICY_VERSION = 'phase1-request-launch-2026-08-19';
 
-export const RELEASE_FLAGS_OFF = Object.freeze({
-  publicly_visible: false,
-  request_enabled: false,
+// Customer requests are live for every configured pathway. Provider
+// onboarding, quoting and booking remain managed release gates so the public
+// app never promises supply before an eligible provider is actually approved.
+export const CUSTOMER_REQUEST_RELEASE_FLAGS = Object.freeze({
+  publicly_visible: true,
+  request_enabled: true,
   provider_onboarding_enabled: false,
   quote_enabled: false,
   booking_enabled: false,
   recurrence_enabled: false,
-  public_release_enabled: false,
+  public_release_enabled: true,
 });
 
 const providerRequirement = (evidence_type, expiry_required = false, scope_ids = ['*']) => Object.freeze({
@@ -46,7 +49,7 @@ const service = (definition) => {
       mixed_scope: 'manual_review',
       regulated_scope: 'blocked',
     }),
-    flags: RELEASE_FLAGS_OFF,
+    flags: CUSTOMER_REQUEST_RELEASE_FLAGS,
   });
 };
 

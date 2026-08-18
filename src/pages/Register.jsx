@@ -6,13 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
-import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
-import { appPath } from "@/lib/appUrl";
 import { toAuthErrorMessage } from "@/lib/authErrors";
+import { GOOGLE_AUTH_ENABLED } from "@/lib/runtime";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -20,8 +18,8 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showOtp, setShowOtp] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
+  const [confirmationSent, setConfirmationSent] = useState(false);
+  const [resent, setResent] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,7 +31,7 @@ export default function Register() {
     setLoading(true);
     try {
       await base44.auth.register({ email, password });
-      setShowOtp(true);
+      setConfirmationSent(true);
     } catch (err) {
       setError(toAuthErrorMessage(err, "Registration failed"));
     } finally {
@@ -41,32 +39,16 @@ export default function Register() {
     }
   };
 
-  const handleVerify = async () => {
+  const handleResend = async () => {
     setError("");
     setLoading(true);
     try {
-      const result = await base44.auth.verifyOtp({ email, otpCode });
-      if (result?.access_token) {
-        base44.auth.setToken(result.access_token);
-      }
-      window.location.href = appPath(safeReturnTo());
+      await base44.auth.resendOtp(email);
+      setResent(true);
     } catch (err) {
-      setError(toAuthErrorMessage(err, "Invalid verification code"));
+      setError(toAuthErrorMessage(err, "Failed to resend the confirmation email"));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    setError("");
-    try {
-      await base44.auth.resendOtp(email);
-      toast({
-        title: "Code sent",
-        description: "Check your email for the new code.",
-      });
-    } catch (err) {
-      setError(toAuthErrorMessage(err, "Failed to resend code"));
     }
   };
 
@@ -74,58 +56,30 @@ export default function Register() {
     base44.auth.loginWithProvider("google", safeReturnTo());
   };
 
-  if (showOtp) {
+  if (confirmationSent) {
     return (
       <AuthLayout
         icon={Mail}
-        title="Verify your email"
-        subtitle={`We sent a code to ${email}`}
+        title="Check your email"
+        subtitle={`We sent a confirmation link to ${email}`}
       >
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
             {error}
           </div>
         )}
-        <div className="flex justify-center mb-6">
-          <InputOTP
-            maxLength={6}
-            value={otpCode}
-            onChange={setOtpCode}
-            autoFocus
-            autoComplete="one-time-code"
-          >
-            <InputOTPGroup>
-              <InputOTPSlot index={0} />
-              <InputOTPSlot index={1} />
-              <InputOTPSlot index={2} />
-              <InputOTPSlot index={3} />
-              <InputOTPSlot index={4} />
-              <InputOTPSlot index={5} />
-            </InputOTPGroup>
-          </InputOTP>
-        </div>
-        <Button
-          className="w-full h-12 font-medium"
-          onClick={handleVerify}
-          disabled={loading || otpCode.length < 6}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Verifying...
-            </>
-          ) : (
-            "Verify"
-          )}
-        </Button>
+        <div className="rounded-xl border border-border bg-white/60 p-4 text-sm text-muted-foreground">Open the email and select <b className="text-foreground">Confirm your email</b>. You’ll return to OneForAll signed in, with your service-request draft still saved in this browser.</div>
+        <Button asChild className="mt-5 h-12 w-full font-medium"><Link to={"/login" + (safeReturnTo() !== "/" ? "?returnTo=" + encodeURIComponent(safeReturnTo()) : "")}>Continue to log in</Link></Button>
+        {resent && <p className="mt-4 text-center text-sm font-semibold text-eucalyptus-deep" role="status">A new confirmation email was sent.</p>}
         <p className="text-center text-sm text-muted-foreground mt-4">
-          Didn't receive the code?{" "}
+          Didn't receive the email?{" "}
           <button
             type="button"
             onClick={handleResend}
+            disabled={loading}
             className="-my-3.5 inline-flex items-center py-3.5 font-medium text-primary hover:underline"
           >
-            Resend
+            {loading ? "Sending…" : "Resend"}
           </button>
         </p>
       </AuthLayout>
@@ -149,24 +103,12 @@ export default function Register() {
         </>
       }
     >
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full h-12 rounded-xl text-sm font-medium mb-6 bg-white/60"
-        onClick={handleGoogle}
-      >
-        <GoogleIcon className="w-5 h-5 mr-2" />
-        Continue with Google
-      </Button>
-
-      <div className="relative mb-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-transparent px-3 text-muted-foreground">or use your email</span>
-        </div>
-      </div>
+      {GOOGLE_AUTH_ENABLED && <>
+        <Button type="button" variant="outline" className="w-full h-12 rounded-xl text-sm font-medium mb-6 bg-white/60" onClick={handleGoogle}>
+          <GoogleIcon className="w-5 h-5 mr-2" />Continue with Google
+        </Button>
+        <div className="relative mb-6"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-transparent px-3 text-muted-foreground">or use your email</span></div></div>
+      </>}
 
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">

@@ -4,11 +4,16 @@ export const INTAKE_STORAGE_KEY = 'oneforall.phase1.intake';
 export const INTAKE_TTL_MS = 30 * 60 * 1000;
 export const INTAKE_MAX_BYTES = 16 * 1024;
 
+const bounded = (value, max) => String(value || '').trim().slice(0, max);
+const createIdempotencyKey = (now = Date.now()) => globalThis.crypto?.randomUUID?.()
+  || `request-${now}-${Math.random().toString(36).slice(2)}`;
+
 export function createIntakeDraft(serviceKey, now = Date.now()) {
   const service = getPhase1Service(serviceKey);
   if (!service) return null;
   return {
     version: 2,
+    idempotency_key: createIdempotencyKey(now),
     policy_version: PHASE1_POLICY_VERSION,
     service_key: service.key,
     pathway: service.pathway,
@@ -18,6 +23,7 @@ export function createIntakeDraft(serviceKey, now = Date.now()) {
     suburb: '',
     preferred_date: '',
     recurrence: 'once',
+    urgency: 'flexible',
     photo_names: [],
     reported_pest: '',
     observed_signs: '',
@@ -29,20 +35,22 @@ export function createIntakeDraft(serviceKey, now = Date.now()) {
   };
 }
 
-const bounded = (value, max) => String(value || '').trim().slice(0, max);
-
 export function sanitiseIntakeDraft(input) {
   const service = getPhase1Service(input?.service_key);
   if (!service) return null;
   const validScopeIds = new Set(service.scope_options.map((item) => item.id));
   return {
     ...createIntakeDraft(service.key, Number(input.saved_at) || Date.now()),
+    idempotency_key: bounded(input.idempotency_key, 120).length >= 8
+      ? bounded(input.idempotency_key, 120)
+      : createIdempotencyKey(Number(input.saved_at) || Date.now()),
     selected_scope_ids: Array.isArray(input.selected_scope_ids) ? [...new Set(input.selected_scope_ids.filter((id) => validScopeIds.has(id)))] : [],
     adult_scope_confirmed: input.adult_scope_confirmed === true,
     scope_description: bounded(input.scope_description, 3000),
     suburb: bounded(input.suburb, 100),
     preferred_date: bounded(input.preferred_date, 20),
     recurrence: ['once', 'weekly', 'fortnightly', 'monthly'].includes(input.recurrence) ? input.recurrence : 'once',
+    urgency: ['flexible', 'this_week', 'urgent'].includes(input.urgency) ? input.urgency : 'flexible',
     photo_names: Array.isArray(input.photo_names) ? input.photo_names.map((name) => bounded(name, 120)).filter(Boolean).slice(0, 8) : [],
     reported_pest: bounded(input.reported_pest, 120),
     observed_signs: bounded(input.observed_signs, 2000),

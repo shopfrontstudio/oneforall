@@ -37,7 +37,7 @@ export default function MyJobs() {
   };
 
   if (jobs === null) return <div className="glass-soft h-40 rounded-2xl" role="status" aria-label="Loading requests and bookings" />;
-  if (!jobs.length) return <EmptyState icon={Briefcase} title="No bookings yet" body="Explore the service catalogue. Public requests remain closed during the founding phase." action={<Link to="/services" className="bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-2"><Plus size={16} /> Browse services</Link>} />;
+  if (!jobs.length) return <EmptyState icon={Briefcase} title="No requests yet" body="Choose any service and send the details for a private availability and scope check." action={<Link to="/services" className="bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-2"><Plus size={16} /> Request a service</Link>} />;
 
   const open = jobs.filter(j => j.status !== 'completed' && j.status !== 'cancelled');
   const closed = jobs.filter(j => j.status === 'completed' || j.status === 'cancelled');

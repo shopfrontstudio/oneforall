@@ -18,12 +18,12 @@ export default function PublicHome() {
     <div className="space-y-10">
       <section className="home-hero px-5 py-8 sm:px-8 sm:py-12">
         <span className="home-hero-glow" />
-        <p className="relative text-xs font-bold uppercase tracking-[0.18em] text-terracotta">Managed local fulfilment · Founding phase</p>
+        <p className="relative text-xs font-bold uppercase tracking-[0.18em] text-terracotta">Managed local fulfilment · Ballarat</p>
         <h1 className="relative mt-3 max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">A clearer path from “I need help” to a supported local booking.</h1>
-        <p className="relative mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">OneForAll guides the request, applies service-specific eligibility, records the booking and keeps support or rebooking connected. Public requests are not open yet.</p>
+        <p className="relative mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">Tell us what you need. OneForAll checks the scope, keeps the request private and confirms provider availability, pricing and timing before any booking.</p>
         <div className="relative mt-6 flex flex-wrap gap-3">
           <Link to="/services" className="home-cta mt-0">Explore {serviceCount} service pathways <ArrowRight size={17} /></Link>
-          <span className="inline-flex items-center rounded-2xl border border-border bg-white/75 px-4 py-3 text-sm font-semibold" role="status">All release gates are currently off</span>
+          <span className="inline-flex items-center rounded-2xl border border-border bg-white/75 px-4 py-3 text-sm font-semibold" role="status">Now accepting service requests</span>
         </div>
       </section>
 
@@ -39,7 +39,7 @@ export default function PublicHome() {
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{steps.map((step) => <article key={step.title} className="rounded-2xl bg-white/10 p-4"><step.icon size={20} className="text-lime" /><h3 className="mt-3 font-semibold">{step.title}</h3><p className="mt-1 text-sm text-white/75">{step.body}</p></article>)}</div>
       </section>
 
-      <section className="glass grid gap-5 rounded-3xl p-6 sm:grid-cols-[1fr_auto] sm:items-center"><div><Headphones className="text-terracotta" aria-hidden="true" /><h2 className="mt-3 text-xl font-semibold">Honest availability first</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">You can explore the catalogue and, in local development, preview the intake. No service is represented as live while its release flags remain off.</p></div><Link to={PUBLIC_PATHS.services} className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Review services</Link></section>
+      <section className="glass grid gap-5 rounded-3xl p-6 sm:grid-cols-[1fr_auto] sm:items-center"><div><Headphones className="text-terracotta" aria-hidden="true" /><h2 className="mt-3 text-xl font-semibold">Honest availability first</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Every service can be requested. A request is not a confirmed booking: we confirm an eligible provider, price and time before work is scheduled.</p></div><Link to={PUBLIC_PATHS.services} className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Request a service</Link></section>
     </div>
   );
 }
