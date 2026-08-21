@@ -7,17 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
-import GoogleIcon from "@/components/GoogleIcon";
+import SocialAuthButtons from "@/components/SocialAuthButtons";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import { appPath } from "@/lib/appUrl";
 import { toAuthErrorMessage } from "@/lib/authErrors";
-import { GOOGLE_AUTH_ENABLED } from "@/lib/runtime";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   // Post-login destination (e.g. the MCP OAuth consent page sends users here
   // with returnTo so the grant flow can resume). Same-origin paths only.
@@ -37,8 +37,15 @@ export default function Login() {
     }
   };
 
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", returnTo);
+  const handleSocial = async (provider) => {
+    setError("");
+    setSocialLoading(provider);
+    try {
+      await base44.auth.loginWithProvider(provider, returnTo);
+    } catch (err) {
+      setError(toAuthErrorMessage(err, `Could not connect to ${provider === "apple" ? "Apple" : "Google"}`));
+      setSocialLoading("");
+    }
   };
 
   return (
@@ -58,12 +65,7 @@ export default function Login() {
         </>
       }
     >
-      {GOOGLE_AUTH_ENABLED && <>
-        <Button type="button" variant="outline" className="w-full h-12 rounded-xl text-sm font-medium mb-6 bg-white/60" onClick={handleGoogle}>
-          <GoogleIcon className="w-5 h-5 mr-2" />Continue with Google
-        </Button>
-        <div className="relative mb-6"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-transparent px-3 text-muted-foreground">or use your email</span></div></div>
-      </>}
+      <SocialAuthButtons busyProvider={socialLoading} disabled={loading} onSelect={handleSocial} />
 
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -123,7 +125,7 @@ export default function Login() {
             </button>
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 rounded-xl font-semibold shadow-lg shadow-primary/20" disabled={loading}>
+        <Button type="submit" className="w-full h-12 rounded-xl font-semibold shadow-lg shadow-primary/20" disabled={loading || Boolean(socialLoading)}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

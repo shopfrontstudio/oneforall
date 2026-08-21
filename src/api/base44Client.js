@@ -115,7 +115,12 @@ const auth = {
   async verifyOtp({ email, otpCode }) { const { data, error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: 'signup' }); throwIf(error); return { access_token: data.session?.access_token }; },
   async resendOtp(email) { const { error } = await supabase.auth.resend({ type: 'signup', email }); throwIf(error); return true; },
   setToken() {},
-  loginWithProvider(provider, returnTo) { return supabase.auth.signInWithOAuth({ provider, options: { redirectTo: absoluteAppUrl(returnTo || '/') } }); },
+  async loginWithProvider(provider, returnTo) {
+    if (!['google', 'apple'].includes(provider)) throw new Error('Unsupported sign-in provider.');
+    const { data, error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: absoluteAppUrl(returnTo || '/') } });
+    throwIf(error);
+    return data;
+  },
   async resetPasswordRequest(email) { const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: absoluteAppUrl('/reset-password') }); throwIf(error); return true; },
   async resetPassword({ newPassword }) {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
