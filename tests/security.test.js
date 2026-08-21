@@ -162,3 +162,23 @@ test('GitHub Pages prebuilds every public catalogue route with a real 200 entry 
   assert.match(pages, /`request\/\$\{key\}`/);
   assert.match(pages, /copyFileSync\(index, new URL\('index\.html', dir\)\)/);
 });
+
+test('Google and Apple OAuth buttons stay gated until each provider is configured', async () => {
+  const [runtime, buttons, login, register, facade, workflow] = await Promise.all([
+    read('../src/lib/runtime.js'),
+    read('../src/components/SocialAuthButtons.jsx'),
+    read('../src/pages/Login.jsx'),
+    read('../src/pages/Register.jsx'),
+    read('../src/api/base44Client.js'),
+    read('../.github/workflows/deploy.yml'),
+  ]);
+  assert.match(runtime, /VITE_GOOGLE_AUTH_ENABLED/);
+  assert.match(runtime, /VITE_APPLE_AUTH_ENABLED/);
+  assert.match(buttons, /Continue with Google/);
+  assert.match(buttons, /Continue with Apple/);
+  assert.match(login, /SocialAuthButtons/);
+  assert.match(register, /SocialAuthButtons/);
+  assert.match(facade, /\['google', 'apple'\]\.includes\(provider\)/);
+  assert.match(workflow, /VITE_GOOGLE_AUTH_ENABLED/);
+  assert.match(workflow, /VITE_APPLE_AUTH_ENABLED/);
+});

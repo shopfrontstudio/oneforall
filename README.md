@@ -7,7 +7,7 @@ private file storage, with a PWA/Trusted-Web-Activity wrapper for Google Play.
 ## Stack
 
 - **Frontend**: React 18, Vite, Tailwind, Radix UI, React Router
-- **Backend**: Supabase — email/password + Google auth, Postgres, storage
+- **Backend**: Supabase — email/password + Google/Apple auth, Postgres, storage
 - **Hosting**: GitHub Pages with a custom domain (Actions workflow in `.github/workflows/deploy.yml`)
 - **Android**: Trusted Web Activity generated with Bubblewrap
 
@@ -24,9 +24,11 @@ private file storage, with a PWA/Trusted-Web-Activity wrapper for Google Play.
 2. Apply every SQL file in `supabase/migrations/` in timestamp order. They
    create the base schema, the managed-marketplace boundary, and subsequent
    fail-closed security corrections.
-3. **Auth → Providers**: enable Email. For Google sign-in, add your Google
-   OAuth client ID/secret (Google Cloud Console → OAuth credentials, with
-   `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback` as the redirect URI).
+3. **Auth → Providers**: enable Email. For Google sign-in, create a Web OAuth
+   client and add its ID/secret; for Apple web sign-in, create the Apple App ID,
+   Services ID and signing secret. Both providers use
+   `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback` as their provider
+   callback URL. Apple web secrets expire every six months and must be rotated.
 4. **Auth → Email Templates → Confirm signup**: the app uses Supabase's default
    confirmation-link flow, which works with the included email service.
 5. **Auth → URL Configuration**: set the Site URL to the deployed app URL and
@@ -42,7 +44,9 @@ One-time repo setup:
 1. **Settings → Pages**: set Source to "GitHub Actions", and enter the custom
    domain (then follow GitHub's DNS instructions; enable "Enforce HTTPS").
 2. **Settings → Secrets and variables → Actions → Variables**: add
-   `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+   `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
+   `VITE_GOOGLE_AUTH_ENABLED`, and `VITE_APPLE_AUTH_ENABLED`. Keep a provider
+   flag `false` until its Supabase configuration has been verified end to end.
 
 GitHub Pages cannot rewrite URLs for SPAs, so `scripts/postbuild-pages.mjs`
 copies `index.html` to `404.html` (deep-link fallback) and pre-creates the
