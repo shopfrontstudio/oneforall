@@ -32,6 +32,12 @@ export function groupedServices() {
   return CATEGORY_META.map((category) => ({ ...category, services: PHASE1_SERVICES.filter((service) => service.category === category.key) }));
 }
 
+export function getCategoryServices(categoryKey) {
+  const category = CATEGORY_META_MAP[categoryKey];
+  if (!category) return null;
+  return { ...category, services: PHASE1_SERVICES.filter((service) => service.category === category.key) };
+}
+
 export function serviceAvailability(service) {
   return service?.flags.public_release_enabled && service.flags.publicly_visible && service.flags.request_enabled ? 'available' : 'not_accepting_requests';
 }

@@ -3,10 +3,12 @@ import { Link, useParams } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, Info, Loader2, LockKeyhole, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { PHASE1_SERVICE_MAP, servicePathwayLabel } from '@/lib/catalogue';
-import { clearSessionIntake, createIntakeDraft, evaluateIntakeDraft, loadSessionIntake, nextPreviewState, saveSessionIntake } from '@/lib/intake';
+import { clearSessionIntake, createIntakeDraft, createIntakeDraftFromGuide, evaluateIntakeDraft, loadSessionIntake, nextPreviewState, saveSessionIntake } from '@/lib/intake';
 import { EmptyState } from '@/components/oneforall/Bits';
 import { IS_DEV_PREVIEW } from '@/lib/runtime';
 import { callFunction, ensureProfile, setAccountType } from '@/lib/oneforall';
+import { clearServiceGuideHandoff, loadServiceGuideHandoff, loadServiceGuideResult } from '@/lib/serviceGuide';
+import { PUBLIC_PATHS } from '@/lib/routes';
 
 const FieldError = ({ id, children }) => children ? <p id={id} className="mt-1 text-sm font-medium text-destructive" role="alert">{children}</p> : null;
 const FOCUSABLE_CONTROL = 'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -27,12 +29,15 @@ export default function Intake() {
   const [storageWarning, setStorageWarning] = useState(false);
   const [invalidFocusRequest, setInvalidFocusRequest] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [guidePrefilled, setGuidePrefilled] = useState(false);
 
   useEffect(() => {
     if (!service) { setLoading(false); return; }
     const saved = loadSessionIntake(service.key);
-    setDraft(saved || createIntakeDraft(service.key));
+    const guideHandoff = saved ? null : loadServiceGuideHandoff(service.key);
+    setDraft(saved || createIntakeDraftFromGuide(service.key, guideHandoff));
     setRestored(Boolean(saved));
+    setGuidePrefilled(Boolean(guideHandoff));
     setLoading(false);
   }, [service]);
 
@@ -114,6 +119,8 @@ export default function Intake() {
         painting_access_height: draft.painting_access_height,
       });
       clearSessionIntake();
+      clearServiceGuideHandoff(service.key);
+      setGuidePrefilled(false);
       setResult({ ...next, state: 'submitted', submission: response });
     } catch (error) {
       setResult({ ...next, state: 'submit_error', message: error.message });
@@ -122,17 +129,19 @@ export default function Intake() {
     }
   };
 
-  const reset = () => { clearSessionIntake(); setDraft(createIntakeDraft(service.key)); setResult(null); setRestored(false); setPreviewCount(0); setSubmitted(false); setTouched({}); setStorageWarning(false); setInvalidFocusRequest(0); };
+  const reset = () => { clearSessionIntake(); clearServiceGuideHandoff(service.key); setDraft(createIntakeDraft(service.key)); setResult(null); setRestored(false); setGuidePrefilled(false); setPreviewCount(0); setSubmitted(false); setTouched({}); setStorageWarning(false); setInvalidFocusRequest(0); };
   const error = (field) => submitted || touched[field] ? assessment.errors?.[field] : undefined;
 
   if (result?.state === 'submitted') {
-    return <div className="mx-auto max-w-2xl space-y-5"><Link to="/services" className="inline-flex items-center gap-1 text-sm font-semibold text-eucalyptus-deep"><ArrowLeft size={15} />All services</Link><section className="glass rounded-3xl p-6 sm:p-8" role="status"><CheckCircle2 size={34} className="text-eucalyptus-deep" /><p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-terracotta">Request received</p><h1 className="mt-2 text-3xl font-semibold">We’ll confirm the next step.</h1><p className="mt-3 text-muted-foreground">Your {service.name.toLowerCase()} request is private. OneForAll will review scope and confirm provider availability, price and timing before it becomes a booking.</p><p className="mt-3 rounded-xl bg-sage/35 px-4 py-3 text-sm font-semibold">Status: {result.submission?.status === 'manual_review' ? 'Private review' : 'Received'}</p><Link to="/bookings" className="mt-5 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">View my requests</Link></section></div>;
+    const guideResult = loadServiceGuideResult();
+    const hasOtherSuggestions = guideResult?.state === 'matched' && guideResult.suggestions.some((suggestion) => suggestion.service_key !== service.key);
+    return <div className="mx-auto max-w-2xl space-y-5"><Link to={PUBLIC_PATHS.category(service.category)} className="inline-flex items-center gap-1 text-sm font-semibold text-eucalyptus-deep"><ArrowLeft size={15} />{service.category === 'not-sure' ? 'Service categories' : 'Category services'}</Link><section className="glass rounded-3xl p-6 sm:p-8" role="status"><CheckCircle2 size={34} className="text-eucalyptus-deep" /><p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-terracotta">Request received</p><h1 className="mt-2 text-3xl font-semibold">We’ll confirm the next step.</h1><p className="mt-3 text-muted-foreground">Your {service.name.toLowerCase()} request is private. OneForAll will review scope and confirm provider availability, price and timing before it becomes a booking.</p><p className="mt-3 rounded-xl bg-sage/35 px-4 py-3 text-sm font-semibold">Status: {result.submission?.status === 'manual_review' ? 'Private review' : 'Received'}</p><div className="mt-5 flex flex-wrap gap-3"><Link to="/bookings" className="inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">View my requests</Link>{hasOtherSuggestions && <Link to={PUBLIC_PATHS.serviceGuideResults} className="inline-flex rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-eucalyptus-deep">View other suggestions</Link>}</div></section></div>;
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <Link to={`/services/${encodeURIComponent(service.key)}`} className="inline-flex items-center gap-1 text-sm font-semibold text-eucalyptus-deep"><ArrowLeft size={15} />Service details</Link>
-      <header className="glass rounded-3xl p-5 sm:p-7"><p className="text-xs font-bold uppercase tracking-[0.14em] text-terracotta">{servicePathwayLabel(service)}</p><h1 className="mt-2 text-2xl font-semibold sm:text-3xl">{service.name}</h1><p className="mt-2 text-sm text-muted-foreground">Tell us what you need. Your request stays private while scope, provider eligibility, price and timing are confirmed.</p>{restored && <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sage/35 px-3 py-2 text-sm font-semibold" role="status"><Clock3 size={16} />Restored from this browser session</p>}</header>
+      <header className="glass rounded-3xl p-5 sm:p-7"><p className="text-xs font-bold uppercase tracking-[0.14em] text-terracotta">{servicePathwayLabel(service)}</p><h1 className="mt-2 text-2xl font-semibold sm:text-3xl">{service.name}</h1><p className="mt-2 text-sm text-muted-foreground">Tell us what you need. Your request stays private while scope, provider eligibility, price and timing are confirmed.</p>{restored && <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sage/35 px-3 py-2 text-sm font-semibold" role="status"><Clock3 size={16} />Restored from this browser session</p>}{guidePrefilled && <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sage/35 px-3 py-2 text-sm font-semibold" role="status"><Info size={16} />Suggested options added — please review and edit them</p>}</header>
 
       <div className="rounded-2xl border border-sandstone-deep/45 bg-sandstone/30 p-4" role="status"><b>Requests are open.</b><p className="mt-1 text-sm text-muted-foreground">Submitting does not confirm a booking or charge you. OneForAll confirms availability and price first.</p>{IS_DEV_PREVIEW && <p className="mt-2 text-sm font-bold text-terracotta">Local QA preview · no authoritative record is written.</p>}</div>
       {storageWarning && <div className="rounded-2xl border border-sandstone-deep/45 bg-white/70 p-4 text-sm" role="status"><b>Draft not saved in this browser.</b><p className="mt-1 text-muted-foreground">You can keep completing this form; leaving or refreshing may clear it.</p></div>}

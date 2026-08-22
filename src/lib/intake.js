@@ -35,6 +35,18 @@ export function createIntakeDraft(serviceKey, now = Date.now()) {
   };
 }
 
+export function createIntakeDraftFromGuide(serviceKey, handoff, now = Date.now()) {
+  const draft = createIntakeDraft(serviceKey, now);
+  if (!draft || handoff?.service_key !== serviceKey) return draft;
+  const service = getPhase1Service(serviceKey);
+  const validScopeIds = new Set(service.scope_options.map((item) => item.id));
+  return {
+    ...draft,
+    selected_scope_ids: Array.isArray(handoff.scope_ids) ? [...new Set(handoff.scope_ids.filter((id) => validScopeIds.has(id)))] : [],
+    scope_description: bounded(handoff.problem, 3000),
+  };
+}
+
 export function sanitiseIntakeDraft(input) {
   const service = getPhase1Service(input?.service_key);
   if (!service) return null;

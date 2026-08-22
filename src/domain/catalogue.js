@@ -251,6 +251,11 @@ const EMERGENCY_TERMS = Object.freeze([
   'collapsed structure', 'snake', 'medical emergency',
 ]);
 
+export function detectEmergencyText(value) {
+  const matchedTerm = EMERGENCY_TERMS.find((term) => normal(value).includes(term)) || null;
+  return { emergency: Boolean(matchedTerm), matched_term: matchedTerm };
+}
+
 const flattenRiskText = (value) => {
   if (Array.isArray(value)) return value.flatMap(flattenRiskText);
   // Keys are implementation labels, not user statements. Inspecting them made
@@ -295,7 +300,7 @@ export function classifyServiceScope(serviceKey, {
   const scopeValue = normal(scopeNotes ?? notes);
   const riskValue = normal(additionalRiskText);
   const screeningValue = `${scopeValue}\n${riskValue}`;
-  const emergencyTerm = EMERGENCY_TERMS.find((term) => screeningValue.includes(term));
+  const emergencyTerm = detectEmergencyText(screeningValue).matched_term;
   if (emergencyTerm) return { decision: 'blocked', reason: 'emergency_redirect', matched_term: emergencyTerm, selected_scope_ids: Array.isArray(selectedScopeIds) ? selectedScopeIds : [] };
   const blockedTerm = definition.block_terms.find((term) => screeningValue.includes(term));
   if (blockedTerm) return { decision: 'blocked', reason: 'prohibited_scope', matched_term: blockedTerm, selected_scope_ids: Array.isArray(selectedScopeIds) ? selectedScopeIds : [] };

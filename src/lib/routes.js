@@ -1,8 +1,10 @@
 export const PUBLIC_PATHS = Object.freeze({
   home: '/',
   services: '/services',
+  category: (categoryKey) => `/services/category/${encodeURIComponent(categoryKey)}`,
   service: (serviceKey) => `/services/${encodeURIComponent(serviceKey)}`,
   intake: (serviceKey) => `/request/${encodeURIComponent(serviceKey)}`,
+  serviceGuideResults: '/service-guide/results',
 });
 
 export const CUSTOMER_PATHS = Object.freeze({
@@ -12,7 +14,7 @@ export const CUSTOMER_PATHS = Object.freeze({
 });
 
 export function isPublicPath(pathname) {
-  return pathname === '/' || pathname === '/services' || pathname.startsWith('/services/') || pathname.startsWith('/request/') || ['/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
+  return pathname === '/' || pathname === '/services' || pathname.startsWith('/services/') || pathname.startsWith('/request/') || pathname.startsWith('/service-guide/') || ['/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
 }
 
 export const LEGACY_REDIRECTS = Object.freeze({

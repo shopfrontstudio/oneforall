@@ -1,8 +1,9 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarCheck, ClipboardList, Headphones, RefreshCcw, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, CalendarCheck, ClipboardList, Headphones, RefreshCcw, Search, ShieldCheck } from 'lucide-react';
 import { CATEGORY_META, groupedServices } from '@/lib/catalogue';
 import { PUBLIC_PATHS } from '@/lib/routes';
+import { findServiceProblem, saveServiceGuideResult, SERVICE_GUIDE_MAX_LENGTH } from '@/lib/serviceGuide';
 import { CategoryIcon } from '@/components/public/ServiceCard';
 
 const steps = [
@@ -14,6 +15,25 @@ const steps = [
 
 export default function PublicHome() {
   const serviceCount = groupedServices().reduce((total, category) => total + category.services.length, 0);
+  const navigate = useNavigate();
+  const [problem, setProblem] = useState('');
+  const [guideError, setGuideError] = useState('');
+
+  const submitGuide = (event) => {
+    event.preventDefault();
+    if (problem.trim().length < 3) {
+      setGuideError('Briefly describe what you need help with.');
+      return;
+    }
+    const result = findServiceProblem(problem);
+    if (!saveServiceGuideResult(result)) {
+      setGuideError('This browser could not save your private guide result. Please browse the service categories instead.');
+      return;
+    }
+    setGuideError('');
+    navigate(PUBLIC_PATHS.serviceGuideResults);
+  };
+
   return (
     <div className="space-y-10">
       <section className="home-hero px-5 py-8 sm:px-8 sm:py-12">
@@ -21,6 +41,27 @@ export default function PublicHome() {
         <p className="relative text-xs font-bold uppercase tracking-[0.18em] text-terracotta">Managed local fulfilment · Ballarat</p>
         <h1 className="relative mt-3 max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">A clearer path from “I need help” to a supported local booking.</h1>
         <p className="relative mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">Tell us what you need. OneForAll checks the scope, keeps the request private and confirms provider availability, pricing and timing before any booking.</p>
+        <form id="service-guide" onSubmit={submitGuide} className="glass relative mt-6 max-w-3xl rounded-2xl p-4 sm:p-5" noValidate>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-terracotta">OneForAll service guide</p>
+          <label htmlFor="service-guide-problem" className="mt-2 block text-lg font-semibold">Tell me what’s going on.</label>
+          <p id="service-guide-help" className="mt-1 text-sm text-muted-foreground">Describe the problem in your own words. I’ll narrow it to the closest services in our approved catalogue.</p>
+          <textarea
+            id="service-guide-problem"
+            value={problem}
+            onChange={(event) => { setProblem(event.target.value); setGuideError(''); }}
+            rows={3}
+            maxLength={SERVICE_GUIDE_MAX_LENGTH}
+            aria-describedby={`service-guide-help${guideError ? ' service-guide-error' : ''}`}
+            aria-invalid={Boolean(guideError)}
+            placeholder="For example: My bathroom needs cleaning and the tap keeps dripping"
+            className="inp mt-3 resize-y"
+          />
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">Private in this browser for 30 minutes · no external AI service</p>
+            <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"><Search size={17} aria-hidden="true" />Find the right service</button>
+          </div>
+          {guideError && <p id="service-guide-error" className="mt-3 text-sm font-semibold text-destructive" role="alert">{guideError}</p>}
+        </form>
         <div className="relative mt-6 flex flex-wrap gap-3">
           <Link to="/services" className="home-cta mt-0">Explore {serviceCount} service pathways <ArrowRight size={17} /></Link>
           <span className="inline-flex items-center rounded-2xl border border-border bg-white/75 px-4 py-3 text-sm font-semibold" role="status">Now accepting service requests</span>
@@ -30,7 +71,7 @@ export default function PublicHome() {
       <section aria-labelledby="categories-heading">
         <div className="mb-4 flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-terracotta">Service marketplace</p><h2 id="categories-heading" className="mt-1 text-2xl font-semibold">{CATEGORY_META.length} practical service categories</h2></div><Link to="/services" className="hidden text-sm font-semibold text-eucalyptus-deep sm:inline">See every service</Link></div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {CATEGORY_META.map((category) => <Link key={category.key} to={`/services#${category.key}`} className="glass-soft min-w-0 rounded-2xl p-4 text-center focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"><span className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-sage/55 text-eucalyptus-deep"><CategoryIcon category={category.key} /></span><span className="mt-2 block text-sm font-semibold">{category.name}</span></Link>)}
+          {CATEGORY_META.map((category) => <Link key={category.key} to={PUBLIC_PATHS.category(category.key)} className="glass-soft min-w-0 rounded-2xl p-4 text-center focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"><span className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-sage/55 text-eucalyptus-deep"><CategoryIcon category={category.key} /></span><span className="mt-2 block text-sm font-semibold">{category.name}</span></Link>)}
         </div>
       </section>
 

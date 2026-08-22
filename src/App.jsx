@@ -10,7 +10,9 @@ import ProviderRoute from '@/components/ProviderRoute';
 import PublicLayout from '@/components/public/PublicLayout';
 import PublicHome from '@/pages/public/Home';
 import Services from '@/pages/public/Services';
+import CategoryServices from '@/pages/public/CategoryServices';
 import ServiceDetail from '@/pages/public/ServiceDetail';
+import ServiceGuideResults from '@/pages/public/ServiceGuideResults';
 import Intake from '@/pages/public/Intake';
 import Privacy from '@/pages/Privacy';
 
@@ -45,7 +47,9 @@ function AppRoutes() {
     <Route element={<PublicLayout />}>
       <Route path="/" element={<PublicHome />} />
       <Route path="/services" element={<Services />} />
+      <Route path="/services/category/:categoryKey" element={<CategoryServices />} />
       <Route path="/services/:serviceKey" element={<ServiceDetail />} />
+      <Route path="/service-guide/results" element={<ServiceGuideResults />} />
       <Route path="/request/:serviceKey" element={<Intake />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/post-job" element={<Navigate to="/services" replace />} />
