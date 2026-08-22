@@ -191,6 +191,20 @@ export const PHASE1_SERVICES = Object.freeze([
     review_terms: ['ladder', 'height', 'old paint', 'unknown coating', 'commercial', 'specialist coating'],
   }),
   service({
+    key: 'moving-packing.household', category: 'moving-packing', name: 'Household packing and moving', pathway: 'managed_quote',
+    scope_options: [
+      option('packing-unpacking', 'Packing and unpacking household goods', ['packing', 'unpacking', 'pack boxes']),
+      option('home-move', 'Local household move', ['home move', 'house move', 'moving house', 'removalist']),
+      option('single-item', 'Single furniture or appliance move', ['single item', 'move furniture', 'move appliance']),
+      option('loading-unloading', 'Loading or unloading a customer-arranged vehicle', ['loading', 'unloading', 'load truck', 'unload truck']),
+    ],
+    review_scope: ['Stairs or no lift access', 'Pianos, safes, pool tables or oversized items', 'Long-distance or interstate moves', 'Storage, fragile or high-value goods', 'Appliances that may need licensed disconnection'],
+    blocked_scope: ['Dangerous, explosive or illegal goods', 'Asbestos or contaminated material', 'Uncontained fuel, chemicals or gas cylinders', 'Moving people or animals', 'Electrical, gas or plumbing disconnection', 'Goods without confirmed ownership or authority'],
+    evidence_requirements: [providerRequirement('vehicle_identity'), providerRequirement('goods_in_transit_insurance', true), providerRequirement('inventory_and_condition_process'), workerRequirement('load_restraint'), workerRequirement('manual_handling_process')],
+    block_terms: ['dangerous goods', 'explosive', 'illegal goods', 'asbestos', 'contaminated material', 'uncontained fuel', 'chemical container', 'gas cylinder', 'move a person', 'transport a person', 'move a pet', 'transport an animal', 'disconnect electrical', 'disconnect gas', 'disconnect plumbing', 'stolen goods'],
+    review_terms: ['stairs', 'no lift', 'no elevator', 'piano', 'safe', 'pool table', 'oversized', 'heavy item', 'interstate', 'long distance', 'storage', 'fragile', 'high value', 'appliance disconnection'],
+  }),
+  service({
     key: 'general.guided_request', category: 'not-sure', name: 'Help me choose the right service', pathway: 'managed_quote', manual_review_required: true,
     scope_options: [option('guided-triage', 'Describe the help needed for managed triage', ['not sure', 'help choose', 'guided request'])],
     review_scope: ['Every request is reviewed and moved to the correct service pathway'],

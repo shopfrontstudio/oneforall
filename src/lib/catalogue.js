@@ -12,6 +12,7 @@ export const CATEGORY_META = Object.freeze([
   { key: 'painting', name: 'Painting', summary: 'Interior and suitable exterior painting through a managed quote.' },
   { key: 'rubbish-removal', name: 'Rubbish Removal', summary: 'Managed removal with lawful disposal requirements.' },
   { key: 'pest-control', name: 'Pest Control', summary: 'Licensed diagnostic assessment before any managed treatment.' },
+  { key: 'moving-packing', name: 'Packers & Movers', summary: 'Managed local packing, loading and household moving requests.' },
   { key: 'not-sure', name: 'Not sure what I need?', summary: 'A guided request for customers who need help choosing the right service.' },
 ]);
 

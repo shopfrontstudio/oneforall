@@ -22,6 +22,7 @@ const SERVICE_ALIASES = Object.freeze({
   'rubbish-removal.ordinary': ['rubbish', 'rubbish removal', 'junk removal', 'hard rubbish', 'tip run', 'remove rubbish', 'take rubbish away'],
   'pest-control.diagnostic': ['pest', 'pests', 'pest control', 'pest problem', 'exterminator', 'bugs in house'],
   'pest-control.pesticide_treatment': ['approved pest diagnostic', 'pest diagnostic completed'],
+  'moving-packing.household': ['packers and movers', 'packing and moving', 'moving house', 'house move', 'home move', 'removalist', 'removalists'],
 });
 
 const SCOPE_ALIASES = Object.freeze({
@@ -93,6 +94,12 @@ const SCOPE_ALIASES = Object.freeze({
   },
   'pest-control.pesticide_treatment': {
     'post-diagnostic-treatment': ['approved pest diagnostic', 'pest diagnostic completed'],
+  },
+  'moving-packing.household': {
+    'packing-unpacking': ['pack my house', 'pack boxes', 'unpack boxes', 'unpack my house'],
+    'home-move': ['move home', 'move house', 'moving homes', 'local move'],
+    'single-item': ['move couch', 'move sofa', 'move fridge', 'move washing machine', 'move one item'],
+    'loading-unloading': ['load moving truck', 'unload moving truck', 'help load van', 'help unload van'],
   },
 });
 

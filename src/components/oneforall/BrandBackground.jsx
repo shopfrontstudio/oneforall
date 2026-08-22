@@ -1,6 +1,6 @@
 import React from 'react';
 
-// Porcelain Grove: a clean neutral canvas with restrained eucalyptus and coral atmosphere.
+// Warm Grove: a softly orange canvas with restrained eucalyptus and coral atmosphere.
 const NOISE =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E\")";
 
@@ -12,11 +12,11 @@ export default function BrandBackground() {
     <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden">
       <div
         className="absolute inset-0"
-        style={{ background: 'linear-gradient(145deg, #ffffff 0%, #f5f8f7 50%, #eef5f2 100%)' }}
+        style={{ background: 'linear-gradient(145deg, #fff9f5 0%, #fff3e9 52%, #fcede2 100%)' }}
       />
       <div
         className="absolute inset-0"
-        style={{ background: 'radial-gradient(72% 60% at 2% 2%, rgba(24,79,64,0.12), transparent 64%), radial-gradient(68% 58% at 98% 96%, rgba(245,106,69,0.13), transparent 66%), radial-gradient(48% 42% at 70% -2%, rgba(252,226,161,0.18), transparent 72%)' }}
+        style={{ background: 'radial-gradient(72% 60% at 2% 2%, rgba(245,106,69,0.10), transparent 64%), radial-gradient(68% 58% at 98% 96%, rgba(234,126,76,0.14), transparent 66%), radial-gradient(48% 42% at 70% -2%, rgba(252,226,161,0.22), transparent 72%), radial-gradient(54% 46% at 8% 84%, rgba(24,79,64,0.055), transparent 72%)' }}
       />
       <div
         className="absolute inset-0"

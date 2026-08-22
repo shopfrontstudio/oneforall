@@ -154,6 +154,17 @@ test('customer request launch opens intake only and keeps supply-side gates clos
   assert.match(intake, /Send private request/);
 });
 
+test('Packers and Movers migration opens private requests without opening supply-side gates', async () => {
+  const sql = await read('../supabase/migrations/20260822000000_add_moving_packing_service.sql');
+  assert.match(sql, /'moving-packing\.household'/);
+  assert.match(sql, /goods_in_transit_insurance/);
+  assert.match(sql, /manual_handling_process/);
+  assert.match(sql, /publicly_visible[\s\S]*request_enabled[\s\S]*provider_onboarding_enabled/);
+  assert.match(sql, /true,\s*true,\s*false,\s*false,\s*false,\s*false,\s*true/);
+  assert.match(sql, /dangerous goods/);
+  assert.match(sql, /disconnect (electrical|gas|plumbing)/);
+});
+
 test('GitHub Pages prebuilds every public catalogue route with a real 200 entry file', async () => {
   const pages = await read('../scripts/postbuild-pages.mjs');
   assert.match(pages, /PHASE1_SERVICES/);

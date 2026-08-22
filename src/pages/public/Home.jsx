@@ -35,34 +35,34 @@ export default function PublicHome() {
   };
 
   return (
-    <div className="space-y-10">
-      <section className="home-hero px-5 py-8 sm:px-8 sm:py-12">
+    <div className="space-y-8">
+      <section className="home-hero px-5 py-6 sm:px-7 sm:py-7">
         <span className="home-hero-glow" />
         <p className="relative text-xs font-bold uppercase tracking-[0.18em] text-terracotta">Managed local fulfilment · Ballarat</p>
-        <h1 className="relative mt-3 max-w-3xl text-3xl font-semibold leading-tight sm:text-5xl">A clearer path from “I need help” to a supported local booking.</h1>
-        <p className="relative mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">Tell us what you need. OneForAll checks the scope, keeps the request private and confirms provider availability, pricing and timing before any booking.</p>
-        <form id="service-guide" onSubmit={submitGuide} className="glass relative mt-6 max-w-3xl rounded-2xl p-4 sm:p-5" noValidate>
+        <h1 className="relative mt-2 max-w-2xl text-3xl font-semibold leading-tight sm:text-4xl">A clearer path from “I need help” to a supported local booking.</h1>
+        <p className="relative mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">Tell us what you need. OneForAll checks the scope, keeps the request private and confirms provider availability, pricing and timing before any booking.</p>
+        <form id="service-guide" onSubmit={submitGuide} className="glass relative mt-4 max-w-2xl rounded-2xl p-4" noValidate>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-terracotta">OneForAll service guide</p>
-          <label htmlFor="service-guide-problem" className="mt-2 block text-lg font-semibold">Tell me what’s going on.</label>
+          <label htmlFor="service-guide-problem" className="mt-1.5 block text-base font-semibold">Tell me what’s going on.</label>
           <p id="service-guide-help" className="mt-1 text-sm text-muted-foreground">Describe the problem in your own words. I’ll narrow it to the closest services in our approved catalogue.</p>
           <textarea
             id="service-guide-problem"
             value={problem}
             onChange={(event) => { setProblem(event.target.value); setGuideError(''); }}
-            rows={3}
+            rows={2}
             maxLength={SERVICE_GUIDE_MAX_LENGTH}
             aria-describedby={`service-guide-help${guideError ? ' service-guide-error' : ''}`}
             aria-invalid={Boolean(guideError)}
             placeholder="For example: My bathroom needs cleaning and the tap keeps dripping"
-            className="inp mt-3 resize-y"
+            className="inp mt-2 min-h-20 resize-y"
           />
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-2.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">Private in this browser for 30 minutes · no external AI service</p>
             <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-action px-5 py-3 text-sm font-semibold text-action-foreground shadow-sm transition-colors hover:bg-action-deep hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"><Search size={17} aria-hidden="true" />Find the right service</button>
           </div>
           {guideError && <p id="service-guide-error" className="mt-3 text-sm font-semibold text-destructive" role="alert">{guideError}</p>}
         </form>
-        <div className="relative mt-6 flex flex-wrap gap-3">
+        <div className="relative mt-4 flex flex-wrap gap-3">
           <Link to="/services" className="home-cta mt-0">Explore {serviceCount} service pathways <ArrowRight size={17} /></Link>
           <span className="inline-flex items-center rounded-2xl border border-border bg-white/75 px-4 py-3 text-sm font-semibold" role="status">Now accepting service requests</span>
         </div>
@@ -70,8 +70,11 @@ export default function PublicHome() {
 
       <section aria-labelledby="categories-heading">
         <div className="mb-4 flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-terracotta">Service marketplace</p><h2 id="categories-heading" className="mt-1 text-2xl font-semibold">{CATEGORY_META.length} practical service categories</h2></div><Link to="/services" className="hidden text-sm font-semibold text-eucalyptus-deep sm:inline">See every service</Link></div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {CATEGORY_META.map((category) => <Link key={category.key} to={PUBLIC_PATHS.category(category.key)} className="glass-soft min-w-0 rounded-2xl p-4 text-center focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"><span className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-sage/55 text-eucalyptus-deep"><CategoryIcon category={category.key} /></span><span className="mt-2 block text-sm font-semibold">{category.name}</span></Link>)}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {CATEGORY_META.map((category) => {
+            const guided = category.key === 'not-sure';
+            return <Link key={category.key} to={PUBLIC_PATHS.category(category.key)} className={`category-glass min-w-0 rounded-[28px] px-3 py-4 text-center focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 ${guided ? 'col-span-2 w-full max-w-64 justify-self-center sm:col-span-4' : ''}`}><span className="category-glass-icon mx-auto flex h-24 w-24 items-center justify-center rounded-[30px] sm:h-28 sm:w-28 sm:rounded-[34px]"><CategoryIcon category={category.key} size={40} /></span><span className="mt-3 block text-base font-semibold">{category.name}</span></Link>;
+          })}
         </div>
       </section>
 

@@ -5,7 +5,8 @@ const PRIMARY = Object.freeze({
   cleaning: 'cleaning.routine_domestic', gardening: 'gardening.basic_maintenance', beauty: 'beauty.adult_low_risk',
   handyman: 'handyman.minor_tasks', electrical: 'electrical.licensed_services', plumbing: 'plumbing.licensed_services',
   carpentry: 'carpentry.household', 'building-renovation': 'building-renovation.managed_quote', painting: 'painting.residential',
-  'rubbish-removal': 'rubbish-removal.ordinary', 'pest-control': 'pest-control.diagnostic', 'not-sure': 'general.guided_request',
+  'rubbish-removal': 'rubbish-removal.ordinary', 'pest-control': 'pest-control.diagnostic',
+  'moving-packing': 'moving-packing.household', 'not-sure': 'general.guided_request',
 });
 export const CATEGORIES = CATEGORY_META.map((category) => ({ slug: category.key, name: category.name, service_key: PRIMARY[category.key] }));
 export const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map((category) => [category.slug, category]));

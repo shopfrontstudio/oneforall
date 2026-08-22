@@ -21,7 +21,7 @@ class MemoryStorage {
 }
 
 test('every focused category contains only its own configured services', () => {
-  assert.equal(CATEGORY_META.length, 12);
+  assert.equal(CATEGORY_META.length, 13);
   for (const category of CATEGORY_META) {
     const focused = getCategoryServices(category.key);
     assert.equal(focused.key, category.key);
@@ -44,6 +44,14 @@ test('service guide finds exact cleaning, plumbing and painting sub-options', ()
   const painting = findServiceProblem('I need someone to paint the interior wall and ceiling');
   assert.equal(painting.suggestions[0].service_key, 'painting.residential');
   assert.deepEqual(painting.suggestions[0].scope_ids, ['interior-walls-ceilings']);
+});
+
+test('service guide finds Packers and Movers without inventing scopes', () => {
+  const moving = findServiceProblem('I need packers and movers to pack boxes and move house locally');
+  assert.equal(moving.state, 'matched');
+  assert.equal(moving.suggestions[0].service_key, 'moving-packing.household');
+  assert.ok(moving.suggestions[0].scope_ids.includes('packing-unpacking'));
+  assert.ok(moving.suggestions[0].scope_ids.includes('home-move'));
 });
 
 test('mixed problems return no more than three ranked, valid catalogue suggestions', () => {
