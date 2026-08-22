@@ -171,7 +171,7 @@ export default function Register() {
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 rounded-xl font-semibold shadow-lg shadow-primary/20" disabled={loading || Boolean(socialLoading)}>
+        <Button type="submit" className="w-full h-12 rounded-xl font-semibold shadow-lg shadow-action/20" disabled={loading || Boolean(socialLoading)}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

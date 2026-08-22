@@ -58,7 +58,7 @@ export default function PublicHome() {
           />
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">Private in this browser for 30 minutes · no external AI service</p>
-            <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"><Search size={17} aria-hidden="true" />Find the right service</button>
+            <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-action px-5 py-3 text-sm font-semibold text-action-foreground shadow-sm transition-colors hover:bg-action-deep hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"><Search size={17} aria-hidden="true" />Find the right service</button>
           </div>
           {guideError && <p id="service-guide-error" className="mt-3 text-sm font-semibold text-destructive" role="alert">{guideError}</p>}
         </form>
@@ -80,7 +80,7 @@ export default function PublicHome() {
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{steps.map((step) => <article key={step.title} className="rounded-2xl bg-white/10 p-4"><step.icon size={20} className="text-lime" /><h3 className="mt-3 font-semibold">{step.title}</h3><p className="mt-1 text-sm text-white/75">{step.body}</p></article>)}</div>
       </section>
 
-      <section className="glass grid gap-5 rounded-3xl p-6 sm:grid-cols-[1fr_auto] sm:items-center"><div><Headphones className="text-terracotta" aria-hidden="true" /><h2 className="mt-3 text-xl font-semibold">Honest availability first</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Every service can be requested. A request is not a confirmed booking: we confirm an eligible provider, price and time before work is scheduled.</p></div><Link to={PUBLIC_PATHS.services} className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Request a service</Link></section>
+      <section className="glass grid gap-5 rounded-3xl p-6 sm:grid-cols-[1fr_auto] sm:items-center"><div><Headphones className="text-terracotta" aria-hidden="true" /><h2 className="mt-3 text-xl font-semibold">Honest availability first</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Every service can be requested. A request is not a confirmed booking: we confirm an eligible provider, price and time before work is scheduled.</p></div><Link to={PUBLIC_PATHS.services} className="inline-flex items-center justify-center rounded-xl bg-action px-5 py-3 text-sm font-semibold text-action-foreground shadow-sm transition-colors hover:bg-action-deep hover:text-white">Request a service</Link></section>
     </div>
   );
 }

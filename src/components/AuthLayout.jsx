@@ -7,7 +7,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 py-6 sm:py-10">
       <BrandBackground />
-      <div className="relative w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/60 bg-white/55 shadow-[0_28px_90px_-32px_rgba(50,40,120,0.38)] backdrop-blur-xl lg:grid lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="relative w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/60 bg-white/70 shadow-[0_28px_90px_-32px_rgba(24,79,64,0.28)] backdrop-blur-xl lg:grid lg:grid-cols-[1.05fr_0.95fr]">
         <aside className="relative hidden min-h-[680px] overflow-hidden bg-primary p-10 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
           <div className="absolute -right-28 -top-24 h-72 w-72 rounded-full bg-lime/25 blur-3xl" />
           <div className="absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-coral/40 blur-3xl" />

@@ -6,7 +6,7 @@ export default function Logo({ size = 40, className = '' }) {
       <defs>
         <linearGradient id="ofa-g" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="hsl(var(--primary))" />
-          <stop offset="1" stopColor="hsl(var(--terracotta))" />
+          <stop offset="1" stopColor="hsl(var(--action))" />
         </linearGradient>
       </defs>
       <rect x="2" y="2" width="44" height="44" rx="14" fill="url(#ofa-g)" />

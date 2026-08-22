@@ -37,7 +37,7 @@ export default function MyJobs() {
   };
 
   if (jobs === null) return <div className="glass-soft h-40 rounded-2xl" role="status" aria-label="Loading requests and bookings" />;
-  if (!jobs.length) return <EmptyState icon={Briefcase} title="No requests yet" body="Choose any service and send the details for a private availability and scope check." action={<Link to="/services" className="bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-2"><Plus size={16} /> Request a service</Link>} />;
+  if (!jobs.length) return <EmptyState icon={Briefcase} title="No requests yet" body="Choose any service and send the details for a private availability and scope check." action={<Link to="/services" className="bg-action text-action-foreground px-4 py-2.5 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-2"><Plus size={16} /> Request a service</Link>} />;
 
   const open = jobs.filter(j => j.status !== 'completed' && j.status !== 'cancelled');
   const closed = jobs.filter(j => j.status === 'completed' || j.status === 'cancelled');
@@ -46,7 +46,7 @@ export default function MyJobs() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Bookings</h1>
-        <Link to="/services" className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-1.5"><Plus size={16} /> Services</Link>
+        <Link to="/services" className="bg-action text-action-foreground px-4 py-2 rounded-xl text-sm font-semibold btn-tactile inline-flex items-center gap-1.5"><Plus size={16} /> Services</Link>
       </div>
       <p className="rounded-xl border border-border bg-white/65 p-3 text-sm text-muted-foreground" role="status">This page keeps service requests and their resulting bookings together. Booking progress is recorded by the attending provider; contact support through Messages if something is wrong.</p>
       {open.length > 0 && <section aria-labelledby="current-bookings"><h2 id="current-bookings" className="mb-2 text-sm font-semibold">Current requests and bookings</h2><div className="grid gap-3 sm:grid-cols-2">{open.map(j => <JobActions key={j.id} job={j} onConfirm={setConfirmAction} working={workingId === j.id} />)}</div></section>}

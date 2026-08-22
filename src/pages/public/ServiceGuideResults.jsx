@@ -46,7 +46,7 @@ export default function ServiceGuideResults() {
           <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-terracotta">A careful next step</p>
           <h1 className="mt-2 text-3xl font-semibold">I’m not certain enough to choose safely.</h1>
           <p className="mt-3 text-muted-foreground">Use the private guided pathway and OneForAll can review your description before it reaches any provider.</p>
-          <Link onClick={() => selectServiceGuideSuggestion('general.guided_request')} to={PUBLIC_PATHS.service('general.guided_request')} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Get help choosing <ArrowRight size={16} /></Link>
+          <Link onClick={() => selectServiceGuideSuggestion('general.guided_request')} to={PUBLIC_PATHS.service('general.guided_request')} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-action px-5 py-3 text-sm font-semibold text-action-foreground shadow-sm transition-colors hover:bg-action-deep hover:text-white">Get help choosing <ArrowRight size={16} /></Link>
           <Link to={PUBLIC_PATHS.services} className="ml-0 mt-3 inline-flex min-h-11 items-center px-2 text-sm font-semibold text-eucalyptus-deep sm:ml-3">Browse manually</Link>
         </section>
       </div>

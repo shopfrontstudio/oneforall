@@ -94,7 +94,7 @@ export default function Messages() {
               </div>
               <div className="p-3 border-t border-border/50 flex gap-2">
                 <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Type a message…" className="flex-1 bg-white/70 border border-border rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-primary" />
-                <button disabled={sending || !text.trim()} onClick={send} className="w-11 h-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center btn-tactile disabled:opacity-45"><Send size={18} /></button>
+                <button disabled={sending || !text.trim()} onClick={send} className="w-11 h-11 rounded-xl bg-action text-action-foreground flex items-center justify-center btn-tactile disabled:opacity-45"><Send size={18} /></button>
               </div>
             </div>
           ) : (
