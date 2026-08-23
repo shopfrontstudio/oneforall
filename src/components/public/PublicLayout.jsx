@@ -18,8 +18,8 @@ export default function PublicLayout() {
   return (
     <div className="min-h-screen overflow-x-hidden">
       <BrandBackground />
-      <header className="relative z-30 border-b border-border/80 bg-card/90 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <header className="relative z-30 border-b border-border bg-card/95 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="flex min-w-0 items-center gap-2" aria-label="OneForAll home">
             <Logo size={34} />
             <span className="font-heading text-lg font-semibold tracking-tight">OneForAll</span>
@@ -32,8 +32,8 @@ export default function PublicLayout() {
           </nav>
         </div>
       </header>
-      <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-16 pt-6"><Outlet /></main>
-      <footer className="relative z-10 border-t border-border/70 bg-secondary/80 px-4 py-8 text-center text-sm text-muted-foreground">Managed local service requests · Ballarat, Victoria · Availability confirmed before booking.</footer>
+      <main className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-20 pt-8 sm:pt-10"><Outlet /></main>
+      <footer className="relative z-10 border-t border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">Managed local service requests · Ballarat, Victoria · Availability confirmed before booking.</footer>
     </div>
   );
 }
