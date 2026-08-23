@@ -13,6 +13,7 @@ import {
 import { CATEGORY_META, groupedServices } from '@/lib/catalogue';
 import { PUBLIC_PATHS } from '@/lib/routes';
 import { findServiceProblem, saveServiceGuideResult, SERVICE_GUIDE_MAX_LENGTH } from '@/lib/serviceGuide';
+import { HOME_SERVICE_IMAGES } from '@/lib/serviceImages';
 import { CategoryIcon } from '@/components/public/ServiceCard';
 
 const steps = [
@@ -28,6 +29,35 @@ const guideExamples = [
   { category: 'beauty', label: 'Book beauty at home', problem: 'I need a mobile beauty service at home' },
   { category: 'moving-packing', label: 'Help with my move', problem: 'I need help packing and moving house' },
 ];
+
+function ServiceCategoryVisual({ category }) {
+  const media = HOME_SERVICE_IMAGES[category];
+  if (!media) {
+    return <span className="hero-category-stage"><CategoryIcon category={category} size={29} /></span>;
+  }
+
+  const imageUrl = (filename) => `${import.meta.env.BASE_URL}service-images/${filename}`;
+  return (
+    <span className="hero-category-stage hero-category-photo" aria-hidden="true">
+      <img
+        src={imageUrl(media.primary)}
+        alt=""
+        className="hero-category-photo-main"
+        style={{ objectPosition: media.primaryPosition }}
+        decoding="async"
+      />
+      {media.secondary && (
+        <img
+          src={imageUrl(media.secondary)}
+          alt=""
+          className="hero-category-photo-detail"
+          style={{ objectPosition: media.secondaryPosition }}
+          decoding="async"
+        />
+      )}
+    </span>
+  );
+}
 
 export default function PublicHome() {
   const serviceCount = groupedServices().reduce((total, category) => total + category.services.length, 0);
@@ -86,7 +116,7 @@ export default function PublicHome() {
                     to={PUBLIC_PATHS.category(category.key)}
                     className={`hero-category ${guided ? 'hero-category-guided' : ''}`}
                   >
-                    <span className="hero-category-stage"><CategoryIcon category={category.key} size={27} /></span>
+                    <ServiceCategoryVisual category={category.key} />
                     <span className="hero-category-label">{category.name}</span>
                   </Link>
                 );
