@@ -16,9 +16,9 @@ const publicNav = [
 export default function PublicLayout() {
   const { isAuthenticated } = useAuth();
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="min-h-screen overflow-x-clip">
       <BrandBackground />
-      <header className="relative z-30 border-b border-border bg-card/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="flex min-w-0 items-center gap-2" aria-label="OneForAll home">
             <Logo size={34} />

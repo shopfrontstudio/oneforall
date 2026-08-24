@@ -25,7 +25,7 @@ export default function TopBar() {
   const provider = user?.account_type === 'tradie';
   const nav = provider ? PROVIDER_NAV : CUSTOMER_NAV;
   return (
-    <header className="sticky top-0 z-30">
+    <header className="sticky top-0 z-50">
       <div className="glass border-b border-white/30">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4">
           <Link to={provider ? '/provider/today' : '/'} className="flex shrink-0 items-center gap-2">
