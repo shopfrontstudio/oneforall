@@ -17,3 +17,10 @@ test('public header keeps one account destination and uses the approved sticky g
   assert.match(styles, /\.service-picker-grid\s*\{[\s\S]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(styles, /\.marketplace-guide\s*\{[\s\S]*align-self:start[\s\S]*justify-content:flex-start[\s\S]*background:hsl\(var\(--sage\)\)/);
 });
+
+test('home service picker uses one clear, prominent heading', async () => {
+  const home = await read('../src/pages/public/Home.jsx');
+
+  assert.match(home, /<h2 id="service-picker-heading" className="text-2xl font-bold leading-tight">Choose a service<\/h2>/);
+  assert.doesNotMatch(home, /What can we help with\?/);
+});

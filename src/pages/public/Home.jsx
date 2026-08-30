@@ -100,10 +100,7 @@ export default function PublicHome() {
 
           <section className="service-picker" aria-labelledby="service-picker-heading">
             <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Choose a service</p>
-                <h2 id="service-picker-heading" className="mt-1 text-xl font-semibold">What can we help with?</h2>
-              </div>
+              <h2 id="service-picker-heading" className="text-2xl font-bold leading-tight">Choose a service</h2>
               <Link to={PUBLIC_PATHS.services} className="hidden shrink-0 text-sm font-semibold text-eucalyptus-deep hover:underline sm:inline">See all {serviceCount}</Link>
             </div>
 
