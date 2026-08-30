@@ -33,7 +33,7 @@ const guideExamples = [
 function ServiceCategoryVisual({ category }) {
   const media = HOME_SERVICE_IMAGES[category];
   if (!media) {
-    return <span className="hero-category-stage"><CategoryIcon category={category} size={29} /></span>;
+    return <span className="hero-category-stage"><CategoryIcon category={category} size={34} /></span>;
   }
 
   const imageUrl = (filename) => `${import.meta.env.BASE_URL}service-images/${filename}`;

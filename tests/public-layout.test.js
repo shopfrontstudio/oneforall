@@ -13,5 +13,7 @@ test('public header keeps one account destination and uses the approved sticky g
   assert.doesNotMatch(layout, /Your account/);
   assert.match(layout, /to: '\/account', label: 'Account'/);
   assert.match(layout, /public-site-header sticky top-0 z-50/);
-  assert.match(styles, /\.public-site-header\s*\{[\s\S]*#050505 35%[\s\S]*#ffffff 63%/);
+  assert.match(styles, /\.public-site-header\s*\{[\s\S]*#050505 40%[\s\S]*#ffffff 68%/);
+  assert.match(styles, /\.service-picker-grid\s*\{[\s\S]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(styles, /\.marketplace-guide\s*\{[\s\S]*background:hsl\(var\(--sage\)\)/);
 });

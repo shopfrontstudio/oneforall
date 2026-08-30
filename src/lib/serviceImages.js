@@ -5,10 +5,11 @@ const photo = (primary, primaryPosition, secondary = null, secondaryPosition = '
   secondaryPosition,
 });
 
-// Home-only category photography. Gardening and the guided pathway retain
-// their simple catalogue symbols so the image set follows the approved brief.
+// Home-only category photography. The guided pathway retains its simple
+// catalogue symbol so it remains visually distinct from bookable categories.
 export const HOME_SERVICE_IMAGES = Object.freeze({
   cleaning: photo('cleaning.jpg', '24% 66%', 'cleaning-broom.jpg', '58% 70%'),
+  gardening: photo('gardening.jpg', '50% 52%'),
   beauty: photo('beauty.jpg', '62% 50%'),
   handyman: photo('handyman.jpg', '55% 50%'),
   electrical: photo('electrical.jpg', '67% 50%'),

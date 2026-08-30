@@ -6,6 +6,7 @@ The Home category photography is stored locally in `public/service-images/`; the
 | --- | --- | --- |
 | Cleaning — vacuum | Vitaly Gariev | [Pexels photo 36813400](https://www.pexels.com/photo/joyful-man-vacuuming-bedroom-and-singing-with-mop-36813400/) |
 | Cleaning — broom | RDNE Stock project | [Pexels photo 5591962](https://www.pexels.com/photo/photograph-of-a-woman-in-a-plaid-shirt-sweeping-with-a-white-broom-5591962/) |
+| Gardening & Outdoor | Magic K | [Pexels photo 6728925](https://www.pexels.com/photo/a-person-cutting-grass-with-a-lawn-mower-6728925/) |
 | Beauty | Nataliya Vaitkevich | [Pexels photo 8467967](https://www.pexels.com/photo/a-woman-having-her-haircut-8467967/) |
 | Handyman | Anete Lusina | [Pexels photo 4792525](https://www.pexels.com/photo/man-hammering-nail-into-wall-during-housework-4792525/) |
 | Electrical | Antoni Shkraba | [Pexels photo 5853952](https://www.pexels.com/photo/an-outlet-screwdriver-and-a-lightbulb-on-a-wooden-surface-5853952/) |

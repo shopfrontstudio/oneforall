@@ -11,6 +11,7 @@ const expectedPhotoCategories = [
   'carpentry',
   'cleaning',
   'electrical',
+  'gardening',
   'handyman',
   'moving-packing',
   'painting',
@@ -21,7 +22,6 @@ const expectedPhotoCategories = [
 
 test('home service photography covers the approved categories only', () => {
   assert.deepEqual(Object.keys(HOME_SERVICE_IMAGES).sort(), expectedPhotoCategories);
-  assert.equal(HOME_SERVICE_IMAGES.gardening, undefined);
   assert.equal(HOME_SERVICE_IMAGES['not-sure'], undefined);
 });
 
