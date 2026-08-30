@@ -24,3 +24,10 @@ test('home service picker uses one clear, prominent heading', async () => {
   assert.match(home, /<h2 id="service-picker-heading" className="text-2xl font-bold leading-tight">Choose a service<\/h2>/);
   assert.doesNotMatch(home, /What can we help with\?/);
 });
+
+test('every focused category page returns customers to home', async () => {
+  const categoryPage = await read('../src/pages/public/CategoryServices.jsx');
+
+  assert.match(categoryPage, /<Link to=\{PUBLIC_PATHS\.home\}[^>]*><ArrowLeft size=\{15\} \/>Back to home<\/Link>/);
+  assert.doesNotMatch(categoryPage, /<ArrowLeft size=\{15\} \/>All service categories/);
+});

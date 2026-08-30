@@ -16,7 +16,7 @@ export default function CategoryServices() {
 
   return (
     <div className="space-y-6">
-      <Link to={PUBLIC_PATHS.services} className="inline-flex items-center gap-1 text-sm font-semibold text-eucalyptus-deep focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"><ArrowLeft size={15} />All service categories</Link>
+      <Link to={PUBLIC_PATHS.home} className="inline-flex items-center gap-1 text-sm font-semibold text-eucalyptus-deep focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"><ArrowLeft size={15} />Back to home</Link>
       <header className="glass rounded-3xl p-5 sm:p-8">
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sage/55 text-eucalyptus-deep"><CategoryIcon category={category.key} size={24} /></span>
         <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-terracotta">Focused service options</p>
