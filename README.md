@@ -36,6 +36,18 @@ private file storage, with a PWA/Trusted-Web-Activity wrapper for Google Play.
    `/oneforall/` and `/oneforall/reset-password` (locally under
    `http://localhost:5173`).
 
+### Provider release controls
+
+The provider workspace uses `provider_feature_controls` in addition to each
+service's onboarding, quote and booking flags. The workspace UI is visible,
+but application writes, private evidence uploads, hybrid checks,
+transactional email and provider job actions all default to `false`.
+
+Apply `20260904000000_seamless_provider_experience.sql` before changing any of
+those controls. Enable only the specifically approved control and service;
+automated evidence results may verify supported individual evidence, but never
+activate a service, approve a worker or alter provider standing.
+
 ## Deploying (GitHub Pages)
 
 Every push to `main` builds and deploys via `.github/workflows/deploy.yml`.

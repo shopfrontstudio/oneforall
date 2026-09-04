@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { Home as HomeIcon, CalendarDays, Shapes, MessageSquare, User, ClipboardList, BriefcaseBusiness, Menu } from 'lucide-react';
+import { Home as HomeIcon, CalendarDays, Shapes, MessageSquare, User, BriefcaseBusiness } from 'lucide-react';
 
 const CUSTOMER_NAV = [
   { to: '/', label: 'Home', icon: HomeIcon },
@@ -12,10 +12,9 @@ const CUSTOMER_NAV = [
 ];
 const TRADIE_NAV = [
   { to: '/provider/today', label: 'Today', icon: HomeIcon },
-  { to: '/provider/requests', label: 'Requests', icon: ClipboardList },
   { to: '/provider/jobs', label: 'Jobs', icon: BriefcaseBusiness },
   { to: '/provider/calendar', label: 'Calendar', icon: CalendarDays },
-  { to: '/provider/more', label: 'More', icon: Menu },
+  { to: '/provider/account', label: 'Account', icon: User },
 ];
 
 export default function BottomNav() {

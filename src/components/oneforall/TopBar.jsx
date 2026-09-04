@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { BriefcaseBusiness, CalendarDays, ClipboardList, Home, Menu, MessageSquare, Shapes, User } from 'lucide-react';
+import { BriefcaseBusiness, CalendarDays, Home, MessageSquare, Shapes, User } from 'lucide-react';
 import Logo from './Logo';
 
 const CUSTOMER_NAV = [
@@ -13,10 +13,9 @@ const CUSTOMER_NAV = [
 ];
 const PROVIDER_NAV = [
   { to: '/provider/today', label: 'Today', icon: Home },
-  { to: '/provider/requests', label: 'Requests', icon: ClipboardList },
   { to: '/provider/jobs', label: 'Jobs', icon: BriefcaseBusiness },
   { to: '/provider/calendar', label: 'Calendar', icon: CalendarDays },
-  { to: '/provider/more', label: 'More', icon: Menu },
+  { to: '/provider/account', label: 'Account', icon: User },
 ];
 
 export default function TopBar() {
@@ -38,7 +37,7 @@ export default function TopBar() {
               return <Link key={item.to} to={item.to} aria-current={active ? 'page' : undefined} className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium ${active ? 'bg-primary text-primary-foreground shadow' : 'text-foreground/70 hover:bg-white/60'}`}><item.icon size={16} />{item.label}</Link>;
             })}
           </nav>
-          <Link to={provider ? '/provider/more' : '/account'} aria-label={provider ? 'Open provider More' : 'Open account'} className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground"><User size={17} /></Link>
+          <Link to={provider ? '/provider/account' : '/account'} aria-label="Open account" className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground"><User size={17} /></Link>
         </div>
       </div>
     </header>

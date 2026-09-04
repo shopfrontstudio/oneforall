@@ -2,10 +2,10 @@ import React from 'react';
 import { Lock } from 'lucide-react';
 
 export function ProviderPageHeader({ title, children }) {
-  return <header><h1 className="text-2xl font-semibold">{title}</h1>{children && <p className="mt-1 text-sm text-muted-foreground">{children}</p>}</header>;
+  return <header><h1 className="text-2xl font-semibold tracking-tight">{title}</h1>{children && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{children}</p>}</header>;
 }
-export function FlagsOffNotice({ children = 'This action is unavailable while all seven Phase 1 release controls remain off.' }) {
-  return <div className="glass-soft flex items-start gap-3 rounded-2xl p-4" role="status"><Lock size={18} className="mt-0.5 shrink-0 text-terracotta" /><div><p className="text-sm font-semibold">Provider actions are closed.</p><p className="mt-1 text-sm text-muted-foreground">{children}</p></div></div>;
+export function FlagsOffNotice({ children = 'You can review this workspace now. Applications, document uploads, job responses and booking actions remain safely switched off.' }) {
+  return <div className="flex items-start gap-3 rounded-2xl border border-terracotta/20 bg-terracotta/[0.06] p-4" role="status"><Lock size={18} className="mt-0.5 shrink-0 text-terracotta" /><div><p className="text-sm font-semibold">Preview mode</p><p className="mt-1 text-sm text-muted-foreground">{children}</p></div></div>;
 }
 export const ProviderLoading = ({ label }) => <div className="glass-soft h-28 animate-pulse rounded-2xl" role="status" aria-label={label} />;
 export function ProviderError({ message, onRetry = null }) {

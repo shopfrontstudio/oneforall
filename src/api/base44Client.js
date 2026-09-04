@@ -22,6 +22,8 @@ const TABLES = Object.freeze({
   ProviderWorker: 'provider_workers',
   ProviderEvidence: 'provider_evidence',
   ProviderPublicAssertion: 'provider_public_assertions',
+  ProviderApplication: 'provider_applications',
+  ProviderFeatureControl: 'provider_feature_controls',
 });
 
 const RPC_ACTIONS = Object.freeze({
@@ -30,6 +32,13 @@ const RPC_ACTIONS = Object.freeze({
   'submit-request': 'oneforall_submit_request',
   'transition-request': 'oneforall_transition_request',
   'send-message': 'oneforall_send_message',
+  'provider-start-application': 'oneforall_start_provider_application',
+  'provider-save-application': 'oneforall_save_provider_application',
+  'provider-save-worker': 'oneforall_save_provider_worker',
+  'provider-attach-evidence': 'oneforall_attach_provider_evidence',
+  'provider-submit-application': 'oneforall_submit_provider_application',
+  'respond-provider-invitation': 'oneforall_respond_invitation',
+  'transition-provider-booking': 'oneforall_provider_transition_booking',
 });
 
 const throwIf = (error) => { if (error) throw new Error(error.message); };
@@ -134,5 +143,47 @@ const auth = {
   redirectToLogin(fromUrl) { assignAppPath(`/login${fromUrl ? `?returnTo=${encodeURIComponent(fromUrl)}` : ''}`); },
 };
 
-const integrations = { Core: { UploadFile: blockedMutation } };
+const integrations = {
+  Core: { UploadFile: blockedMutation },
+  ProviderRequestMedia: {
+    async createSignedUrls(paths = []) {
+      if (!Array.isArray(paths) || paths.some((path) => typeof path !== 'string' || path.includes('://'))) {
+        throw new Error('Invalid private request-media path.');
+      }
+      if (!paths.length) return [];
+      const { data, error } = await supabase.storage.from('provider-request-media').createSignedUrls(paths, 300);
+      throwIf(error);
+      return (data || []).filter((item) => item.signedUrl).map((item) => ({ path: item.path, signed_url: item.signedUrl }));
+    },
+  },
+  ProviderEvidence: {
+    async upload({ evidenceId, file, serviceKeys = [] }) {
+      if (!evidenceId || !file) throw new Error('Choose a document to upload.');
+      if (!['image/jpeg', 'image/png', 'application/pdf'].includes(file.type)) throw new Error('Use a PDF, JPG or PNG document.');
+      if (file.size <= 0 || file.size > 10 * 1024 * 1024) throw new Error('The document must be smaller than 10 MB.');
+      const controls = await entities.ProviderFeatureControl.list('-updated_date', 1);
+      if (!controls[0]?.sensitive_uploads_enabled) throw new Error('Private document collection is not enabled.');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      throwIf(userError);
+      if (!user) throw new Error('Authentication required.');
+      const extension = file.type === 'application/pdf' ? 'pdf' : file.type === 'image/png' ? 'png' : 'jpg';
+      const objectPath = `${user.id}/${evidenceId}/${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage.from('provider-evidence').upload(objectPath, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+      throwIf(uploadError);
+      try {
+        return (await functions.invoke('provider-attach-evidence', {
+          evidence_id: evidenceId,
+          document_path: objectPath,
+          original_name: String(file.name || 'document').slice(0, 180),
+          mime_type: file.type,
+          file_size: file.size,
+          service_keys: serviceKeys,
+        })).data;
+      } catch (error) {
+        await supabase.storage.from('provider-evidence').remove([objectPath]);
+        throw error;
+      }
+    },
+  },
+};
 export const base44 = { entities, auth, functions, integrations };

@@ -26,13 +26,13 @@ const Bookings = lazy(() => import('@/pages/customer/MyJobs'));
 const BookingDetail = lazy(() => import('@/pages/customer/BookingDetail'));
 const Messages = lazy(() => import('@/pages/Messages'));
 const Account = lazy(() => import('@/pages/Account'));
+const ProviderApplication = lazy(() => import('@/pages/provider/Application'));
 const ProviderToday = lazy(() => import('@/pages/provider/Today'));
-const ProviderRequests = lazy(() => import('@/pages/provider/Requests'));
 const ProviderRequestDetail = lazy(() => import('@/pages/provider/RequestDetail'));
 const ProviderJobs = lazy(() => import('@/pages/provider/Jobs'));
 const ProviderJobDetail = lazy(() => import('@/pages/provider/JobDetail'));
 const ProviderCalendar = lazy(() => import('@/pages/provider/Calendar'));
-const ProviderMore = lazy(() => import('@/pages/provider/More'));
+const ProviderAccount = lazy(() => import('@/pages/provider/ProviderAccount'));
 const PageNotFound = lazy(() => import('@/lib/PageNotFound'));
 
 const RouteFallback = () => <div className="mx-auto mt-16 h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" role="status" aria-label="Loading page" />;
@@ -67,14 +67,17 @@ function AppRoutes() {
         <Route path="/booking/:id" element={<BookingDetail />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/provider/apply" element={<ProviderApplication />} />
         <Route element={<ProviderRoute />}>
           <Route path="/provider/today" element={<ProviderToday />} />
-          <Route path="/provider/requests" element={<ProviderRequests />} />
-          <Route path="/provider/requests/:invitationId" element={<ProviderRequestDetail />} />
           <Route path="/provider/jobs" element={<ProviderJobs />} />
+          <Route path="/provider/jobs/matches/:invitationId" element={<ProviderRequestDetail />} />
           <Route path="/provider/jobs/:bookingId" element={<ProviderJobDetail />} />
           <Route path="/provider/calendar" element={<ProviderCalendar />} />
-          <Route path="/provider/more" element={<ProviderMore />} />
+          <Route path="/provider/account" element={<ProviderAccount />} />
+          <Route path="/provider/requests" element={<Navigate to="/provider/jobs?section=matches" replace />} />
+          <Route path="/provider/requests/:invitationId" element={<ProviderRequestDetail />} />
+          <Route path="/provider/more" element={<Navigate to="/provider/account" replace />} />
         </Route>
         <Route path="/my-jobs" element={<Navigate to="/bookings" replace />} />
         <Route path="/profile" element={<Navigate to="/account" replace />} />

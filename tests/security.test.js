@@ -42,15 +42,16 @@ test('private evidence, exact worker gates and immutable approval/event records 
   assert.match(sql, /Admin review cannot override blocked or emergency scope/);
 });
 
-test('provider routes are invitation-only and active navigation has no Discover, bidding or membership gate', async () => {
-  const [app, top, bottom, requests, facade] = await Promise.all([
+test('provider routes use four tabs and Jobs remains invitation-only with no open bidding feed', async () => {
+  const [app, top, bottom, jobs, facade] = await Promise.all([
     read('../src/App.jsx'), read('../src/components/oneforall/TopBar.jsx'), read('../src/components/oneforall/BottomNav.jsx'),
-    read('../src/pages/provider/Requests.jsx'), read('../src/api/base44Client.js'),
+    read('../src/pages/provider/Jobs.jsx'), read('../src/api/base44Client.js'),
   ]);
   for (const label of ['Home','Services','Bookings','Messages','Account']) assert.match(top + bottom, new RegExp(`label: '${label}'`));
-  for (const label of ['Today','Requests','Jobs','Calendar','More']) assert.match(top + bottom, new RegExp(`label: '${label}'`));
-  assert.match(requests, /Invitation\.list/);
-  assert.doesNotMatch(requests, /entities\.Job|Discover/i);
+  for (const label of ['Today','Jobs','Calendar','Account']) assert.match(top + bottom, new RegExp(`label: '${label}'`));
+  for (const label of ['Requests','More']) assert.doesNotMatch(top + bottom, new RegExp(`label: '${label}'`));
+  assert.match(jobs, /Invitation\.list/);
+  assert.doesNotMatch(jobs, /entities\.Job|Discover/i);
   assert.doesNotMatch(app, /element=\{<Discover|element=\{<Membership/);
   assert.match(facade, /oneforall_provider_invitation_snapshots/);
   assert.doesNotMatch(facade, /Invitation:\s*'invitations'/);
