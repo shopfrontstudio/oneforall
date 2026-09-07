@@ -6,7 +6,8 @@ import { useAuth } from '@/lib/AuthContext';
 import { EmptyState, StatusBadge } from '@/components/oneforall/Bits';
 import { formatAUDRange } from '@/lib/oneforall';
 import { formatMelbourneDateTime, invitationCountdown, mergeProviderControls, projectedInvitationStatus, providerBookingGroups, providerServiceLabels } from '@/lib/provider';
-import { FlagsOffNotice, ProviderError, ProviderLoading, ProviderPageHeader } from '@/components/provider/ProviderShellBits';
+import { loadDemoProviderState } from '@/lib/providerDemo';
+import { DemoModeNotice, FlagsOffNotice, ProviderError, ProviderLoading, ProviderPageHeader } from '@/components/provider/ProviderShellBits';
 
 const SECTIONS = [
   { key: 'matches', label: 'New matches', Icon: Inbox },
@@ -23,6 +24,11 @@ export default function Jobs() {
   const load = useCallback(async () => {
     setState((current) => ({ ...current, loading: true, error: '' }));
     try {
+      if (user.demo_mode) {
+        const demo = loadDemoProviderState(user.id);
+        setState({ loading: false, error: '', invitations: demo.invitations, bookings: demo.bookings, controls: mergeProviderControls({ provider_job_actions_enabled: true }) });
+        return;
+      }
       const [invitations, bookings, controls] = await Promise.all([
         base44.entities.Invitation.list(),
         base44.entities.Booking.filter({ provider_id: user.id }),
@@ -30,7 +36,7 @@ export default function Jobs() {
       ]);
       setState({ loading: false, error: '', invitations, bookings: bookings.filter((row) => row.state !== 'superseded'), controls: mergeProviderControls(controls[0]) });
     } catch { setState((current) => ({ ...current, loading: false, error: 'Your private jobs could not be loaded.' })); }
-  }, [user.id]);
+  }, [user.demo_mode, user.id]);
   useEffect(() => { load(); }, [load]);
 
   const groups = useMemo(() => {
@@ -44,7 +50,7 @@ export default function Jobs() {
 
   return <div className="space-y-5">
     <ProviderPageHeader title="Jobs">Private matches and confirmed work—never a public bidding feed.</ProviderPageHeader>
-    {!state.controls.provider_job_actions_enabled && <FlagsOffNotice>Matches and bookings can be reviewed, but provider responses and job-state changes remain switched off.</FlagsOffNotice>}
+    {user.demo_mode ? <DemoModeNotice>Try responding to a match, scheduling work, starting a job and completing it. Changes stay only in this browser.</DemoModeNotice> : !state.controls.provider_job_actions_enabled && <FlagsOffNotice>Matches and bookings can be reviewed, but provider responses and job-state changes remain switched off.</FlagsOffNotice>}
     <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-white/65 p-1.5" role="tablist" aria-label="Provider jobs sections">{SECTIONS.map(({ key, label, Icon }) => <button key={key} type="button" role="tab" aria-selected={active === key} onClick={() => setParams(key === 'matches' ? {} : { section: key })} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold sm:text-sm ${active === key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-white'}`}><Icon size={16} /><span>{label}</span>{!state.loading && <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active === key ? 'bg-white/15' : 'bg-mist-soft'}`}>{groups[key].length}</span>}</button>)}</div>
     {state.loading ? <ProviderLoading label="Loading provider jobs" /> : state.error ? <ProviderError message={state.error} onRetry={load} /> : active === 'matches' ? <Matches rows={groups.matches} /> : <Bookings rows={groups[active]} history={active === 'history'} />}
   </div>;

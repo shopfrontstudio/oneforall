@@ -113,7 +113,15 @@ const auth = {
     if (!user) throw new Error('Not authenticated');
     const { data: appUser, error: profileError } = await supabase.from('app_users').select('*').eq('id', user.id).maybeSingle();
     throwIf(profileError);
-    return { id: user.id, email: user.email, full_name: appUser?.full_name || user.user_metadata?.full_name || user.email, account_type: appUser?.account_type || null, role: appUser?.role || 'user' };
+    return {
+      id: user.id,
+      email: user.email,
+      email_confirmed: Boolean(user.email_confirmed_at),
+      full_name: appUser?.full_name || user.user_metadata?.full_name || user.email,
+      account_type: appUser?.account_type || null,
+      role: appUser?.role || 'user',
+      demo_mode: Boolean(appUser?.demo_mode),
+    };
   },
   async updateMe(patch) {
     if ('account_type' in patch) await functions.invoke('set-account-type', { account_type: patch.account_type });

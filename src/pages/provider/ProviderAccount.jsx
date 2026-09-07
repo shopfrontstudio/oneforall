@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Bell, BriefcaseBusiness, CalendarClock, FileCheck2, LogOut, MapPin, Repeat, ShieldCheck, UsersRound } from 'lucide-react';
+import { BadgeCheck, Bell, BriefcaseBusiness, CalendarClock, FileCheck2, LogOut, Mail, MapPin, Phone, Repeat, RotateCcw, ShieldCheck, UsersRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { PHASE1_SERVICES, setAccountType } from '@/lib/oneforall';
 import { evidenceRequirementLabel, mergeProviderControls, providerApplicationStatusLabel, providerStatusLabel } from '@/lib/provider';
-import { FlagsOffNotice, ProviderError, ProviderLoading, ProviderPageHeader } from '@/components/provider/ProviderShellBits';
+import { resetDemoProviderState } from '@/lib/providerDemo';
+import { DemoModeNotice, FlagsOffNotice, ProviderError, ProviderLoading, ProviderPageHeader } from '@/components/provider/ProviderShellBits';
 import { useToast } from '@/components/ui/use-toast';
 
 const safeRead = async (read, fallback = []) => { try { return await read(); } catch { return fallback; } };
@@ -36,6 +37,11 @@ export default function ProviderAccount() {
     catch (error) { toast({ title: 'Account switch was not completed', description: error.message, variant: 'destructive' }); }
   };
 
+  const resetDemo = () => {
+    resetDemoProviderState(user.id);
+    toast({ title: 'Demo journey reset', description: 'The original sample matches, jobs, calendar and messages are back.' });
+  };
+
   if (state.loading) return <ProviderLoading label="Loading provider account" />;
   if (state.error) return <ProviderError message={state.error} onRetry={load} />;
   const selectedOfferings = state.offerings.filter((row) => row.requested_selected !== false);
@@ -44,12 +50,13 @@ export default function ProviderAccount() {
 
   return <div className="space-y-5">
     <div className="flex flex-wrap items-start justify-between gap-3"><ProviderPageHeader title="Account">Your business, availability, verification and team in one place.</ProviderPageHeader><Link to="/provider/apply" className="min-h-11 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">{state.application ? 'View application' : 'Application setup'}</Link></div>
-    {!state.controls.provider_job_actions_enabled && <FlagsOffNotice />}
+    {user.demo_mode ? <DemoModeNotice>This profile is complete for product testing but is permanently excluded from real matching, customer contact and public provider claims.</DemoModeNotice> : !state.controls.provider_job_actions_enabled && <FlagsOffNotice />}
     <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <AccountCard Icon={BriefcaseBusiness} title="Business profile"><p className="font-semibold">{state.profile?.business_name || state.profile?.full_name || 'Provider profile'}</p><p className="mt-1 text-sm text-muted-foreground">{state.profile?.provider_type === 'team' ? 'Team' : 'Solo provider'} · {state.profile?.suburb || 'Ballarat'}</p></AccountCard>
       <AccountCard Icon={ShieldCheck} title="Application"><p className="font-semibold">{providerApplicationStatusLabel(state.application?.status)}</p><p className="mt-1 text-sm text-muted-foreground">{state.application ? `Step ${state.application.current_step || 1} of 4` : 'Application not started'}</p></AccountCard>
       <AccountCard Icon={Bell} title="Notifications"><p className="font-semibold">In-app notifications</p><p className="mt-1 text-sm text-muted-foreground">Email {state.controls.transactional_email_enabled && state.application?.notification_email_enabled !== false ? 'on' : 'not enabled yet'}</p></AccountCard>
     </section>
+    <AccountSection id="contact" Icon={BadgeCheck} title="Contact and business details"><div className="grid gap-3 sm:grid-cols-2"><DetailLine Icon={Mail} label="Business email" value={state.profile?.business_email || user.email || 'Not added'} verified /><DetailLine Icon={Phone} label="Contact number" value={state.profile?.contact_phone || 'Not added'} verified={Boolean(state.profile?.contact_phone)} /><DetailLine Icon={BriefcaseBusiness} label="ABN" value={state.profile?.abn || 'Not added'} verified={Boolean(state.profile?.abn)} /><DetailLine Icon={MapPin} label="Business location" value={[state.profile?.suburb, state.profile?.state].filter(Boolean).join(', ') || 'Ballarat, VIC'} verified /></div><p className="mt-4 text-xs text-muted-foreground">These details are private account records. Customers see only approved service-level trust information; contact details are exchanged only inside a confirmed booking.</p></AccountSection>
     <section className="grid gap-4 lg:grid-cols-2">
       <AccountSection id="services" Icon={BriefcaseBusiness} title="Services">{selectedOfferings.length ? <div className="space-y-2">{selectedOfferings.map((offering) => <div key={offering.id} className="flex items-center justify-between gap-3 rounded-xl bg-mist-soft px-3 py-2"><span className="text-sm font-semibold">{PHASE1_SERVICES.find((service) => service.key === offering.service_key)?.name || offering.service_key}</span><span className="text-xs text-muted-foreground">{providerStatusLabel(offering)}</span></div>)}</div> : <EmptyLine>No services selected yet.</EmptyLine>}</AccountSection>
       <AccountSection id="coverage" Icon={MapPin} title="Coverage"><p className="text-sm font-semibold">{coverage.join(', ') || 'No coverage area saved'}</p><p className="mt-2 text-xs text-muted-foreground">Only eligible private matches inside the approved area can appear.</p></AccountSection>
@@ -57,7 +64,7 @@ export default function ProviderAccount() {
       <AccountSection id="team" Icon={UsersRound} title="Team">{state.workers.length ? <div className="space-y-2">{state.workers.map((worker) => <div key={worker.id} className="flex items-center justify-between gap-3 rounded-xl bg-mist-soft px-3 py-2"><span className="text-sm font-semibold">{worker.display_name}</span><span className="text-xs capitalize text-muted-foreground">{worker.relationship_type} · {providerStatusLabel(worker)}</span></div>)}</div> : <EmptyLine>The owner worker is created when an application starts.</EmptyLine>}</AccountSection>
     </section>
     <AccountSection id="verification" Icon={FileCheck2} title="Verification">{state.evidence.length ? <div className="grid gap-2 sm:grid-cols-2">{state.evidence.map((item) => <div key={item.id} className="rounded-xl bg-mist-soft px-3 py-3"><p className="text-sm font-semibold">{evidenceRequirementLabel(item.evidence_type)}</p><p className="mt-1 text-xs text-muted-foreground">{providerStatusLabel(item)}</p>{item.provider_action_reason && <p className="mt-1 text-xs text-terracotta">{item.provider_action_reason}</p>}</div>)}</div> : <EmptyLine>Your exact checklist appears after services are selected.</EmptyLine>}<p className="mt-3 text-xs text-muted-foreground">Documents and identifiers stay private. Customers only receive a bounded service-level trust statement after independent approval.</p></AccountSection>
-    <section className="glass rounded-2xl p-5"><button onClick={switchToCustomer} className="glass-soft flex min-h-11 w-full items-center gap-2 rounded-xl p-3 text-sm font-semibold"><Repeat size={17} />Switch to Customer</button><button onClick={() => logout()} className="glass-soft mt-2 flex min-h-11 w-full items-center gap-2 rounded-xl p-3 text-sm font-semibold text-terracotta"><LogOut size={17} />Log out</button></section>
+    <section className="glass rounded-2xl p-5">{user.demo_mode && <button onClick={resetDemo} className="glass-soft mb-2 flex min-h-11 w-full items-center gap-2 rounded-xl p-3 text-sm font-semibold"><RotateCcw size={17} />Reset demo matches, jobs and messages</button>}<button onClick={switchToCustomer} className="glass-soft flex min-h-11 w-full items-center gap-2 rounded-xl p-3 text-sm font-semibold"><Repeat size={17} />Switch to Customer</button><button onClick={() => logout()} className="glass-soft mt-2 flex min-h-11 w-full items-center gap-2 rounded-xl p-3 text-sm font-semibold text-terracotta"><LogOut size={17} />Log out</button></section>
   </div>;
 }
 
@@ -66,5 +73,8 @@ function AccountCard({ Icon, title, children }) {
 }
 function AccountSection({ id, Icon, title, children }) {
   return <section id={id} className="glass rounded-2xl p-5"><h2 className="flex items-center gap-2 font-semibold"><Icon size={18} />{title}</h2><div className="mt-4">{children}</div></section>;
+}
+function DetailLine({ Icon, label, value, verified = false }) {
+  return <div className="rounded-xl bg-mist-soft p-3"><div className="flex gap-2"><Icon size={16} className="mt-0.5 shrink-0 text-eucalyptus-deep" /><div className="min-w-0"><p className="text-xs text-muted-foreground">{label}</p><p className="break-words text-sm font-semibold">{value}</p>{verified && <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-eucalyptus-deep"><BadgeCheck size={12} />Confirmed for this account</p>}</div></div></div>;
 }
 function EmptyLine({ children }) { return <p className="text-sm text-muted-foreground">{children}</p>; }
