@@ -32,6 +32,8 @@ const ProviderRequestDetail = lazy(() => import('@/pages/provider/RequestDetail'
 const ProviderJobs = lazy(() => import('@/pages/provider/Jobs'));
 const ProviderJobDetail = lazy(() => import('@/pages/provider/JobDetail'));
 const ProviderCalendar = lazy(() => import('@/pages/provider/Calendar'));
+const ProviderMessages = lazy(() => import('@/pages/provider/Messages'));
+const ProviderNotifications = lazy(() => import('@/pages/provider/Notifications'));
 const ProviderAccount = lazy(() => import('@/pages/provider/ProviderAccount'));
 const PageNotFound = lazy(() => import('@/lib/PageNotFound'));
 
@@ -74,6 +76,8 @@ function AppRoutes() {
           <Route path="/provider/jobs/matches/:invitationId" element={<ProviderRequestDetail />} />
           <Route path="/provider/jobs/:bookingId" element={<ProviderJobDetail />} />
           <Route path="/provider/calendar" element={<ProviderCalendar />} />
+          <Route path="/provider/messages" element={<ProviderMessages />} />
+          <Route path="/provider/notifications" element={<ProviderNotifications />} />
           <Route path="/provider/account" element={<ProviderAccount />} />
           <Route path="/provider/requests" element={<Navigate to="/provider/jobs?section=matches" replace />} />
           <Route path="/provider/requests/:invitationId" element={<ProviderRequestDetail />} />

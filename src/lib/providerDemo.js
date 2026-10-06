@@ -1,4 +1,4 @@
-const DEMO_VERSION = 1;
+const DEMO_VERSION = 2;
 const DEMO_KEY_PREFIX = 'oneforall:provider-demo:';
 const memoryStore = new Map();
 

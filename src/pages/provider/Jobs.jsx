@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BriefcaseBusiness, Clock3, History as HistoryIcon, Inbox } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, CalendarDays, Clock3, History as HistoryIcon, Inbox, MapPin, ShieldCheck } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -7,7 +7,7 @@ import { EmptyState, StatusBadge } from '@/components/oneforall/Bits';
 import { formatAUDRange } from '@/lib/oneforall';
 import { formatMelbourneDateTime, invitationCountdown, mergeProviderControls, projectedInvitationStatus, providerBookingGroups, providerServiceLabels } from '@/lib/provider';
 import { loadDemoProviderState } from '@/lib/providerDemo';
-import { DemoModeNotice, FlagsOffNotice, ProviderError, ProviderLoading, ProviderPageHeader } from '@/components/provider/ProviderShellBits';
+import { DemoModeNotice, FlagsOffNotice, ProviderError, ProviderLoading } from '@/components/provider/ProviderShellBits';
 
 const SECTIONS = [
   { key: 'matches', label: 'New matches', Icon: Inbox },
@@ -20,7 +20,9 @@ export default function Jobs() {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const active = SECTIONS.some((item) => item.key === params.get('section')) ? params.get('section') : 'matches';
+  const [selectedId, setSelectedId] = useState('');
   const [state, setState] = useState({ loading: true, error: '', invitations: [], bookings: [], controls: mergeProviderControls() });
+
   const load = useCallback(async () => {
     setState((current) => ({ ...current, loading: true, error: '' }));
     try {
@@ -35,8 +37,11 @@ export default function Jobs() {
         safeRead(() => base44.entities.ProviderFeatureControl.list('-updated_date', 1)),
       ]);
       setState({ loading: false, error: '', invitations, bookings: bookings.filter((row) => row.state !== 'superseded'), controls: mergeProviderControls(controls[0]) });
-    } catch { setState((current) => ({ ...current, loading: false, error: 'Your private jobs could not be loaded.' })); }
+    } catch {
+      setState((current) => ({ ...current, loading: false, error: 'Your private jobs could not be loaded.' }));
+    }
   }, [user.demo_mode, user.id]);
+
   useEffect(() => { load(); }, [load]);
 
   const groups = useMemo(() => {
@@ -48,30 +53,75 @@ export default function Jobs() {
     };
   }, [state.bookings, state.invitations]);
 
-  return <div className="space-y-5">
-    <ProviderPageHeader title="Jobs">Private matches and confirmed work—never a public bidding feed.</ProviderPageHeader>
+  const rows = groups[active];
+  const selected = rows.find((row) => row.id === selectedId) || rows[0] || null;
+
+  return <div className="space-y-6">
+    <header><p className="text-sm font-medium text-muted-foreground">Private provider workspace</p><h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Jobs</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Private matches and confirmed work—never a public bidding feed.</p></header>
     {user.demo_mode ? <DemoModeNotice>Try responding to a match, scheduling work, starting a job and completing it. Changes stay only in this browser.</DemoModeNotice> : !state.controls.provider_job_actions_enabled && <FlagsOffNotice>Matches and bookings can be reviewed, but provider responses and job-state changes remain switched off.</FlagsOffNotice>}
-    <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-white/65 p-1.5" role="tablist" aria-label="Provider jobs sections">{SECTIONS.map(({ key, label, Icon }) => <button key={key} type="button" role="tab" aria-selected={active === key} onClick={() => setParams(key === 'matches' ? {} : { section: key })} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold sm:text-sm ${active === key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-white'}`}><Icon size={16} /><span>{label}</span>{!state.loading && <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active === key ? 'bg-white/15' : 'bg-mist-soft'}`}>{groups[key].length}</span>}</button>)}</div>
-    {state.loading ? <ProviderLoading label="Loading provider jobs" /> : state.error ? <ProviderError message={state.error} onRetry={load} /> : active === 'matches' ? <Matches rows={groups.matches} /> : <Bookings rows={groups[active]} history={active === 'history'} />}
+
+    <div className="provider-segmented grid grid-cols-3 gap-1 rounded-2xl p-1.5" role="tablist" aria-label="Provider jobs sections">
+      {SECTIONS.map(({ key, label, Icon }) => <button key={key} type="button" role="tab" aria-selected={active === key} onClick={() => { setParams(key === 'matches' ? {} : { section: key }); setSelectedId(''); }} className={`provider-pill-tab flex items-center justify-center gap-2 px-2 ${active === key ? 'provider-pill-tab-active' : ''}`}><Icon size={16} /><span className="hidden sm:inline">{label}</span><span className="sm:hidden">{key === 'matches' ? 'New' : label}</span>{!state.loading && <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active === key ? 'bg-white/[0.18]' : 'bg-white/[0.65]'}`}>{groups[key].length}</span>}</button>)}
+    </div>
+
+    {state.loading ? <ProviderLoading label="Loading provider jobs" /> : state.error ? <ProviderError message={state.error} onRetry={load} /> : rows.length ? <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(330px,.85fr)]">
+      <section className="space-y-3" aria-label={`${active} jobs`}>
+        <p className="px-1 text-sm font-semibold text-muted-foreground">{rows.length} {rows.length === 1 ? 'item' : 'items'}</p>
+        {rows.map((row) => <JobListCard key={row.id} row={row} active={selected?.id === row.id} section={active} onSelect={() => setSelectedId(row.id)} />)}
+      </section>
+      <JobPreview row={selected} section={active} />
+    </div> : <EmptyState icon={active === 'matches' ? Inbox : BriefcaseBusiness} title={active === 'matches' ? 'No new matches' : active === 'history' ? 'No job history' : 'No upcoming jobs'} body={active === 'matches' ? 'Only eligible, privately routed requests will appear here.' : active === 'history' ? 'Completed and closed work will appear here.' : 'A job appears here only after a response is confirmed.'} />}
   </div>;
 }
 
-function Matches({ rows }) {
-  if (!rows.length) return <EmptyState icon={Inbox} title="No new matches" body="Only eligible, privately routed requests will appear here." />;
-  return <div className="space-y-3">{rows.map((row) => { const labels = providerServiceLabels(row.service_key, row.selected_scope_ids); return <Link key={row.id} to={`/provider/jobs/matches/${encodeURIComponent(row.id)}`} className="glass-soft block rounded-2xl p-4 transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-terracotta">{labels.service}</p><h2 className="mt-1 font-semibold">{row.job_title || labels.scopes.join(', ') || 'Managed service request'}</h2></div><span className="rounded-full bg-terracotta/10 px-2.5 py-1 text-xs font-semibold text-terracotta">{invitationCountdown(row.expires_at)}</span></div><div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground"><span>{row.service_area || 'Ballarat area'}</span><span>{row.preferred_date || 'Flexible timing'}</span><span>{formatAUDRange(row.indicative_price_low, row.indicative_price_high)}</span></div></Link>; })}</div>;
-}
-
-function Bookings({ rows, history }) {
-  if (!rows.length) return <EmptyState icon={BriefcaseBusiness} title={history ? 'No job history' : 'No upcoming jobs'} body={history ? 'Completed and closed work will appear here.' : 'A job appears here only after a response is confirmed.'} />;
-  return <div className="space-y-3">{rows.map((row) => row.quote_id ? <BookingCard key={`booking-${row.id}`} row={row} /> : <ClosedMatchCard key={`match-${row.id}`} row={row} />)}</div>;
-}
-
-function BookingCard({ row }) {
+function detailsFor(row, section) {
+  const booking = Boolean(row.quote_id);
   const labels = providerServiceLabels(row.service_key, row.selected_scope_ids);
-  return <Link to={`/provider/jobs/${encodeURIComponent(row.id)}`} className="glass-soft block rounded-2xl p-4"><div className="flex justify-between gap-2"><div><b>{labels.service}</b><p className="mt-1 text-xs text-muted-foreground">{labels.scopes.join(', ') || 'Confirmed scope'}</p></div><StatusBadge label={String(row.state || '').replaceAll('_', ' ')} tone={row.state === 'completed' ? 'sage' : 'mist'} /></div><p className="mt-3 text-sm text-muted-foreground">{row.scheduled_start ? formatMelbourneDateTime(row.scheduled_start) : 'Accepted · schedule not confirmed'}</p></Link>;
+  const status = booking ? String(row.state || 'accepted').replaceAll('_', ' ') : projectedInvitationStatus(row);
+  return {
+    booking,
+    labels,
+    title: row.job_title || labels.service,
+    subtitle: labels.scopes.join(', ') || (booking ? 'Confirmed service scope' : 'Managed service request'),
+    location: row.service_area || (row.confirmed_service_address ? String(row.confirmed_service_address).split(',').slice(1).join(',').trim() : 'Ballarat area'),
+    timing: booking ? (row.scheduled_start ? formatMelbourneDateTime(row.scheduled_start) : 'Schedule to be confirmed') : (row.preferred_date || 'Flexible timing'),
+    status,
+    to: booking ? `/provider/jobs/${encodeURIComponent(row.id)}` : `/provider/jobs/matches/${encodeURIComponent(row.id)}`,
+    action: section === 'matches' ? 'Review match' : section === 'history' ? 'View record' : row.state === 'accepted' ? 'Confirm schedule' : 'View job',
+  };
 }
 
-function ClosedMatchCard({ row }) {
-  const labels = providerServiceLabels(row.service_key, row.selected_scope_ids);
-  return <article className="rounded-2xl border border-border bg-white/60 p-4"><div className="flex justify-between gap-2"><div><b>{row.job_title || labels.service}</b><p className="mt-1 text-xs text-muted-foreground">{row.service_area || 'Ballarat area'}</p></div><StatusBadge label={projectedInvitationStatus(row)} /></div></article>;
+function JobListCard({ row, active, section, onSelect }) {
+  const info = detailsFor(row, section);
+  return <button type="button" onClick={onSelect} className={`provider-glass provider-action-card w-full rounded-3xl p-4 text-left sm:p-5 ${active ? 'ring-2 ring-primary/[0.55]' : ''}`}>
+    <div className="flex items-start gap-3">
+      <span className="provider-icon-orb h-12 w-12 shrink-0 rounded-2xl text-eucalyptus-deep"><BriefcaseBusiness size={21} /></span>
+      <span className="min-w-0 flex-1"><span className="flex flex-wrap items-start justify-between gap-2"><span><span className="block text-lg font-semibold">{info.title}</span><span className="mt-0.5 block text-sm text-muted-foreground">{info.subtitle}</span></span>{section === 'matches' && <span className="rounded-full bg-terracotta/10 px-2.5 py-1 text-xs font-semibold text-terracotta">{invitationCountdown(row.expires_at)}</span>}</span>
+        <span className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2"><span className="flex items-center gap-2"><CalendarDays size={15} />{info.timing}</span><span className="flex items-center gap-2"><MapPin size={15} />{info.location}</span></span>
+      </span>
+      <ArrowRight size={18} className="mt-3 shrink-0 text-muted-foreground" />
+    </div>
+  </button>;
+}
+
+function JobPreview({ row, section }) {
+  if (!row) return null;
+  const info = detailsFor(row, section);
+  const price = !info.booking ? formatAUDRange(row.indicative_price_low, row.indicative_price_high) : null;
+  return <aside className="provider-glass provider-glass-warm h-fit rounded-[28px] p-5 lg:sticky lg:top-24 sm:p-6">
+    <div className="flex items-start justify-between gap-3"><span className="provider-icon-orb h-14 w-14 rounded-2xl text-eucalyptus-deep"><BriefcaseBusiness size={25} /></span><StatusBadge label={info.status} tone={row.state === 'completed' ? 'sage' : 'mist'} /></div>
+    <h2 className="mt-5 text-2xl font-semibold">{info.title}</h2><p className="mt-1 text-sm text-muted-foreground">{info.subtitle}</p>
+    <div className="mt-5 space-y-4 border-y border-border/[0.55] py-5">
+      <PreviewLine Icon={CalendarDays} label="Timing" value={info.timing} />
+      <PreviewLine Icon={MapPin} label="Service area" value={info.location} />
+      {price && <PreviewLine Icon={ShieldCheck} label="Indicative range" value={price} />}
+      {row.safe_safety_summary && <PreviewLine Icon={ShieldCheck} label="Safety summary" value={row.safe_safety_summary} />}
+    </div>
+    <Link to={info.to} className="mt-5 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:bg-eucalyptus-deep">{info.action}<ArrowRight size={17} /></Link>
+    {section === 'matches' && <p className="mt-3 text-xs text-muted-foreground">Customer identity, contact details and exact address remain private until a booking is confirmed.</p>}
+  </aside>;
+}
+
+function PreviewLine({ Icon, label, value }) {
+  return <div className="flex items-start gap-3"><span className="provider-icon-orb h-9 w-9 shrink-0 rounded-xl text-eucalyptus-deep"><Icon size={17} /></span><span><span className="block text-xs text-muted-foreground">{label}</span><span className="mt-0.5 block text-sm font-semibold">{value}</span></span></div>;
 }

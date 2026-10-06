@@ -20,10 +20,11 @@ const TRADIE_NAV = [
 export default function BottomNav() {
   const { user } = useAuth();
   const loc = useLocation();
-  const nav = user?.account_type === 'tradie' ? TRADIE_NAV : CUSTOMER_NAV;
+  const provider = user?.account_type === 'tradie';
+  const nav = provider ? TRADIE_NAV : CUSTOMER_NAV;
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 px-3 pb-3 pt-1">
-      <div className="glass rounded-2xl flex items-center justify-around px-1 py-1.5 shadow-lg">
+      <div className={`${provider ? 'provider-bottom-glass' : 'glass'} rounded-2xl flex items-center justify-around px-1 py-1.5 shadow-lg`}>
         {nav.map(n => {
           const active = n.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(n.to);
           if (n.primary) {
@@ -37,7 +38,7 @@ export default function BottomNav() {
             );
           }
           return (
-            <Link key={n.to} to={n.to} aria-current={active ? 'page' : undefined} className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 ${active ? 'text-eucalyptus-deep' : 'text-muted-foreground'}`}>
+            <Link key={n.to} to={n.to} aria-current={active ? 'page' : undefined} className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 transition ${provider ? `provider-mobile-tab ${active ? 'provider-mobile-tab-active' : ''}` : active ? 'text-eucalyptus-deep' : 'text-muted-foreground'}`}>
               <n.icon size={20} />
               <span className="text-[11px] font-semibold">{n.label}</span>
             </Link>

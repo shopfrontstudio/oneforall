@@ -9,11 +9,12 @@ export default function Layout() {
   const { user } = useAuth();
   const loc = useLocation();
   if (!user?.account_type) return <Navigate to="/onboarding" replace state={{ from: loc.pathname }} />;
+  const provider = user.account_type === 'tradie';
   return (
-    <div className="min-h-screen overflow-x-clip">
+    <div className={`min-h-screen overflow-x-clip ${provider ? 'provider-workspace' : ''}`}>
       <BrandBackground />
       <TopBar />
-      <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 md:pb-12">
+      <main className={`mx-auto w-full px-4 pb-28 pt-6 md:pb-12 ${provider ? 'max-w-7xl lg:px-6 lg:pt-8' : 'max-w-5xl'}`}>
         <Outlet />
       </main>
       <BottomNav />
