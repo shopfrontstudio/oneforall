@@ -1,24 +1,28 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, LockKeyhole, MessageSquare, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, Check, LockKeyhole, MessageSquare, Paperclip, Send } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { EmptyState } from '@/components/oneforall/Bits';
 import { formatMelbourneDateTime, providerServiceLabels } from '@/lib/provider';
-import { loadDemoProviderState } from '@/lib/providerDemo';
-import { DemoModeNotice, ProviderError, ProviderLoading } from '@/components/provider/ProviderShellBits';
+import { loadDemoProviderState, sendDemoProviderMessage } from '@/lib/providerDemo';
+import ProviderTitleBar from '@/components/provider/ProviderTitleBar';
+import { ProviderError, ProviderLoading } from '@/components/provider/ProviderShellBits';
 
 function demoConversations(userId) {
   const demo = loadDemoProviderState(userId);
   return demo.bookings.filter((booking) => booking.state !== 'superseded').map((booking) => {
     const labels = providerServiceLabels(booking.service_key, booking.selected_scope_ids);
+    const bookingMessages = demo.messages.filter((message) => message.booking_id === booking.id);
+    const latest = bookingMessages.at(-1);
     return {
       id: `demo-conversation-${booking.id}`,
       booking_id: booking.id,
       job_id: booking.job_id,
       job_title: labels.service,
       customer_name: String(booking.confirmed_customer_contact || 'Demo customer').split('·')[0].trim(),
-      contact_unlocked: true,
+      scheduled_start: booking.scheduled_start,
+      last_message_preview: latest?.body || 'Confirmed booking conversation',
+      updated_date: latest?.created_date || booking.created_date,
       created_date: booking.created_date,
       demo: true,
     };
@@ -32,6 +36,8 @@ export default function ProviderMessages() {
   const [state, setState] = useState({ loading: true, error: '', conversations: [] });
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const openConversation = useCallback(async (conversation) => {
     setActive(conversation);
@@ -51,12 +57,12 @@ export default function ProviderMessages() {
           base44.entities.Conversation.filter({ tradie_id: user.id }),
           base44.entities.Booking.filter({ provider_id: user.id }),
         ]);
-        rows = conversations.map((conversation) => ({
-          ...conversation,
-          booking_id: conversation.booking_id || bookings.find((booking) => booking.job_id === conversation.job_id)?.id || null,
-        }));
+        rows = conversations.map((conversation) => {
+          const booking = bookings.find((item) => item.job_id === conversation.job_id || item.id === conversation.booking_id);
+          return { ...conversation, booking_id: conversation.booking_id || booking?.id || null, scheduled_start: booking?.scheduled_start || null };
+        });
       }
-      const sorted = rows.sort((left, right) => new Date(right.created_date).getTime() - new Date(left.created_date).getTime());
+      const sorted = rows.sort((left, right) => new Date(right.updated_date || right.created_date).getTime() - new Date(left.updated_date || left.created_date).getTime());
       setState({ loading: false, error: '', conversations: sorted });
       const preferred = sorted.find((item) => item.booking_id === requestedBooking) || sorted[0];
       if (preferred) await openConversation(preferred);
@@ -67,35 +73,36 @@ export default function ProviderMessages() {
 
   useEffect(() => { load(); }, [load]);
 
+  const sendDemoMessage = async (event) => {
+    event.preventDefault();
+    if (!user.demo_mode || !active?.booking_id || !draft.trim() || busy) return;
+    setBusy(true);
+    try {
+      sendDemoProviderMessage(user.id, active.booking_id, draft.trim());
+      setDraft('');
+      await openConversation(active);
+      setState((current) => ({ ...current, conversations: demoConversations(user.id) }));
+    } finally { setBusy(false); }
+  };
+
   if (state.loading) return <ProviderLoading label="Loading provider messages" />;
   if (state.error) return <ProviderError message={state.error} onRetry={load} />;
 
-  return <div className="space-y-6">
-    <header><p className="text-sm font-medium text-muted-foreground">Confirmed bookings only</p><h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Messages</h1><p className="mt-2 text-sm text-muted-foreground">See each booking conversation in one calm, private inbox.</p></header>
-    {user.demo_mode && <DemoModeNotice>These sample conversations stay only in this browser. Open the job to try sending a demo message.</DemoModeNotice>}
-    {!state.conversations.length ? <EmptyState icon={MessageSquare} title="No booking conversations yet" body="A private conversation opens only after a customer or OneForAll confirms the booking." /> : <div className="grid min-h-[620px] gap-4 lg:grid-cols-[340px_1fr]">
-      <section className={`provider-glass overflow-hidden rounded-[28px] ${active ? 'hidden lg:block' : ''}`} aria-label="Booking conversations">
-        <div className="border-b border-border/[0.55] p-4"><p className="text-sm font-semibold">Booking conversations</p><p className="mt-0.5 text-xs text-muted-foreground">{state.conversations.length} confirmed {state.conversations.length === 1 ? 'chat' : 'chats'}</p></div>
-        <div className="divide-y divide-border/50">{state.conversations.map((conversation) => <ConversationButton key={conversation.id} conversation={conversation} active={active?.id === conversation.id} onClick={() => openConversation(conversation)} />)}</div>
+  return <div className="provider-messages-reference">
+    <ProviderTitleBar title="Messages" subtitle="Stay in touch inside confirmed bookings" />
+    {!state.conversations.length ? <section className="provider-reference-card provider-messages-empty"><MessageSquare size={34} /><h2>No booking conversations yet</h2><p>A private conversation opens only after a booking is confirmed.</p></section> : <div className="provider-messages-grid">
+      <section className={`provider-reference-card provider-conversation-list ${active ? 'mobile-hidden' : ''}`} aria-label="Booking conversations">
+        {state.conversations.map((conversation) => <ConversationButton key={conversation.id} conversation={conversation} active={active?.id === conversation.id} onClick={() => openConversation(conversation)} />)}
       </section>
-
-      {active ? <section className="provider-glass flex min-h-[620px] flex-col overflow-hidden rounded-[28px]">
-        <div className="flex items-center gap-3 border-b border-border/[0.55] bg-white/[0.36] p-4 sm:p-5">
-          <button type="button" onClick={() => setActive(null)} className="provider-icon-orb flex h-10 w-10 rounded-xl lg:hidden" aria-label="Back to conversations"><ArrowLeft size={17} /></button>
-          <span className="provider-icon-orb h-11 w-11 shrink-0 rounded-full text-sm font-semibold text-eucalyptus-deep">{initials(active.customer_name)}</span>
-          <div className="min-w-0 flex-1"><h2 className="truncate text-lg font-semibold">{active.customer_name || 'Customer'}</h2><p className="flex items-center gap-1.5 text-xs text-eucalyptus-deep"><ShieldCheck size={13} />Private confirmed-booking chat</p></div>
-        </div>
-        <div className="border-b border-border/[0.45] bg-sage/[0.36] px-5 py-3"><p className="flex items-center gap-2 text-sm font-semibold"><LockKeyhole size={15} />{active.job_title || 'Confirmed service booking'}</p></div>
-        <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-6">
-          {messages.length ? messages.map((message) => {
-            const mine = user.demo_mode ? message.sender === 'provider' : message.sender_id === user.id;
-            return <div key={message.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[84%] rounded-2xl px-4 py-3 text-sm shadow-sm ${mine ? 'rounded-br-md bg-primary text-primary-foreground' : 'rounded-bl-md border border-white/70 bg-white/[0.76]'}`}><p>{message.body}</p><p className={`mt-1 text-[10px] ${mine ? 'text-white/[0.65]' : 'text-muted-foreground'}`}>{formatMelbourneDateTime(message.created_date)}</p></div></div>;
-          }) : <div className="flex h-full items-center justify-center text-center"><div><MessageSquare className="mx-auto text-eucalyptus-deep" /><p className="mt-2 text-sm font-semibold">No messages in this booking yet</p><p className="mt-1 text-xs text-muted-foreground">The secure chat remains attached to the confirmed job.</p></div></div>}
-        </div>
-        <div className="border-t border-border/[0.55] bg-white/[0.38] p-4">
-          {active.booking_id ? <Link to={`/provider/jobs/${encodeURIComponent(active.booking_id)}`} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-eucalyptus-deep">Open secure job chat <ArrowRight size={17} /></Link> : <Link to="/messages" className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-eucalyptus-deep">Open booking messages <ArrowRight size={17} /></Link>}
-        </div>
-      </section> : <section className="provider-glass hidden min-h-[620px] items-center justify-center rounded-[28px] lg:flex"><div className="text-center"><MessageSquare className="mx-auto text-eucalyptus-deep" /><p className="mt-3 font-semibold">Choose a conversation</p><p className="mt-1 text-sm text-muted-foreground">Messages stay attached to confirmed jobs.</p></div></section>}
+      {active ? <section className="provider-reference-card provider-message-panel">
+        <div className="provider-message-person"><button type="button" onClick={() => setActive(null)} aria-label="Back to conversations"><ArrowLeft size={19} /></button><span>{initials(active.customer_name)}</span><div><h2>{active.customer_name || 'Customer'}</h2><p><LockKeyhole size={13} />Private confirmed-booking chat</p></div></div>
+        <div className="provider-message-appointment"><CalendarDays size={24} /><b>{active.scheduled_start ? `${formatMelbourneDateTime(active.scheduled_start)} appointment` : active.job_title || 'Confirmed booking'}</b></div>
+        <div className="provider-message-thread"><span className="provider-message-day">Today</span>{messages.length ? messages.map((message) => {
+          const mine = user.demo_mode ? message.sender === 'provider' : message.sender_id === user.id;
+          return <div key={message.id} className={`provider-message-line ${mine ? 'mine' : ''}`}><div><p>{message.body}</p><small>{formatMelbourneDateTime(message.created_date)}{mine && <Check size={14} />}</small></div></div>;
+        }) : <div className="provider-message-no-content"><MessageSquare size={28} /><b>No messages in this booking yet</b><span>The secure chat remains attached to the confirmed job.</span></div>}</div>
+        <form className="provider-message-composer" onSubmit={sendDemoMessage}><button type="button" disabled aria-label="Attachments are not available yet"><Paperclip size={22} /></button><input value={draft} onChange={(event) => setDraft(event.target.value)} disabled={!user.demo_mode} maxLength={1000} placeholder={user.demo_mode ? 'Write a message…' : 'Reply inside the confirmed job'} />{user.demo_mode ? <button type="submit" disabled={busy || !draft.trim()}><Send size={18} />Send</button> : <Link to={active.booking_id ? `/provider/jobs/${encodeURIComponent(active.booking_id)}` : '/provider/jobs'}>Open job <ArrowRight size={17} /></Link>}</form>
+      </section> : <section className="provider-reference-card provider-message-panel provider-message-placeholder"><MessageSquare size={34} /><b>Choose a conversation</b></section>}
     </div>}
   </div>;
 }
@@ -105,5 +112,5 @@ function initials(name) {
 }
 
 function ConversationButton({ conversation, active, onClick }) {
-  return <button type="button" onClick={onClick} className={`flex w-full items-center gap-3 p-4 text-left transition hover:bg-white/[0.62] ${active ? 'provider-conversation-active bg-sage/[0.55]' : ''}`}><span className="provider-icon-orb h-11 w-11 shrink-0 rounded-full text-sm font-semibold text-eucalyptus-deep">{initials(conversation.customer_name)}</span><span className="min-w-0 flex-1"><span className="block truncate font-semibold">{conversation.customer_name || 'Customer'}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{conversation.job_title || 'Confirmed booking'}</span></span><ArrowRight size={15} className="shrink-0 text-muted-foreground" /></button>;
+  return <button type="button" onClick={onClick} className={`provider-conversation-row ${active ? 'active' : ''}`}><span className="provider-conversation-avatar">{initials(conversation.customer_name)}</span><span className="min-w-0 flex-1"><b>{conversation.customer_name || 'Customer'}</b><small>{conversation.last_message_preview || conversation.job_title || 'Confirmed booking'}</small></span><span className="provider-conversation-meta"><small>{conversation.updated_date ? new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Melbourne', day: 'numeric', month: 'short' }).format(new Date(conversation.updated_date)) : ''}</small><i /></span></button>;
 }

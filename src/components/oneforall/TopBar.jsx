@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { BriefcaseBusiness, CalendarDays, Home, MessageSquare, Shapes, User } from 'lucide-react';
+import { BriefcaseBusiness, CalendarDays, ChevronDown, Home, MessageSquare, Shapes, User } from 'lucide-react';
 import Logo from './Logo';
 
 const CUSTOMER_NAV = [
@@ -29,17 +29,14 @@ export default function TopBar() {
         <Link to={provider ? '/provider/today' : '/'} className="flex min-w-0 items-center gap-2" aria-label="OneForAll home">
           <Logo size={34} />
           <span className="font-heading text-lg font-semibold tracking-tight text-white">OneForAll</span>
-          {provider && <span className="hidden rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/80 sm:inline-flex">Provider</span>}
         </Link>
-        <nav className={`hidden items-center gap-1 md:flex ${provider ? 'provider-nav-glass' : ''}`} aria-label={provider ? 'Provider' : 'Customer'}>
+        {provider ? <Link to="/provider/account" className="provider-top-account" aria-label="Open provider account"><span>{String(user?.full_name || user?.email || 'P').charAt(0).toUpperCase()}</span><ChevronDown size={17} /></Link> : <nav className="hidden items-center gap-1 md:flex" aria-label="Customer">
           {nav.map((item) => {
             const active = item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to);
-            const className = provider
-              ? `provider-nav-tab ${active ? 'provider-nav-tab-active' : ''}`
-              : `flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/70 hover:bg-white/70'}`;
+            const className = `flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/70 hover:bg-white/70'}`;
             return <Link key={item.to} to={item.to} aria-current={active ? 'page' : undefined} className={className}><item.icon size={16} />{item.label}</Link>;
           })}
-        </nav>
+        </nav>}
       </div>
     </header>
   );

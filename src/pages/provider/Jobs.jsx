@@ -3,11 +3,12 @@ import { ArrowRight, BriefcaseBusiness, CalendarDays, Clock3, History as History
 import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { EmptyState, StatusBadge } from '@/components/oneforall/Bits';
+import { EmptyState } from '@/components/oneforall/Bits';
 import { formatAUDRange } from '@/lib/oneforall';
 import { formatMelbourneDateTime, invitationCountdown, mergeProviderControls, projectedInvitationStatus, providerBookingGroups, providerServiceLabels } from '@/lib/provider';
 import { loadDemoProviderState } from '@/lib/providerDemo';
-import { DemoModeNotice, FlagsOffNotice, ProviderError, ProviderLoading } from '@/components/provider/ProviderShellBits';
+import ProviderTitleBar from '@/components/provider/ProviderTitleBar';
+import { ProviderError, ProviderLoading } from '@/components/provider/ProviderShellBits';
 
 const SECTIONS = [
   { key: 'matches', label: 'New matches', Icon: Inbox },
@@ -56,21 +57,15 @@ export default function Jobs() {
   const rows = groups[active];
   const selected = rows.find((row) => row.id === selectedId) || rows[0] || null;
 
-  return <div className="space-y-6">
-    <header><p className="text-sm font-medium text-muted-foreground">Private provider workspace</p><h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Jobs</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Private matches and confirmed work—never a public bidding feed.</p></header>
-    {user.demo_mode ? <DemoModeNotice>Try responding to a match, scheduling work, starting a job and completing it. Changes stay only in this browser.</DemoModeNotice> : !state.controls.provider_job_actions_enabled && <FlagsOffNotice>Matches and bookings can be reviewed, but provider responses and job-state changes remain switched off.</FlagsOffNotice>}
-
-    <div className="provider-segmented grid grid-cols-3 gap-1 rounded-2xl p-1.5" role="tablist" aria-label="Provider jobs sections">
-      {SECTIONS.map(({ key, label, Icon }) => <button key={key} type="button" role="tab" aria-selected={active === key} onClick={() => { setParams(key === 'matches' ? {} : { section: key }); setSelectedId(''); }} className={`provider-pill-tab flex items-center justify-center gap-2 px-2 ${active === key ? 'provider-pill-tab-active' : ''}`}><Icon size={16} /><span className="hidden sm:inline">{label}</span><span className="sm:hidden">{key === 'matches' ? 'New' : label}</span>{!state.loading && <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active === key ? 'bg-white/[0.18]' : 'bg-white/[0.65]'}`}>{groups[key].length}</span>}</button>)}
+  return <div className="provider-jobs-reference">
+    <ProviderTitleBar title="Available jobs" subtitle="Private work that matches your approved services" />
+    <div className="provider-jobs-tabs" role="tablist" aria-label="Provider jobs sections">
+      {SECTIONS.map(({ key, label, Icon }) => <button key={key} type="button" role="tab" aria-selected={active === key} onClick={() => { setParams(key === 'matches' ? {} : { section: key }); setSelectedId(''); }} className={active === key ? 'active' : ''}><Icon size={20} />{label}<span>{groups[key].length}</span></button>)}
     </div>
-
-    {state.loading ? <ProviderLoading label="Loading provider jobs" /> : state.error ? <ProviderError message={state.error} onRetry={load} /> : rows.length ? <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(330px,.85fr)]">
-      <section className="space-y-3" aria-label={`${active} jobs`}>
-        <p className="px-1 text-sm font-semibold text-muted-foreground">{rows.length} {rows.length === 1 ? 'item' : 'items'}</p>
-        {rows.map((row) => <JobListCard key={row.id} row={row} active={selected?.id === row.id} section={active} onSelect={() => setSelectedId(row.id)} />)}
-      </section>
+    {state.loading ? <ProviderLoading label="Loading provider jobs" /> : state.error ? <ProviderError message={state.error} onRetry={load} /> : rows.length ? <div className="provider-jobs-grid">
+      <section className="provider-job-list" aria-label={`${active} jobs`}><p>{rows.length} {rows.length === 1 ? 'job' : 'jobs'} found</p>{rows.map((row) => <JobListCard key={row.id} row={row} active={selected?.id === row.id} section={active} onSelect={() => setSelectedId(row.id)} />)}</section>
       <JobPreview row={selected} section={active} />
-    </div> : <EmptyState icon={active === 'matches' ? Inbox : BriefcaseBusiness} title={active === 'matches' ? 'No new matches' : active === 'history' ? 'No job history' : 'No upcoming jobs'} body={active === 'matches' ? 'Only eligible, privately routed requests will appear here.' : active === 'history' ? 'Completed and closed work will appear here.' : 'A job appears here only after a response is confirmed.'} />}
+    </div> : <div className="mt-5"><EmptyState icon={active === 'matches' ? Inbox : BriefcaseBusiness} title={active === 'matches' ? 'No new matches' : active === 'history' ? 'No job history' : 'No upcoming jobs'} body={active === 'matches' ? 'Only eligible, privately routed requests will appear here.' : active === 'history' ? 'Completed and closed work will appear here.' : 'A job appears here only after a response is confirmed.'} /></div>}
   </div>;
 }
 
@@ -86,6 +81,7 @@ function detailsFor(row, section) {
     location: row.service_area || (row.confirmed_service_address ? String(row.confirmed_service_address).split(',').slice(1).join(',').trim() : 'Ballarat area'),
     timing: booking ? (row.scheduled_start ? formatMelbourneDateTime(row.scheduled_start) : 'Schedule to be confirmed') : (row.preferred_date || 'Flexible timing'),
     status,
+    price: !booking ? formatAUDRange(row.indicative_price_low, row.indicative_price_high) : null,
     to: booking ? `/provider/jobs/${encodeURIComponent(row.id)}` : `/provider/jobs/matches/${encodeURIComponent(row.id)}`,
     action: section === 'matches' ? 'Review match' : section === 'history' ? 'View record' : row.state === 'accepted' ? 'Confirm schedule' : 'View job',
   };
@@ -93,35 +89,28 @@ function detailsFor(row, section) {
 
 function JobListCard({ row, active, section, onSelect }) {
   const info = detailsFor(row, section);
-  return <button type="button" onClick={onSelect} className={`provider-glass provider-action-card w-full rounded-3xl p-4 text-left sm:p-5 ${active ? 'ring-2 ring-primary/[0.55]' : ''}`}>
-    <div className="flex items-start gap-3">
-      <span className="provider-icon-orb h-12 w-12 shrink-0 rounded-2xl text-eucalyptus-deep"><BriefcaseBusiness size={21} /></span>
-      <span className="min-w-0 flex-1"><span className="flex flex-wrap items-start justify-between gap-2"><span><span className="block text-lg font-semibold">{info.title}</span><span className="mt-0.5 block text-sm text-muted-foreground">{info.subtitle}</span></span>{section === 'matches' && <span className="rounded-full bg-terracotta/10 px-2.5 py-1 text-xs font-semibold text-terracotta">{invitationCountdown(row.expires_at)}</span>}</span>
-        <span className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2"><span className="flex items-center gap-2"><CalendarDays size={15} />{info.timing}</span><span className="flex items-center gap-2"><MapPin size={15} />{info.location}</span></span>
-      </span>
-      <ArrowRight size={18} className="mt-3 shrink-0 text-muted-foreground" />
-    </div>
+  return <button type="button" onClick={onSelect} className={`provider-reference-card provider-job-row ${active ? 'active' : ''}`}>
+    <span className="provider-reference-icon provider-reference-icon-blue"><BriefcaseBusiness size={29} /></span>
+    <span className="provider-job-row-main"><b>{info.title}</b><small><CalendarDays size={17} />{info.timing}</small><small><MapPin size={17} />{info.location}</small></span>
+    <span className="provider-job-row-side">{section === 'matches' && <small>{invitationCountdown(row.expires_at)}</small>}<span>{info.price || info.status}</span><ArrowRight size={22} /></span>
   </button>;
 }
 
 function JobPreview({ row, section }) {
   if (!row) return null;
   const info = detailsFor(row, section);
-  const price = !info.booking ? formatAUDRange(row.indicative_price_low, row.indicative_price_high) : null;
-  return <aside className="provider-glass provider-glass-warm h-fit rounded-[28px] p-5 lg:sticky lg:top-24 sm:p-6">
-    <div className="flex items-start justify-between gap-3"><span className="provider-icon-orb h-14 w-14 rounded-2xl text-eucalyptus-deep"><BriefcaseBusiness size={25} /></span><StatusBadge label={info.status} tone={row.state === 'completed' ? 'sage' : 'mist'} /></div>
-    <h2 className="mt-5 text-2xl font-semibold">{info.title}</h2><p className="mt-1 text-sm text-muted-foreground">{info.subtitle}</p>
-    <div className="mt-5 space-y-4 border-y border-border/[0.55] py-5">
-      <PreviewLine Icon={CalendarDays} label="Timing" value={info.timing} />
-      <PreviewLine Icon={MapPin} label="Service area" value={info.location} />
-      {price && <PreviewLine Icon={ShieldCheck} label="Indicative range" value={price} />}
-      {row.safe_safety_summary && <PreviewLine Icon={ShieldCheck} label="Safety summary" value={row.safe_safety_summary} />}
-    </div>
-    <Link to={info.to} className="mt-5 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:bg-eucalyptus-deep">{info.action}<ArrowRight size={17} /></Link>
-    {section === 'matches' && <p className="mt-3 text-xs text-muted-foreground">Customer identity, contact details and exact address remain private until a booking is confirmed.</p>}
+  return <aside className="provider-reference-card provider-job-preview">
+    <div className="provider-job-preview-heading"><span className="provider-reference-icon provider-reference-icon-blue"><BriefcaseBusiness size={30} /></span><h2>{info.title}</h2></div>
+    <PreviewSection label="Request type" value={info.subtitle} />
+    <PreviewSection label="Date and time" value={info.timing} Icon={CalendarDays} />
+    <PreviewSection label="Service area" value={info.location} Icon={MapPin} />
+    <div className="provider-job-preview-pair"><PreviewSection label="Status" value={info.status} Icon={ShieldCheck} />{info.price && <PreviewSection label="Indicative range" value={info.price} />}</div>
+    <Link to={info.to} className="provider-job-primary">{info.action}<ArrowRight size={18} /></Link>
+    {section === 'matches' && <Link to={`${info.to}?intent=decline`} className="provider-job-secondary">Not for me</Link>}
+    {section === 'matches' && <p>Customer identity, contact details and exact address remain private until confirmation.</p>}
   </aside>;
 }
 
-function PreviewLine({ Icon, label, value }) {
-  return <div className="flex items-start gap-3"><span className="provider-icon-orb h-9 w-9 shrink-0 rounded-xl text-eucalyptus-deep"><Icon size={17} /></span><span><span className="block text-xs text-muted-foreground">{label}</span><span className="mt-0.5 block text-sm font-semibold">{value}</span></span></div>;
+function PreviewSection({ label, value, Icon = null }) {
+  return <div className="provider-job-preview-section"><span>{label}</span><b>{Icon && <Icon size={20} />}{value}</b></div>;
 }
