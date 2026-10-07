@@ -14,7 +14,6 @@ export default function Layout() {
   const providerHome = loc.pathname.replace(/\/+$/, '') === '/provider/today';
   if (provider) return (
     <div className={`provider-workspace min-h-screen overflow-x-clip ${providerHome ? 'provider-workspace-home' : ''}`}>
-      <BrandBackground />
       {providerHome ? <TopBar /> : <div className="md:hidden"><TopBar /></div>}
       {providerHome ? <main className="provider-home-canvas mx-auto w-full max-w-[1680px] px-4 pb-28 pt-6 md:px-10 md:pb-10 md:pt-7"><Outlet /></main> : <div className="provider-reference-shell"><ProviderSidebar /><main className="provider-reference-main"><Outlet /></main></div>}
       <BottomNav />
