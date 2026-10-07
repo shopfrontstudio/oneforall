@@ -17,7 +17,8 @@ function monthCells(cursor) {
   const month = cursor.getMonth();
   const count = new Date(year, month + 1, 0).getDate();
   const firstMondayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
-  return Array.from({ length: 42 }, (_, index) => {
+  const visibleCellCount = Math.ceil((firstMondayIndex + count) / 7) * 7;
+  return Array.from({ length: visibleCellCount }, (_, index) => {
     const day = index - firstMondayIndex + 1;
     return day > 0 && day <= count ? { day, key: dateKey(year, month, day) } : null;
   });
