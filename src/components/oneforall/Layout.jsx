@@ -11,7 +11,7 @@ export default function Layout() {
   const loc = useLocation();
   if (!user?.account_type) return <Navigate to="/onboarding" replace state={{ from: loc.pathname }} />;
   const provider = user.account_type === 'tradie';
-  const providerHome = loc.pathname === '/provider/today';
+  const providerHome = loc.pathname.replace(/\/+$/, '') === '/provider/today';
   if (provider) return (
     <div className="provider-workspace min-h-screen overflow-x-clip">
       <BrandBackground />

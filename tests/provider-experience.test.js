@@ -25,6 +25,11 @@ test('provider workspace has exactly Today, Jobs, Calendar and Account', () => {
   assert.deepEqual(PROVIDER_NAV.map((item) => item.label), ['Today', 'Jobs', 'Calendar', 'Account']);
 });
 
+test('provider home keeps its full-width reference layout on deployed trailing-slash routes', async () => {
+  const layout = await read('../src/components/oneforall/Layout.jsx');
+  assert.ok(layout.includes("loc.pathname.replace(/\\/+$/, '') === '/provider/today'"));
+});
+
 test('selected services create a deduplicated, exact verification checklist', () => {
   const requirements = providerEvidenceRequirements(['cleaning.routine_domestic', 'plumbing.licensed_services']);
   assert.equal(new Set(requirements.map((item) => item.key)).size, requirements.length);
