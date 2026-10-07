@@ -158,12 +158,14 @@
   .provider-workspace-home::before {
     content:"";
     position:fixed;
-    inset:-24px;
+    inset:-6px;
     z-index:0;
     pointer-events:none;
-    background:url('/provider-home-interior.jpg') center 58% / cover no-repeat;
-    filter:blur(10px) saturate(.65);
-    opacity:.38;
+    background:
+      linear-gradient(110deg,rgba(237,247,241,.64),rgba(245,248,238,.32) 54%,rgba(248,237,211,.18)),
+      url('/provider-eucalyptus-courtyard.jpg') center / cover no-repeat;
+    filter:blur(2px) saturate(1.08);
+    opacity:1;
   }
 
   .provider-home-canvas,
