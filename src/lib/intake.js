@@ -24,6 +24,9 @@ export function createIntakeDraft(serviceKey, now = Date.now()) {
     preferred_date: '',
     recurrence: 'once',
     urgency: 'flexible',
+    requested_units: service.demand.min_units,
+    requested_value: '',
+    booking_link_token: '',
     photo_names: [],
     reported_pest: '',
     observed_signs: '',
@@ -63,6 +66,9 @@ export function sanitiseIntakeDraft(input) {
     preferred_date: bounded(input.preferred_date, 20),
     recurrence: ['once', 'weekly', 'fortnightly', 'monthly'].includes(input.recurrence) ? input.recurrence : 'once',
     urgency: ['flexible', 'this_week', 'urgent'].includes(input.urgency) ? input.urgency : 'flexible',
+    requested_units: Number.isFinite(Number(input.requested_units)) ? Number(input.requested_units) : service.demand.min_units,
+    requested_value: Number.isFinite(Number(input.requested_value)) && Number(input.requested_value) > 0 ? Number(input.requested_value) : '',
+    booking_link_token: bounded(input.booking_link_token, 240),
     photo_names: Array.isArray(input.photo_names) ? input.photo_names.map((name) => bounded(name, 120)).filter(Boolean).slice(0, 8) : [],
     reported_pest: bounded(input.reported_pest, 120),
     observed_signs: bounded(input.observed_signs, 2000),
@@ -88,6 +94,10 @@ export function evaluateIntakeDraft(draft) {
   });
   if (scope.decision === 'blocked') return { state: 'restricted', scope, errors: { ...errors, scope_description: 'This request includes work OneForAll does not offer.' } };
   if (!bounded(draft.suburb, 100)) errors.suburb = 'Enter the service suburb.';
+  const units = Number(draft.requested_units);
+  const value = Number(draft.requested_value);
+  if (!Number.isFinite(units) || units < service.demand.min_units || units > service.demand.max_units) errors.requested_units = `Enter ${service.demand.min_units} to ${service.demand.max_units} ${service.demand.unit_label}.`;
+  if (!Number.isFinite(value) || value <= 0 || value > 1000000) errors.requested_value = 'Enter a positive planning budget.';
   if (service.pathway === 'scheduled_or_recurring' && !draft.preferred_date) errors.preferred_date = 'Choose a preferred date.';
   if (service.pathway === 'licensed_diagnostic') {
     if (!bounded(draft.reported_pest, 120)) errors.reported_pest = 'Tell us which pest you suspect, or choose “Not sure”.';

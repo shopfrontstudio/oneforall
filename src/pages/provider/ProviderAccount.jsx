@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { BadgeCheck, Bell, BriefcaseBusiness, CalendarClock, FileCheck2, LogOut, Mail, MapPin, Phone, Repeat, RotateCcw, ShieldCheck, UsersRound } from 'lucide-react';
+import { BadgeCheck, Bell, BriefcaseBusiness, CalendarClock, FileCheck2, Link2, LogOut, Mail, MapPin, Phone, Repeat, RotateCcw, ShieldCheck, UsersRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -15,19 +15,22 @@ export default function ProviderAccount() {
   const { user, logout, checkUserAuth } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [state, setState] = useState({ loading: true, error: '', application: null, profile: null, offerings: [], workers: [], evidence: [], controls: mergeProviderControls() });
+  const [createdBookingLink, setCreatedBookingLink] = useState('');
+  const [state, setState] = useState({ loading: true, error: '', application: null, profile: null, offerings: [], workers: [], evidence: [], bookingLinks: [], serviceRows: [], controls: mergeProviderControls() });
   const load = useCallback(async () => {
     setState((current) => ({ ...current, loading: true, error: '' }));
     try {
-      const [applications, profiles, offerings, workers, evidence, controls] = await Promise.all([
+      const [applications, profiles, offerings, workers, evidence, controls, bookingLinks, serviceRows] = await Promise.all([
         safeRead(() => base44.entities.ProviderApplication.filter({ provider_id: user.id })),
         base44.entities.TradieProfile.filter({ user_id: user.id }),
         base44.entities.ProviderOffering.filter({ provider_id: user.id }),
         base44.entities.ProviderWorker.filter({ provider_id: user.id }),
         base44.entities.ProviderEvidence.filter({ provider_id: user.id }),
         safeRead(() => base44.entities.ProviderFeatureControl.list('-updated_date', 1)),
+        safeRead(() => base44.entities.ProviderBookingLink.filter({ provider_id: user.id })),
+        safeRead(() => base44.entities.ServiceDefinition.list('service_key')),
       ]);
-      setState({ loading: false, error: '', application: applications[0] || null, profile: profiles[0] || null, offerings, workers, evidence, controls: mergeProviderControls(controls[0]) });
+      setState({ loading: false, error: '', application: applications[0] || null, profile: profiles[0] || null, offerings, workers, evidence, bookingLinks, serviceRows, controls: mergeProviderControls(controls[0]) });
     } catch { setState((current) => ({ ...current, loading: false, error: 'Your provider account could not be loaded.' })); }
   }, [user.id]);
   useEffect(() => { load(); }, [load]);
@@ -40,6 +43,18 @@ export default function ProviderAccount() {
   const resetDemo = () => {
     resetDemoProviderState(user.id);
     toast({ title: 'Demo journey reset', description: 'The original sample matches, jobs, calendar and messages are back.' });
+  };
+
+  const createBookingLink = async (offering) => {
+    try {
+      const response = await base44.functions.invoke('create-provider-booking-link', { service_key: offering.service_key, scope_ids: offering.approved_scope || [], label: 'Direct booking request', idempotency_key: crypto.randomUUID() });
+      if (!response.data.token) throw new Error('The link already exists, but its private token cannot be shown again. Create a new link if needed.');
+      const url = `${window.location.origin}${import.meta.env.BASE_URL}book/${encodeURIComponent(response.data.token)}`;
+      setCreatedBookingLink(url);
+      await navigator.clipboard?.writeText(url);
+      toast({ title: 'Private booking link created', description: 'The URL is shown below and was copied when browser permissions allowed it.' });
+      await load();
+    } catch (error) { toast({ title: 'Booking link not created', description: error.message, variant: 'destructive' }); }
   };
 
   if (state.loading) return <ProviderLoading label="Loading provider account" />;
@@ -64,6 +79,7 @@ export default function ProviderAccount() {
       <AccountSection id="team" Icon={UsersRound} title="Team">{state.workers.length ? <div className="space-y-2">{state.workers.map((worker) => <div key={worker.id} className="flex items-center justify-between gap-3 rounded-xl bg-mist-soft px-3 py-2"><span className="text-sm font-semibold">{worker.display_name}</span><span className="text-xs capitalize text-muted-foreground">{worker.relationship_type} · {providerStatusLabel(worker)}</span></div>)}</div> : <EmptyLine>The owner worker is created when an application starts.</EmptyLine>}</AccountSection>
     </section>
     <AccountSection id="verification" Icon={FileCheck2} title="Verification">{state.evidence.length ? <div className="grid gap-2 sm:grid-cols-2">{state.evidence.map((item) => <div key={item.id} className="rounded-xl bg-mist-soft px-3 py-3"><p className="text-sm font-semibold">{evidenceRequirementLabel(item.evidence_type)}</p><p className="mt-1 text-xs text-muted-foreground">{providerStatusLabel(item)}</p>{item.provider_action_reason && <p className="mt-1 text-xs text-terracotta">{item.provider_action_reason}</p>}</div>)}</div> : <EmptyLine>Your exact checklist appears after services are selected.</EmptyLine>}<p className="mt-3 text-xs text-muted-foreground">Documents and identifiers stay private. Customers only receive a bounded service-level trust statement after independent approval.</p></AccountSection>
+    <AccountSection id="booking-links" Icon={Link2} title="Provider booking link"><p className="text-sm text-muted-foreground">A link starts a private request for one approved service. It never bypasses scope, eligibility, quote or customer-approval checks.</p><div className="mt-3 space-y-2">{selectedOfferings.map((offering) => { const serviceRow = state.serviceRows.find((row) => row.service_key === offering.service_key); const enabled = !user.demo_mode && state.controls.provider_job_actions_enabled && serviceRow?.quote_enabled && serviceRow?.public_release_enabled && offering.review_status === 'approved' && offering.active && offering.available && !offering.reverification_required; return <div key={offering.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-mist-soft p-3"><span className="text-sm font-semibold">{PHASE1_SERVICES.find((service) => service.key === offering.service_key)?.name || offering.service_key}</span><button type="button" disabled={!enabled} onClick={() => createBookingLink(offering)} className="min-h-11 rounded-xl border border-primary px-3 text-xs font-semibold disabled:opacity-45">Create private link</button></div>; })}</div>{createdBookingLink && <div className="mt-3 rounded-xl border border-border bg-white/65 p-3"><label htmlFor="created-booking-link" className="text-xs font-semibold">New private link</label><div className="mt-1 flex gap-2"><input id="created-booking-link" readOnly value={createdBookingLink} className="min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 text-xs" /><button type="button" onClick={() => navigator.clipboard?.writeText(createdBookingLink)} className="min-h-11 rounded-xl border border-primary px-3 text-xs font-semibold">Copy</button></div><p className="mt-1 text-xs text-muted-foreground">Store it safely now; the private token is not shown again.</p></div>}{state.bookingLinks.length > 0 && <p className="mt-3 text-xs text-muted-foreground">{state.bookingLinks.filter((link) => link.status === 'active').length} active link record(s). Tokens are shown only when first created.</p>}<p className="mt-2 text-xs text-muted-foreground">Link creation stays off with the current provider and service release controls.</p></AccountSection>
     <section className="glass rounded-2xl p-5">{user.demo_mode && <button onClick={resetDemo} className="glass-soft mb-2 flex min-h-11 w-full items-center gap-2 rounded-xl p-3 text-sm font-semibold"><RotateCcw size={17} />Reset demo matches, jobs and messages</button>}<button onClick={switchToCustomer} className="glass-soft flex min-h-11 w-full items-center gap-2 rounded-xl p-3 text-sm font-semibold"><Repeat size={17} />Switch to Customer</button><button onClick={() => logout()} className="glass-soft mt-2 flex min-h-11 w-full items-center gap-2 rounded-xl p-3 text-sm font-semibold text-terracotta"><LogOut size={17} />Log out</button></section>
   </div>;
 }

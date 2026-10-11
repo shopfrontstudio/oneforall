@@ -6,6 +6,7 @@ import { CategoryIcon } from '@/components/public/ServiceCard';
 import { CATEGORY_META_MAP, PHASE1_SERVICE_MAP } from '@/lib/catalogue';
 import { PUBLIC_PATHS } from '@/lib/routes';
 import { loadServiceGuideResult, selectServiceGuideSuggestion } from '@/lib/serviceGuide';
+import { serviceImage, serviceImageUrl } from '@/lib/serviceImages';
 
 const ProblemSummary = ({ summary }) => (
   <section className="rounded-2xl border border-border bg-white/65 p-4" aria-labelledby="understood-heading">
@@ -70,14 +71,18 @@ export default function ServiceGuideResults() {
             if (!service) return null;
             const scopes = service.scope_options.filter((scope) => suggestion.scope_ids.includes(scope.id));
             const scopeReasons = new Map((suggestion.scope_matches || []).map((match) => [match.scope_id, match.reason]));
+            const media = serviceImage(service);
             return (
-              <article key={service.key} className="glass-soft flex h-full flex-col rounded-2xl p-5">
+              <article key={service.key} className="glass-soft flex h-full flex-col overflow-hidden rounded-2xl">
+                {media && <img src={serviceImageUrl(media, import.meta.env.BASE_URL)} alt="" aria-hidden="true" loading="lazy" className="aspect-[16/8] w-full object-cover" style={{ objectPosition: media.primaryPosition }} />}
+                <div className="flex flex-1 flex-col p-5">
                 <div className="flex items-start gap-3">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sage/55 text-eucalyptus-deep"><CategoryIcon category={service.category} /></span>
                   <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-terracotta">{CATEGORY_META_MAP[service.category]?.name}</p><h3 className="mt-1 text-lg font-semibold">{service.name}</h3></div>
                 </div>
                 {scopes.length > 0 ? <div className="mt-4"><p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">Suggested sub-options</p><ul className="mt-2 space-y-2 text-sm">{scopes.map((scope) => <li key={scope.id} className="flex gap-2"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-eucalyptus-deep" /><span>{scope.label} <span className="font-semibold text-eucalyptus-deep">({scopeReasons.get(scope.id) || suggestion.reason})</span></span></li>)}</ul></div> : <p className="mt-4 text-sm text-muted-foreground">{suggestion.reason && <span className="mb-1 block font-semibold text-eucalyptus-deep">({suggestion.reason})</span>}Choose the exact sub-option after checking this service.</p>}
                 <Link onClick={() => selectServiceGuideSuggestion(service.key)} to={PUBLIC_PATHS.service(service.key)} className="mt-auto inline-flex min-h-11 items-center gap-2 pt-5 text-sm font-semibold text-eucalyptus-deep focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25">Check this service <ArrowRight size={16} /></Link>
+                </div>
               </article>
             );
           })}

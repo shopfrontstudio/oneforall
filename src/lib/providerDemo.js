@@ -1,4 +1,4 @@
-const DEMO_VERSION = 2;
+const DEMO_VERSION = 3;
 const DEMO_KEY_PREFIX = 'oneforall:provider-demo:';
 const memoryStore = new Map();
 
@@ -90,6 +90,8 @@ function createDemoProviderState(userId, now = new Date()) {
       { id: 'demo-message-1', booking_id: 'demo-booking-today', sender: 'customer', sender_name: 'Taylor Singh (Demo)', body: 'The tap is in the downstairs bathroom. See you this afternoon.', created_date: isoAfterHours(now, -3) },
       { id: 'demo-message-2', booking_id: 'demo-booking-today', sender: 'provider', sender_name: owner.display_name, body: 'Thanks, I have the details and will message when I am on the way.', created_date: isoAfterHours(now, -2.5) },
     ],
+    payments: [],
+    recurringSeries: [],
   };
 }
 
@@ -159,5 +161,43 @@ export function sendDemoProviderMessage(userId, bookingId, body, now = new Date(
   const state = loadDemoProviderState(userId, now, storage);
   if (!state.bookings.some((row) => row.id === bookingId)) throw new Error('The demo booking is unavailable.');
   state.messages.push({ id: `demo-message-${Date.now()}`, booking_id: bookingId, sender: 'provider', sender_name: 'Alex Morgan (Demo)', body: message.slice(0, 1000), created_date: new Date(now).toISOString() });
+  return writeStored(userId, state, storage);
+}
+
+export function recordDemoExternalPayment(userId, bookingId, amount, now = new Date(), storage = browserStorage()) {
+  const value = Number(amount);
+  if (!Number.isFinite(value) || value <= 0 || value > 1000000) throw new Error('Enter a valid payment amount.');
+  const state = loadDemoProviderState(userId, now, storage);
+  const booking = state.bookings.find((row) => row.id === bookingId);
+  if (!booking || booking.state !== 'completed') throw new Error('Only a completed demo booking can record payment.');
+  if (state.payments.some((row) => row.booking_id === bookingId && row.participant_role === 'provider')) return clone(state);
+  state.payments.push({
+    id: `demo-payment-${bookingId}`, booking_id: bookingId, participant_role: 'provider',
+    amount: value, currency: 'AUD', payment_method: 'bank_transfer', status: 'confirmed',
+    paid_at: new Date(now).toISOString(), created_date: new Date(now).toISOString(),
+  });
+  return writeStored(userId, state, storage);
+}
+
+export function updateDemoRecurringSchedule(userId, bookingId, input = {}, now = new Date(), storage = browserStorage()) {
+  const state = loadDemoProviderState(userId, now, storage);
+  const booking = state.bookings.find((row) => row.id === bookingId);
+  if (!booking || booking.state !== 'completed') throw new Error('Complete the demo booking before proposing recurring work.');
+  const existing = state.recurringSeries.find((row) => row.source_booking_id === bookingId && row.state !== 'cancelled');
+  if (existing) {
+    if (existing.state !== 'proposed') throw new Error('This demo schedule is already active.');
+    existing.state = 'active';
+    existing.customer_confirmed_at = new Date(now).toISOString();
+    existing.version += 1;
+  } else {
+    if (!['weekly', 'fortnightly', 'monthly'].includes(input.frequency)) throw new Error('Choose a recurrence frequency.');
+    const weekday = Number(input.preferred_weekday);
+    if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7 || !/^\d{2}:\d{2}$/.test(String(input.preferred_time || ''))) throw new Error('Choose a valid recurring day and time.');
+    state.recurringSeries.push({
+      id: `demo-series-${bookingId}`, source_booking_id: bookingId, state: 'proposed',
+      frequency: input.frequency, preferred_weekday: weekday, preferred_time: input.preferred_time,
+      proposed_by: userId, provider_confirmed_at: new Date(now).toISOString(), customer_confirmed_at: null, version: 1,
+    });
+  }
   return writeStored(userId, state, storage);
 }

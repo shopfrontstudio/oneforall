@@ -34,6 +34,7 @@ const service = (definition) => {
   ]);
   return Object.freeze({
     ...definition,
+    demand: Object.freeze(definition.demand || demandFor(definition)),
     scope_options: Object.freeze(definition.scope_options),
     allowed_scope: Object.freeze(definition.scope_options.map((item) => item.label)),
     excluded_scope: Object.freeze([...definition.blocked_scope]),
@@ -52,6 +53,15 @@ const service = (definition) => {
     flags: CUSTOMER_REQUEST_RELEASE_FLAGS,
   });
 };
+
+function demandFor(definition) {
+  if (definition.category === 'rubbish-removal') return { unit_label: 'loads', unit_help: 'Estimated vehicle loads', min_units: 1, max_units: 10, value_label: 'Planning budget (AUD)' };
+  if (definition.category === 'moving-packing') return { unit_label: 'hours', unit_help: 'Estimated labour hours', min_units: 1, max_units: 80, value_label: 'Planning budget (AUD)' };
+  if (definition.category === 'pest-control') return { unit_label: 'visits', unit_help: 'Expected assessment visits', min_units: 1, max_units: 5, value_label: 'Planning budget (AUD)' };
+  if (definition.category === 'handyman' || definition.category === 'carpentry') return { unit_label: 'tasks', unit_help: 'Number of listed tasks', min_units: 1, max_units: 30, value_label: 'Planning budget (AUD)' };
+  if (definition.category === 'not-sure') return { unit_label: 'tasks', unit_help: 'Rough number of tasks', min_units: 1, max_units: 30, value_label: 'Planning budget (AUD)' };
+  return { unit_label: 'hours', unit_help: 'Estimated service hours', min_units: 0.5, max_units: 80, value_label: 'Planning budget (AUD)' };
+}
 
 export const PHASE1_SERVICES = Object.freeze([
   service({

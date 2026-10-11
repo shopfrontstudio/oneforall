@@ -150,7 +150,7 @@ test('customer request launch opens intake only and keeps supply-side gates clos
   assert.match(sql, /Service suburb is required/);
   assert.match(sql, /Preferred date cannot be in the past/);
   assert.match(sql, /intake_snapshot/);
-  assert.match(facade, /'submit-request': 'oneforall_submit_request'/);
+  assert.match(facade, /'submit-request': 'oneforall_submit_request_v2'/);
   assert.match(intake, /callFunction\('submit-request'/);
   assert.match(intake, /Send private request/);
 });

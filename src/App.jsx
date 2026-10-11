@@ -14,6 +14,7 @@ import CategoryServices from '@/pages/public/CategoryServices';
 import ServiceDetail from '@/pages/public/ServiceDetail';
 import ServiceGuideResults from '@/pages/public/ServiceGuideResults';
 import Intake from '@/pages/public/Intake';
+import ProviderBookingLink from '@/pages/public/ProviderBookingLink';
 import Privacy from '@/pages/Privacy';
 
 const PrivateLayout = lazy(() => import('@/components/oneforall/Layout'));
@@ -53,6 +54,7 @@ function AppRoutes() {
       <Route path="/services/:serviceKey" element={<ServiceDetail />} />
       <Route path="/service-guide/results" element={<ServiceGuideResults />} />
       <Route path="/request/:serviceKey" element={<Intake />} />
+      <Route path="/book/:token" element={<ProviderBookingLink />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/post-job" element={<Navigate to="/services" replace />} />
     </Route>

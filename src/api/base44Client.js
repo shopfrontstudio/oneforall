@@ -24,12 +24,15 @@ const TABLES = Object.freeze({
   ProviderPublicAssertion: 'provider_public_assertions',
   ProviderApplication: 'provider_applications',
   ProviderFeatureControl: 'provider_feature_controls',
+  ExternalPaymentConfirmation: 'external_payment_confirmations',
+  ProviderBookingLink: 'provider_booking_links',
+  MarketplaceWorkflowEvent: 'marketplace_workflow_events',
 });
 
 const RPC_ACTIONS = Object.freeze({
   'set-account-type': 'oneforall_set_account_type',
   'ensure-customer-profile': 'oneforall_ensure_customer_profile',
-  'submit-request': 'oneforall_submit_request',
+  'submit-request': 'oneforall_submit_request_v2',
   'transition-request': 'oneforall_transition_request',
   'send-message': 'oneforall_send_message',
   'provider-start-application': 'oneforall_start_provider_application',
@@ -39,6 +42,15 @@ const RPC_ACTIONS = Object.freeze({
   'provider-submit-application': 'oneforall_submit_provider_application',
   'respond-provider-invitation': 'oneforall_respond_invitation',
   'transition-provider-booking': 'oneforall_provider_transition_booking',
+  'confirm-provider-response': 'oneforall_confirm_provider_response',
+  'revise-provider-quote': 'oneforall_revise_quote',
+  'attach-request-media': 'oneforall_attach_request_media',
+  'record-external-payment': 'oneforall_record_external_payment',
+  'propose-recurring-schedule': 'oneforall_propose_recurring_schedule',
+  'confirm-recurring-schedule': 'oneforall_confirm_recurring_schedule',
+  'rebook': 'oneforall_rebook',
+  'create-provider-booking-link': 'oneforall_create_provider_booking_link',
+  'resolve-provider-booking-link': 'oneforall_resolve_provider_booking_link',
 });
 
 const throwIf = (error) => { if (error) throw new Error(error.message); };
@@ -162,6 +174,33 @@ const integrations = {
       const { data, error } = await supabase.storage.from('provider-request-media').createSignedUrls(paths, 300);
       throwIf(error);
       return (data || []).filter((item) => item.signedUrl).map((item) => ({ path: item.path, signed_url: item.signedUrl }));
+    },
+  },
+  CustomerRequestMedia: {
+    async upload({ jobId, files = [], existingPaths = [] }) {
+      if (!jobId || !Array.isArray(files) || files.length === 0) return existingPaths;
+      if (files.length + existingPaths.length > 6) throw new Error('Add up to six photos.');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      throwIf(userError);
+      if (!user) throw new Error('Authentication required.');
+      const uploaded = [];
+      try {
+        for (const file of files) {
+          if (!['image/jpeg', 'image/png'].includes(file.type)) throw new Error('Use JPG or PNG photos.');
+          if (file.size <= 0 || file.size > 8 * 1024 * 1024) throw new Error('Each photo must be smaller than 8 MB.');
+          const extension = file.type === 'image/png' ? 'png' : 'jpg';
+          const path = `${user.id}/${jobId}/${crypto.randomUUID()}.${extension}`;
+          const { error } = await supabase.storage.from('provider-request-media').upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+          throwIf(error);
+          uploaded.push(path);
+        }
+        const paths = [...existingPaths, ...uploaded];
+        await functions.invoke('attach-request-media', { job_id: jobId, paths, idempotency_key: crypto.randomUUID() });
+        return paths;
+      } catch (error) {
+        if (uploaded.length) await supabase.storage.from('provider-request-media').remove(uploaded);
+        throw error;
+      }
     },
   },
   ProviderEvidence: {

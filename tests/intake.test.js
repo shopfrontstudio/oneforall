@@ -15,7 +15,7 @@ test('emergency and prohibited wording always fails closed', () => {
 });
 
 test('guided Not Sure requires description and suburb, then stays private manual review', () => {
-  const draft = { ...createIntakeDraft('general.guided_request'), selected_scope_ids: ['guided-triage'], suburb: 'Ballarat' };
+  const draft = { ...createIntakeDraft('general.guided_request'), selected_scope_ids: ['guided-triage'], suburb: 'Ballarat', requested_value: 100 };
   assert.equal(evaluateIntakeDraft(draft).state, 'error');
   const reviewed = evaluateIntakeDraft({ ...draft, scope_description: 'I hear a noise inside the wall and need help choosing.' });
   assert.equal(reviewed.state, 'manual_review');
@@ -30,6 +30,7 @@ test('Painting structured hazards block or review and safe ground-level answers 
     painting_property_era: '1970_or_later',
     painting_surface_hazard: 'none_known',
     painting_access_height: 'ground_level',
+    requested_value: 500,
   };
   assert.equal(evaluateIntakeDraft(base).state, 'ready');
   assert.equal(evaluateIntakeDraft({ ...base, painting_surface_hazard: 'lead_or_asbestos' }).state, 'restricted');
@@ -39,7 +40,7 @@ test('Painting structured hazards block or review and safe ground-level answers 
 });
 
 test('Building intake cannot select execution work and remains manual review', () => {
-  const base = { ...createIntakeDraft('building-renovation.managed_quote'), selected_scope_ids: ['renovation-consultation'], suburb: 'Ballarat' };
+  const base = { ...createIntakeDraft('building-renovation.managed_quote'), selected_scope_ids: ['renovation-consultation'], suburb: 'Ballarat', requested_value: 500 };
   assert.equal(evaluateIntakeDraft(base).state, 'manual_review');
   const staleDraft = sanitiseIntakeDraft({ ...base, selected_scope_ids: ['building-repairs'] });
   assert.deepEqual(staleDraft.selected_scope_ids, []);
@@ -47,9 +48,9 @@ test('Building intake cannot select execution work and remains manual review', (
 });
 
 test('pest diagnostic rejects treatment requests and treatment pathway requires review', () => {
-  const diagnostic = { ...createIntakeDraft('pest-control.diagnostic'), selected_scope_ids: ['accessible-inspection'], suburb: 'Ballarat', reported_pest: 'Ants', observed_signs: 'Ant trails near the pantry' };
+  const diagnostic = { ...createIntakeDraft('pest-control.diagnostic'), selected_scope_ids: ['accessible-inspection'], suburb: 'Ballarat', reported_pest: 'Ants', observed_signs: 'Ant trails near the pantry', requested_value: 180 };
   assert.equal(evaluateIntakeDraft({ ...diagnostic, scope_description: 'Please spray and treat them' }).state, 'restricted');
-  const treatment = { ...createIntakeDraft('pest-control.pesticide_treatment'), selected_scope_ids: ['post-diagnostic-treatment'], suburb: 'Ballarat', reported_pest: 'Ants', observed_signs: 'Diagnostic already completed' };
+  const treatment = { ...createIntakeDraft('pest-control.pesticide_treatment'), selected_scope_ids: ['post-diagnostic-treatment'], suburb: 'Ballarat', reported_pest: 'Ants', observed_signs: 'Diagnostic already completed', requested_value: 300 };
   assert.equal(evaluateIntakeDraft(treatment).state, 'manual_review');
 });
 

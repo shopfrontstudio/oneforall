@@ -13,10 +13,12 @@ import {
 } from '../src/lib/provider.js';
 import {
   loadDemoProviderState,
+  recordDemoExternalPayment,
   resetDemoProviderState,
   respondToDemoInvitation,
   sendDemoProviderMessage,
   transitionDemoBooking,
+  updateDemoRecurringSchedule,
 } from '../src/lib/providerDemo.js';
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
@@ -174,6 +176,14 @@ test('provider demo supports a full browser-only journey', () => {
   const before = demo.messages.length;
   demo = sendDemoProviderMessage(userId, accepted.id, 'On my way (demo)', now, storage);
   assert.equal(demo.messages.length, before + 1);
+  demo = recordDemoExternalPayment(userId, accepted.id, 190, now, storage);
+  assert.equal(demo.payments.filter((row) => row.booking_id === accepted.id).length, 1);
+  demo = recordDemoExternalPayment(userId, accepted.id, 190, now, storage);
+  assert.equal(demo.payments.filter((row) => row.booking_id === accepted.id).length, 1);
+  demo = updateDemoRecurringSchedule(userId, accepted.id, { frequency: 'weekly', preferred_weekday: 2, preferred_time: '09:00' }, now, storage);
+  assert.equal(demo.recurringSeries.find((row) => row.source_booking_id === accepted.id).state, 'proposed');
+  demo = updateDemoRecurringSchedule(userId, accepted.id, {}, now, storage);
+  assert.equal(demo.recurringSeries.find((row) => row.source_booking_id === accepted.id).state, 'active');
   assert.deepEqual(loadDemoProviderState(userId, now, storage), demo);
 });
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, Info, Loader2, LockKeyhole, RotateCcw } from 'lucide-react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, ImagePlus, Info, Loader2, LockKeyhole, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { PHASE1_SERVICE_MAP, servicePathwayLabel } from '@/lib/catalogue';
 import { clearSessionIntake, createIntakeDraft, createIntakeDraftFromGuide, evaluateIntakeDraft, loadSessionIntake, nextPreviewState, saveSessionIntake } from '@/lib/intake';
@@ -9,12 +9,16 @@ import { IS_DEV_PREVIEW } from '@/lib/runtime';
 import { callFunction, ensureProfile, setAccountType } from '@/lib/oneforall';
 import { clearServiceGuideHandoff, loadServiceGuideHandoff, loadServiceGuideResult } from '@/lib/serviceGuide';
 import { PUBLIC_PATHS } from '@/lib/routes';
+import { scopeImage, serviceImageUrl } from '@/lib/serviceImages';
+import { base44 } from '@/api/base44Client';
 
 const FieldError = ({ id, children }) => children ? <p id={id} className="mt-1 text-sm font-medium text-destructive" role="alert">{children}</p> : null;
 const FOCUSABLE_CONTROL = 'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function Intake() {
   const { serviceKey } = useParams();
+  const [searchParams] = useSearchParams();
+  const bookingLinkToken = String(searchParams.get('bookingLink') || '').trim().slice(0, 240);
   const service = PHASE1_SERVICE_MAP[serviceKey];
   const { isAuthenticated, user, checkUserAuth } = useAuth();
   const formId = useId();
@@ -30,16 +34,38 @@ export default function Intake() {
   const [invalidFocusRequest, setInvalidFocusRequest] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [guidePrefilled, setGuidePrefilled] = useState(false);
+  const [photos, setPhotos] = useState([]);
+  const [bookingLinkContext, setBookingLinkContext] = useState(null);
 
   useEffect(() => {
     if (!service) { setLoading(false); return; }
-    const saved = loadSessionIntake(service.key);
-    const guideHandoff = saved ? null : loadServiceGuideHandoff(service.key);
-    setDraft(saved || createIntakeDraftFromGuide(service.key, guideHandoff));
-    setRestored(Boolean(saved));
-    setGuidePrefilled(Boolean(guideHandoff));
-    setLoading(false);
-  }, [service]);
+    let active = true;
+    const initialise = async () => {
+      const saved = loadSessionIntake(service.key);
+      const guideHandoff = saved ? null : loadServiceGuideHandoff(service.key);
+      let next = saved || createIntakeDraftFromGuide(service.key, guideHandoff);
+      if (bookingLinkToken) {
+        try {
+          const link = await callFunction('resolve-provider-booking-link', { token: bookingLinkToken });
+          if (!link?.service_key || link.service_key !== service.key || !Array.isArray(link.scope_ids)) throw new Error('This provider request link is unavailable.');
+          const allowed = new Set(service.scope_options.map((option) => option.id));
+          const linkedScopes = link.scope_ids.filter((scopeId) => allowed.has(scopeId));
+          if (!linkedScopes.length) throw new Error('This provider request link has no available service options.');
+          next = { ...next, booking_link_token: bookingLinkToken, selected_scope_ids: linkedScopes };
+          if (active) setBookingLinkContext(link);
+        } catch (error) {
+          if (active) setResult({ state: 'booking_link_error', message: error.message });
+        }
+      }
+      if (!active) return;
+      setDraft(next);
+      setRestored(Boolean(saved));
+      setGuidePrefilled(Boolean(guideHandoff));
+      setLoading(false);
+    };
+    initialise();
+    return () => { active = false; };
+  }, [service, bookingLinkToken]);
 
   useEffect(() => {
     if (draft) setStorageWarning(!saveSessionIntake(draft));
@@ -110,6 +136,9 @@ export default function Intake() {
         preferred_date: draft.preferred_date,
         recurrence: draft.recurrence,
         urgency: draft.urgency,
+        requested_units: draft.requested_units,
+        requested_value: draft.requested_value,
+        booking_link_token: draft.booking_link_token,
         adult_scope_confirmed: draft.adult_scope_confirmed,
         reported_pest: draft.reported_pest,
         observed_signs: draft.observed_signs,
@@ -118,6 +147,16 @@ export default function Intake() {
         painting_surface_hazard: draft.painting_surface_hazard,
         painting_access_height: draft.painting_access_height,
       });
+      if (photos.length && response?.id) {
+        try {
+          await base44.integrations.CustomerRequestMedia.upload({ jobId: response.id, files: photos });
+        } catch (uploadError) {
+          setResult({ ...next, state: 'submitted', submission: response, mediaWarning: uploadError.message });
+          clearSessionIntake();
+          clearServiceGuideHandoff(service.key);
+          return;
+        }
+      }
       clearSessionIntake();
       clearServiceGuideHandoff(service.key);
       setGuidePrefilled(false);
@@ -129,31 +168,36 @@ export default function Intake() {
     }
   };
 
-  const reset = () => { clearSessionIntake(); clearServiceGuideHandoff(service.key); setDraft(createIntakeDraft(service.key)); setResult(null); setRestored(false); setGuidePrefilled(false); setPreviewCount(0); setSubmitted(false); setTouched({}); setStorageWarning(false); setInvalidFocusRequest(0); };
+  const reset = () => { clearSessionIntake(); clearServiceGuideHandoff(service.key); setDraft(createIntakeDraft(service.key)); setPhotos([]); setResult(null); setRestored(false); setGuidePrefilled(false); setPreviewCount(0); setSubmitted(false); setTouched({}); setStorageWarning(false); setInvalidFocusRequest(0); };
   const error = (field) => submitted || touched[field] ? assessment.errors?.[field] : undefined;
 
   if (result?.state === 'submitted') {
     const guideResult = loadServiceGuideResult();
     const hasOtherSuggestions = guideResult?.state === 'matched' && guideResult.suggestions.some((suggestion) => suggestion.service_key !== service.key);
-    return <div className="mx-auto max-w-2xl space-y-5"><Link to={PUBLIC_PATHS.category(service.category)} className="inline-flex items-center gap-1 text-sm font-semibold text-eucalyptus-deep"><ArrowLeft size={15} />{service.category === 'not-sure' ? 'Service categories' : 'Category services'}</Link><section className="glass rounded-3xl p-6 sm:p-8" role="status"><CheckCircle2 size={34} className="text-eucalyptus-deep" /><p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-terracotta">Request received</p><h1 className="mt-2 text-3xl font-semibold">We’ll confirm the next step.</h1><p className="mt-3 text-muted-foreground">Your {service.name.toLowerCase()} request is private. OneForAll will review scope and confirm provider availability, price and timing before it becomes a booking.</p><p className="mt-3 rounded-xl bg-sage/35 px-4 py-3 text-sm font-semibold">Status: {result.submission?.status === 'manual_review' ? 'Private review' : 'Received'}</p><div className="mt-5 flex flex-wrap gap-3"><Link to="/bookings" className="inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">View my requests</Link>{hasOtherSuggestions && <Link to={PUBLIC_PATHS.serviceGuideResults} className="inline-flex rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-eucalyptus-deep">View other suggestions</Link>}</div></section></div>;
+    return <div className="mx-auto max-w-2xl space-y-5"><Link to={PUBLIC_PATHS.category(service.category)} className="inline-flex items-center gap-1 text-sm font-semibold text-eucalyptus-deep"><ArrowLeft size={15} />{service.category === 'not-sure' ? 'Service categories' : 'Category services'}</Link><section className="glass rounded-3xl p-6 sm:p-8" role="status"><CheckCircle2 size={34} className="text-eucalyptus-deep" /><p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-terracotta">Request received</p><h1 className="mt-2 text-3xl font-semibold">We’ll confirm the next step.</h1><p className="mt-3 text-muted-foreground">Your {service.name.toLowerCase()} request is private. OneForAll will review scope and confirm provider availability, price and timing before it becomes a booking.</p><p className="mt-3 rounded-xl bg-sage/35 px-4 py-3 text-sm font-semibold">Status: {result.submission?.status === 'manual_review' ? 'Private review' : 'Received'}</p>{result.mediaWarning && <p className="mt-3 rounded-xl border border-sandstone-deep/40 bg-white/70 px-4 py-3 text-sm"><b>Request sent, but photos were not attached.</b><span className="mt-1 block text-muted-foreground">{result.mediaWarning}</span></p>}<div className="mt-5 flex flex-wrap gap-3"><Link to="/bookings" className="inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">View my requests</Link>{hasOtherSuggestions && <Link to={PUBLIC_PATHS.serviceGuideResults} className="inline-flex rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-eucalyptus-deep">View other suggestions</Link>}</div></section></div>;
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <Link to={`/services/${encodeURIComponent(service.key)}`} className="inline-flex items-center gap-1 text-sm font-semibold text-eucalyptus-deep"><ArrowLeft size={15} />Service details</Link>
-      <header className="glass rounded-3xl p-5 sm:p-7"><p className="text-xs font-bold uppercase tracking-[0.14em] text-terracotta">{servicePathwayLabel(service)}</p><h1 className="mt-2 text-2xl font-semibold sm:text-3xl">{service.name}</h1><p className="mt-2 text-sm text-muted-foreground">Tell us what you need. Your request stays private while scope, provider eligibility, price and timing are confirmed.</p>{restored && <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sage/35 px-3 py-2 text-sm font-semibold" role="status"><Clock3 size={16} />Restored from this browser session</p>}{guidePrefilled && <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sage/35 px-3 py-2 text-sm font-semibold" role="status"><Info size={16} />Suggested options added — please review and edit them</p>}</header>
+      <header className="glass rounded-3xl p-5 sm:p-7"><p className="text-xs font-bold uppercase tracking-[0.14em] text-terracotta">{servicePathwayLabel(service)}</p><h1 className="mt-2 text-2xl font-semibold sm:text-3xl">{service.name}</h1><p className="mt-2 text-sm text-muted-foreground">Tell us what you need. Your request stays private while scope, provider eligibility, price and timing are confirmed.</p>{bookingLinkContext && <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sage/35 px-3 py-2 text-sm font-semibold" role="status"><Info size={16} />Requesting from {bookingLinkContext.provider_display_name}; eligibility is rechecked before any invitation or booking.</p>}{restored && <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sage/35 px-3 py-2 text-sm font-semibold" role="status"><Clock3 size={16} />Restored from this browser session</p>}{guidePrefilled && <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sage/35 px-3 py-2 text-sm font-semibold" role="status"><Info size={16} />Suggested options added — please review and edit them</p>}</header>
 
       <div className="rounded-2xl border border-sandstone-deep/45 bg-sandstone/30 p-4" role="status"><b>Requests are open.</b><p className="mt-1 text-sm text-muted-foreground">Submitting does not confirm a booking or charge you. OneForAll confirms availability and price first.</p>{IS_DEV_PREVIEW && <p className="mt-2 text-sm font-bold text-terracotta">Local QA preview · no authoritative record is written.</p>}</div>
       {storageWarning && <div className="rounded-2xl border border-sandstone-deep/45 bg-white/70 p-4 text-sm" role="status"><b>Draft not saved in this browser.</b><p className="mt-1 text-muted-foreground">You can keep completing this form; leaving or refreshing may clear it.</p></div>}
+      {result?.state === 'booking_link_error' && <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm" role="alert"><b>Provider request link unavailable.</b><p className="mt-1 text-muted-foreground">{result.message} You can still submit a general managed request for this service.</p></div>}
 
       <form ref={formRef} onSubmit={submit} noValidate className="glass space-y-6 rounded-3xl p-5 sm:p-7">
         {service.adults_only && <fieldset className="rounded-2xl border border-terracotta/25 bg-terracotta/5 p-4 text-sm" aria-invalid={Boolean(error('adult_scope_confirmed'))} aria-describedby={error('adult_scope_confirmed') ? `${formId}-adult-error` : undefined} onBlur={markGroupTouched('adult_scope_confirmed')}><legend className="px-1 font-semibold">Adults-only, low-risk pathway</legend><p className="mt-1 text-muted-foreground">Requests involving minors, impaired consent, broken/infected skin or invasive treatments are blocked.</p><label className="mt-3 flex items-start gap-2 font-semibold"><input type="checkbox" checked={draft.adult_scope_confirmed} onChange={(event) => set('adult_scope_confirmed', event.target.checked)} /><span>I confirm the person receiving the service is 18 or older and can consent.</span></label><FieldError id={`${formId}-adult-error`}>{error('adult_scope_confirmed')}</FieldError></fieldset>}
 
-        <fieldset onBlur={markGroupTouched('selected_scope_ids')} aria-invalid={Boolean(error('selected_scope_ids'))} aria-describedby={error('selected_scope_ids') ? `${formId}-scope-options-error` : undefined}><legend className="text-sm font-semibold">Choose the listed work you need</legend><p className="mt-1 text-xs text-muted-foreground">Only these configured options can proceed automatically. Notes can narrow the request but cannot add a new service.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{service.scope_options.map((option) => <label key={option.id} className="flex items-start gap-2 rounded-xl border border-border bg-white/65 p-3 text-sm"><input type="checkbox" checked={draft.selected_scope_ids.includes(option.id)} onChange={() => toggleScope(option.id)} /><span>{option.label}</span></label>)}</div><FieldError id={`${formId}-scope-options-error`}>{error('selected_scope_ids')}</FieldError></fieldset>
+        <fieldset onBlur={markGroupTouched('selected_scope_ids')} aria-invalid={Boolean(error('selected_scope_ids'))} aria-describedby={error('selected_scope_ids') ? `${formId}-scope-options-error` : undefined}><legend className="text-sm font-semibold">Choose the listed work you need</legend><p className="mt-1 text-xs text-muted-foreground">Only these configured options can proceed automatically. Notes can narrow the request but cannot add a new service.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{service.scope_options.map((option) => { const media = scopeImage(service, option.id); return <label key={option.id} className="overflow-hidden rounded-xl border border-border bg-white/65 text-sm"><span className="flex items-center gap-3">{media && <img src={serviceImageUrl(media, import.meta.env.BASE_URL)} alt="" aria-hidden="true" className="h-20 w-24 shrink-0 object-cover" style={{ objectPosition: media.primaryPosition }} />}<span className="flex items-start gap-2 py-3 pr-3"><input type="checkbox" checked={draft.selected_scope_ids.includes(option.id)} onChange={() => toggleScope(option.id)} /><span>{option.label}</span></span></span></label>; })}</div><FieldError id={`${formId}-scope-options-error`}>{error('selected_scope_ids')}</FieldError></fieldset>
 
         <div><label htmlFor={`${formId}-scope`} className="text-sm font-semibold">{service.key === 'general.guided_request' ? 'Describe what you need help with (required)' : 'Optional notes'}</label><p className="mt-1 text-xs text-muted-foreground">{service.key === 'general.guided_request' ? 'Give enough detail for private operations triage. This does not publish a job or send it to providers.' : 'Add context only. Unknown, mixed, review or prohibited wording will tighten the decision; it never widens the selected options. Do not enter identity documents, health records or payment details.'}</p><textarea id={`${formId}-scope`} value={draft.scope_description} onChange={(event) => set('scope_description', event.target.value)} rows={5} required={service.key === 'general.guided_request'} aria-invalid={Boolean(error('scope_description'))} aria-describedby={error('scope_description') ? `${formId}-scope-error` : undefined} className="inp mt-2" /><FieldError id={`${formId}-scope-error`}>{error('scope_description')}</FieldError></div>
 
         <div><label htmlFor={`${formId}-suburb`} className="text-sm font-semibold">Service suburb</label><input id={`${formId}-suburb`} value={draft.suburb} onChange={(event) => set('suburb', event.target.value)} aria-invalid={Boolean(error('suburb'))} aria-describedby={error('suburb') ? `${formId}-suburb-error` : undefined} autoComplete="address-level2" className="inp mt-2" /><FieldError id={`${formId}-suburb-error`}>{error('suburb')}</FieldError></div>
+
+        <fieldset className="grid gap-4 rounded-2xl border border-border bg-white/55 p-4 sm:grid-cols-2"><legend className="px-1 text-lg font-semibold">Planning details</legend><div><label htmlFor={`${formId}-units`} className="text-sm font-semibold">Estimated {service.demand.unit_label}</label><input id={`${formId}-units`} type="number" min={service.demand.min_units} max={service.demand.max_units} step="0.5" value={draft.requested_units} onChange={(event) => set('requested_units', event.target.value)} aria-invalid={Boolean(error('requested_units'))} className="inp mt-2" /><p className="mt-1 text-xs text-muted-foreground">{service.demand.unit_help}</p><FieldError id={`${formId}-units-error`}>{error('requested_units')}</FieldError></div><div><label htmlFor={`${formId}-value`} className="text-sm font-semibold">{service.demand.value_label}</label><input id={`${formId}-value`} type="number" min="1" max="1000000" step="1" value={draft.requested_value} onChange={(event) => set('requested_value', event.target.value)} aria-invalid={Boolean(error('requested_value'))} className="inp mt-2" /><p className="mt-1 text-xs text-muted-foreground">For eligibility planning only. This is not a charge or price promise.</p><FieldError id={`${formId}-value-error`}>{error('requested_value')}</FieldError></div></fieldset>
+
+        <section className="rounded-2xl border border-border bg-white/55 p-4"><h2 className="flex items-center gap-2 font-semibold"><ImagePlus size={18} />Photos <span className="font-normal text-muted-foreground">(optional)</span></h2><p className="mt-1 text-xs text-muted-foreground">Up to six JPG or PNG photos, 8 MB each. They remain private and are shown only to authorised reviewers and an invited eligible provider.</p><label className="mt-3 inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-primary px-4 py-2 text-sm font-semibold">Choose photos<input type="file" accept="image/jpeg,image/png" multiple className="sr-only" onChange={(event) => { const next = Array.from(event.target.files || []).slice(0, 6); setPhotos(next); set('photo_names', next.map((file) => file.name)); }} /></label>{photos.length > 0 && <ul className="mt-3 space-y-1 text-sm" aria-live="polite">{photos.map((file) => <li key={`${file.name}-${file.size}`} className="truncate">{file.name}</li>)}</ul>}</section>
 
         <fieldset className="space-y-4"><legend className="text-lg font-semibold">Timing preference</legend><div><label htmlFor={`${formId}-urgency`} className="text-sm font-semibold">How soon?</label><select id={`${formId}-urgency`} value={draft.urgency} onChange={(event) => set('urgency', event.target.value)} className="inp mt-2"><option value="flexible">Flexible</option><option value="this_week">This week</option><option value="urgent">Urgent — not an emergency</option></select><p className="mt-1 text-xs text-muted-foreground">For immediate danger, life risk, gas, fire, electrical or structural emergencies, call 000 or the relevant emergency authority.</p></div>{service.pathway === 'scheduled_or_recurring' && <><div><label htmlFor={`${formId}-date`} className="text-sm font-semibold">Preferred date</label><input id={`${formId}-date`} type="date" value={draft.preferred_date} onChange={(event) => set('preferred_date', event.target.value)} aria-invalid={Boolean(error('preferred_date'))} aria-describedby={error('preferred_date') ? `${formId}-date-error` : undefined} className="inp mt-2" /><FieldError id={`${formId}-date-error`}>{error('preferred_date')}</FieldError></div><div><label htmlFor={`${formId}-recurrence`} className="text-sm font-semibold">Frequency</label><select id={`${formId}-recurrence`} value={draft.recurrence} onChange={(event) => set('recurrence', event.target.value)} className="inp mt-2"><option value="once">One time</option><option value="weekly">Weekly</option><option value="fortnightly">Fortnightly</option><option value="monthly">Monthly</option></select></div></>}</fieldset>
 
