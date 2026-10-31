@@ -5,6 +5,7 @@ import BrandBackground from './BrandBackground';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import ProviderSidebar from '@/components/provider/ProviderSidebar';
+import ContextHelp from '@/components/intelligent/ContextHelp';
 
 export default function Layout() {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export default function Layout() {
       <TopBar />
       <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-6 md:pb-12">
         <Outlet />
+        <div className="mt-8"><ContextHelp /></div>
       </main>
       <BottomNav />
     </div>

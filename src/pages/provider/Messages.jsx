@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, CalendarDays, Check, LockKeyhole, MessageSquare, Paperclip, Send } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowLeft, CalendarDays, Check, LockKeyhole, MessageSquare, Paperclip, Send } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { formatMelbourneDateTime, providerServiceLabels } from '@/lib/provider';
@@ -38,13 +38,23 @@ export default function ProviderMessages() {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  const [messageError, setMessageError] = useState('');
+  const activeId = useRef(null);
 
   const openConversation = useCallback(async (conversation) => {
+    if (activeId.current !== conversation.id) setDraft('');
     setActive(conversation);
-    const rows = user.demo_mode
-      ? loadDemoProviderState(user.id).messages.filter((item) => item.booking_id === conversation.booking_id)
-      : await base44.entities.Message.filter({ conversation_id: conversation.id });
-    setMessages(rows.sort((left, right) => new Date(left.created_date).getTime() - new Date(right.created_date).getTime()));
+    activeId.current = conversation.id;
+    setMessages([]);
+    setMessageError('');
+    try {
+      const rows = user.demo_mode
+        ? loadDemoProviderState(user.id).messages.filter((item) => item.booking_id === conversation.booking_id)
+        : await base44.entities.Message.filter({ conversation_id: conversation.id });
+      if (activeId.current === conversation.id) setMessages(rows.sort((left, right) => new Date(left.created_date).getTime() - new Date(right.created_date).getTime()));
+    } catch {
+      if (activeId.current === conversation.id) setMessageError('Messages could not be loaded. Select the conversation to retry.');
+    }
   }, [user.demo_mode, user.id]);
 
   const load = useCallback(async () => {
@@ -57,10 +67,10 @@ export default function ProviderMessages() {
           base44.entities.Conversation.filter({ tradie_id: user.id }),
           base44.entities.Booking.filter({ provider_id: user.id }),
         ]);
-        rows = conversations.map((conversation) => {
-          const booking = bookings.find((item) => item.job_id === conversation.job_id || item.id === conversation.booking_id);
-          return { ...conversation, booking_id: conversation.booking_id || booking?.id || null, scheduled_start: booking?.scheduled_start || null };
-        });
+        rows = conversations.filter((conversation) => conversation.contact_unlocked).map((conversation) => {
+          const booking = bookings.find((item) => item.state !== 'superseded' && item.state !== 'cancelled' && (item.job_id === conversation.job_id || item.id === conversation.booking_id));
+          return { ...conversation, booking_id: booking?.id || null, scheduled_start: booking?.scheduled_start || null };
+        }).filter((conversation) => conversation.booking_id);
       }
       const sorted = rows.sort((left, right) => new Date(right.updated_date || right.created_date).getTime() - new Date(left.updated_date || left.created_date).getTime());
       setState({ loading: false, error: '', conversations: sorted });
@@ -73,16 +83,38 @@ export default function ProviderMessages() {
 
   useEffect(() => { load(); }, [load]);
 
-  const sendDemoMessage = async (event) => {
+  useEffect(() => {
+    if (user.demo_mode || !active?.id) return undefined;
+    let cancelled = false;
+    const refresh = async () => {
+      if (document.hidden) return;
+      try {
+        const rows = await base44.entities.Message.filter({ conversation_id: active.id });
+        if (!cancelled && activeId.current === active.id) {
+          setMessages(rows.sort((left, right) => new Date(left.created_date).getTime() - new Date(right.created_date).getTime()));
+          setMessageError('');
+        }
+      } catch { if (!cancelled) setMessageError('Messages are not refreshing. Your draft is safe; try again shortly.'); }
+    };
+    const timer = setInterval(refresh, 15000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [active?.id, user.demo_mode]);
+
+  const sendMessage = async (event) => {
     event.preventDefault();
-    if (!user.demo_mode || !active?.booking_id || !draft.trim() || busy) return;
+    if (!active?.booking_id || !draft.trim() || busy) return;
+    const conversation = active;
+    const body = draft.trim();
     setBusy(true);
+    setMessageError('');
     try {
-      sendDemoProviderMessage(user.id, active.booking_id, draft.trim());
-      setDraft('');
-      await openConversation(active);
-      setState((current) => ({ ...current, conversations: demoConversations(user.id) }));
-    } finally { setBusy(false); }
+      if (user.demo_mode) sendDemoProviderMessage(user.id, conversation.booking_id, body);
+      else await base44.functions.invoke('send-message', { conversation_id: conversation.id, body });
+      if (activeId.current === conversation.id) setDraft('');
+      if (activeId.current === conversation.id) await openConversation(conversation);
+      if (user.demo_mode) setState((current) => ({ ...current, conversations: demoConversations(user.id) }));
+    } catch { setMessageError('Message could not be confirmed as sent. Check the conversation before retrying.'); }
+    finally { setBusy(false); }
   };
 
   if (state.loading) return <ProviderLoading label="Loading provider messages" />;
@@ -95,13 +127,14 @@ export default function ProviderMessages() {
         {state.conversations.map((conversation) => <ConversationButton key={conversation.id} conversation={conversation} active={active?.id === conversation.id} onClick={() => openConversation(conversation)} />)}
       </section>
       {active ? <section className="provider-reference-card provider-message-panel">
-        <div className="provider-message-person"><button type="button" onClick={() => setActive(null)} aria-label="Back to conversations"><ArrowLeft size={19} /></button><span>{initials(active.customer_name)}</span><div><h2>{active.customer_name || 'Customer'}</h2><p><LockKeyhole size={13} />Private confirmed-booking chat</p></div></div>
+        <div className="provider-message-person"><button type="button" onClick={() => { activeId.current = null; setActive(null); }} aria-label="Back to conversations"><ArrowLeft size={19} /></button><span>{initials(active.customer_name)}</span><div><h2>{active.customer_name || 'Customer'}</h2><p><LockKeyhole size={13} />Private confirmed-booking chat</p></div></div>
         <div className="provider-message-appointment"><CalendarDays size={24} /><b>{active.scheduled_start ? `${formatMelbourneDateTime(active.scheduled_start)} appointment` : active.job_title || 'Confirmed booking'}</b></div>
         <div className="provider-message-thread"><span className="provider-message-day">Today</span>{messages.length ? messages.map((message) => {
           const mine = user.demo_mode ? message.sender === 'provider' : message.sender_id === user.id;
           return <div key={message.id} className={`provider-message-line ${mine ? 'mine' : ''}`}><div><p>{message.body}</p><small>{formatMelbourneDateTime(message.created_date)}{mine && <Check size={14} />}</small></div></div>;
         }) : <div className="provider-message-no-content"><MessageSquare size={28} /><b>No messages in this booking yet</b><span>The secure chat remains attached to the confirmed job.</span></div>}</div>
-        <form className="provider-message-composer" onSubmit={sendDemoMessage}><button type="button" disabled aria-label="Attachments are not available yet"><Paperclip size={22} /></button><input value={draft} onChange={(event) => setDraft(event.target.value)} disabled={!user.demo_mode} maxLength={1000} placeholder={user.demo_mode ? 'Write a message…' : 'Reply inside the confirmed job'} />{user.demo_mode ? <button type="submit" disabled={busy || !draft.trim()}><Send size={18} />Send</button> : <Link to={active.booking_id ? `/provider/jobs/${encodeURIComponent(active.booking_id)}` : '/provider/jobs'}>Open job <ArrowRight size={17} /></Link>}</form>
+        {messageError && <p role="alert" className="px-4 py-2 text-sm text-destructive">{messageError}</p>}
+        <form className="provider-message-composer" onSubmit={sendMessage}><button type="button" disabled aria-label="Use job photos for attachments"><Paperclip size={22} /></button><input aria-label="Message" value={draft} onChange={(event) => setDraft(event.target.value)} disabled={busy} maxLength={1000} placeholder="Write a message…" /><button type="submit" disabled={busy || !draft.trim()}><Send size={18} />{busy ? 'Sending…' : 'Send'}</button></form>
       </section> : <section className="provider-reference-card provider-message-panel provider-message-placeholder"><MessageSquare size={34} /><b>Choose a conversation</b></section>}
     </div>}
   </div>;

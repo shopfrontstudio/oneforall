@@ -27,6 +27,12 @@ const TABLES = Object.freeze({
   ExternalPaymentConfirmation: 'external_payment_confirmations',
   ProviderBookingLink: 'provider_booking_links',
   MarketplaceWorkflowEvent: 'marketplace_workflow_events',
+  HomeProfile: 'customer_homes',
+  MaintenanceReminder: 'maintenance_reminders',
+  PhotoAnnotation: 'request_photo_annotations',
+  JobProof: 'booking_proof',
+  ProviderAvailability: 'provider_availability_windows',
+  ServicePriceGuide: 'service_price_guides',
 });
 
 const RPC_ACTIONS = Object.freeze({
@@ -51,6 +57,14 @@ const RPC_ACTIONS = Object.freeze({
   'rebook': 'oneforall_rebook',
   'create-provider-booking-link': 'oneforall_create_provider_booking_link',
   'resolve-provider-booking-link': 'oneforall_resolve_provider_booking_link',
+  'save-home-profile': 'oneforall_save_home_profile',
+  'save-price-guide': 'oneforall_save_price_guide',
+  'save-maintenance-reminder': 'oneforall_save_maintenance_reminder',
+  'save-photo-annotations': 'oneforall_save_photo_annotations',
+  'attach-job-proof': 'oneforall_attach_job_proof',
+  'save-provider-availability': 'oneforall_save_provider_availability',
+  'availability-for-quote': 'oneforall_availability_for_quote',
+  'submit-request-bundle': 'oneforall_submit_request_bundle',
 });
 
 const throwIf = (error) => { if (error) throw new Error(error.message); };
@@ -165,6 +179,28 @@ const auth = {
 
 const integrations = {
   Core: { UploadFile: blockedMutation },
+  JobProof: {
+    async createSignedUrls(paths = []) {
+      if (!Array.isArray(paths) || paths.some((path) => typeof path !== 'string' || path.includes('://'))) throw new Error('Invalid private photo path.');
+      if (!paths.length) return [];
+      const { data, error } = await supabase.storage.from('booking-proof').createSignedUrls(paths, 300);
+      throwIf(error);
+      return (data || []).filter((item) => item.signedUrl).map((item) => ({ path: item.path, signed_url: item.signedUrl }));
+    },
+    async upload({ bookingId, file, phase, note = '', id }) {
+      if (!id || !bookingId || !file || !['before', 'after'].includes(phase)) throw new Error('Choose the booking, photo and stage.');
+      if (!['image/jpeg', 'image/png'].includes(file.type) || file.size <= 0 || file.size > 8 * 1024 * 1024) throw new Error('Use a JPG or PNG smaller than 8 MB.');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      throwIf(userError);
+      if (!user) throw new Error('Authentication required.');
+      const path = `${user.id}/${bookingId}/${id}.${file.type === 'image/png' ? 'png' : 'jpg'}`;
+      // A stable operation id lets a retry attach an already-uploaded object.
+      // Never delete after an uncertain RPC outcome: the server may have committed.
+      const { error } = await supabase.storage.from('booking-proof').upload(path, file, { upsert: false, contentType: file.type });
+      if (error && String(error.statusCode) !== '409') throwIf(error);
+      return (await functions.invoke('attach-job-proof', { id, booking_id: bookingId, phase, note, photo_path: path })).data;
+    },
+  },
   ProviderRequestMedia: {
     async createSignedUrls(paths = []) {
       if (!Array.isArray(paths) || paths.some((path) => typeof path !== 'string' || path.includes('://'))) {

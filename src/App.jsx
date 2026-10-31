@@ -25,6 +25,8 @@ const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const Onboarding = lazy(() => import('@/pages/Onboarding'));
 const Bookings = lazy(() => import('@/pages/customer/MyJobs'));
 const BookingDetail = lazy(() => import('@/pages/customer/BookingDetail'));
+const MyHome = lazy(() => import('@/pages/customer/MyHome'));
+const ServiceCart = lazy(() => import('@/pages/customer/ServiceCart'));
 const Messages = lazy(() => import('@/pages/Messages'));
 const Account = lazy(() => import('@/pages/Account'));
 const ProviderApplication = lazy(() => import('@/pages/provider/Application'));
@@ -69,6 +71,8 @@ function AppRoutes() {
       <Route element={<PrivateLayout />}>
         <Route path="/bookings" element={<Bookings />} />
         <Route path="/booking/:id" element={<BookingDetail />} />
+        <Route path="/my-home" element={<MyHome />} />
+        <Route path="/service-list" element={<ServiceCart />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/account" element={<Account />} />
         <Route path="/provider/apply" element={<ProviderApplication />} />

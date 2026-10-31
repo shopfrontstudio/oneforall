@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { CalendarDays, Home, MessageSquare, Shapes, UserRound } from 'lucide-react';
 import BrandBackground from '@/components/oneforall/BrandBackground';
 import Logo from '@/components/oneforall/Logo';
+import ContextHelp from '@/components/intelligent/ContextHelp';
 
 const publicNav = [
   { to: '/', label: 'Home', icon: Home },
@@ -27,7 +28,7 @@ export default function PublicLayout() {
           </nav>
         </div>
       </header>
-      <main className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-20 pt-8 sm:pt-10"><Outlet /></main>
+      <main className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-20 pt-8 sm:pt-10"><Outlet /><div className="mt-8"><ContextHelp /></div></main>
       <footer className="relative z-10 border-t border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">Managed local service requests · Ballarat, Victoria · Availability confirmed before booking.</footer>
     </div>
   );

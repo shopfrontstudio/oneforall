@@ -15,6 +15,7 @@ import { PUBLIC_PATHS } from '@/lib/routes';
 import { findServiceProblem, saveServiceGuideResult, SERVICE_GUIDE_MAX_LENGTH } from '@/lib/serviceGuide';
 import { HOME_SERVICE_IMAGES } from '@/lib/serviceImages';
 import { CategoryIcon } from '@/components/public/ServiceCard';
+import AdaptiveHome from '@/components/intelligent/AdaptiveHome';
 
 const steps = [
   { icon: ClipboardList, title: 'Structured request', body: 'The service pathway gathers the details needed to assess scope safely.' },
@@ -90,6 +91,7 @@ export default function PublicHome() {
 
   return (
     <div className="space-y-12 sm:space-y-16">
+      <AdaptiveHome />
       <section className="marketplace-hero" aria-labelledby="home-hero-heading">
         <div className="marketplace-intro">
           <div>

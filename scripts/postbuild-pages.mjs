@@ -17,6 +17,8 @@ const fixedRoutes = [
   'reset-password', 'onboarding', 'bookings', 'messages', 'account', 'my-jobs',
   'profile', 'provider/today', 'provider/requests', 'provider/jobs',
   'provider/calendar', 'provider/more', 'service-guide/results',
+  'my-home', 'service-list', 'provider/account', 'provider/apply',
+  'provider/messages', 'provider/notifications',
 ];
 const categoryRoutes = CATEGORY_META.map(({ key }) => `services/category/${key}`);
 const catalogueRoutes = PHASE1_SERVICES.flatMap(({ key }) => [

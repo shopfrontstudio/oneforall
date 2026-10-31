@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, ImagePlus, Info, Loader2, LockKeyhole, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { PHASE1_SERVICE_MAP, servicePathwayLabel } from '@/lib/catalogue';
@@ -11,14 +11,18 @@ import { clearServiceGuideHandoff, loadServiceGuideHandoff, loadServiceGuideResu
 import { PUBLIC_PATHS } from '@/lib/routes';
 import { scopeImage, serviceImageUrl } from '@/lib/serviceImages';
 import { base44 } from '@/api/base44Client';
+import { addToCart, requestPayload } from '@/lib/serviceCart';
+import PriceGuide from '@/components/intelligent/PriceGuide';
 
 const FieldError = ({ id, children }) => children ? <p id={id} className="mt-1 text-sm font-medium text-destructive" role="alert">{children}</p> : null;
 const FOCUSABLE_CONTROL = 'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function Intake() {
+  const navigate = useNavigate();
   const { serviceKey } = useParams();
   const [searchParams] = useSearchParams();
   const bookingLinkToken = String(searchParams.get('bookingLink') || '').trim().slice(0, 240);
+  const requestedScope = searchParams.get('scope');
   const service = PHASE1_SERVICE_MAP[serviceKey];
   const { isAuthenticated, user, checkUserAuth } = useAuth();
   const formId = useId();
@@ -44,6 +48,9 @@ export default function Intake() {
       const saved = loadSessionIntake(service.key);
       const guideHandoff = saved ? null : loadServiceGuideHandoff(service.key);
       let next = saved || createIntakeDraftFromGuide(service.key, guideHandoff);
+      if (!saved && service.scope_options.some((scope) => scope.id === requestedScope)) {
+        next = { ...next, selected_scope_ids: [requestedScope] };
+      }
       if (bookingLinkToken) {
         try {
           const link = await callFunction('resolve-provider-booking-link', { token: bookingLinkToken });
@@ -65,7 +72,7 @@ export default function Intake() {
     };
     initialise();
     return () => { active = false; };
-  }, [service, bookingLinkToken]);
+  }, [service, bookingLinkToken, requestedScope]);
 
   useEffect(() => {
     if (draft) setStorageWarning(!saveSessionIntake(draft));
@@ -169,6 +176,15 @@ export default function Intake() {
   };
 
   const reset = () => { clearSessionIntake(); clearServiceGuideHandoff(service.key); setDraft(createIntakeDraft(service.key)); setPhotos([]); setResult(null); setRestored(false); setGuidePrefilled(false); setPreviewCount(0); setSubmitted(false); setTouched({}); setStorageWarning(false); setInvalidFocusRequest(0); };
+  const addService = () => {
+    setSubmitted(true);
+    const next = evaluateIntakeDraft(draft);
+    if (!['ready', 'manual_review'].includes(next.state)) { setResult(next); setInvalidFocusRequest((request) => request + 1); return; }
+    if (!isAuthenticated) { setResult({ ...next, state: 'login_required' }); return; }
+    if (user?.account_type === 'tradie') { setResult({ ...next, state: 'submit_error', message: 'Switch to Customer mode first.' }); return; }
+    try { addToCart(user.id, requestPayload(draft)); navigate('/service-list'); }
+    catch (failure) { setResult({ ...next, state: 'submit_error', message: failure.message }); }
+  };
   const error = (field) => submitted || touched[field] ? assessment.errors?.[field] : undefined;
 
   if (result?.state === 'submitted') {
@@ -187,6 +203,8 @@ export default function Intake() {
       {result?.state === 'booking_link_error' && <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm" role="alert"><b>Provider request link unavailable.</b><p className="mt-1 text-muted-foreground">{result.message} You can still submit a general managed request for this service.</p></div>}
 
       <form ref={formRef} onSubmit={submit} noValidate className="glass space-y-6 rounded-3xl p-5 sm:p-7">
+        <PriceGuide serviceKey={service.key} quantity={draft.requested_units} />
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-sage/25 p-3"><p className="text-sm">Need more than one service? Save these details and add another.</p><button type="button" disabled={submitting} onClick={addService} className="min-h-11 rounded-xl border border-primary px-4 text-sm font-semibold">Add to my service list</button>{photos.length > 0 && <p className="text-xs text-muted-foreground">For a service list, add photos from each request after sending.</p>}</div>
         {service.adults_only && <fieldset className="rounded-2xl border border-terracotta/25 bg-terracotta/5 p-4 text-sm" aria-invalid={Boolean(error('adult_scope_confirmed'))} aria-describedby={error('adult_scope_confirmed') ? `${formId}-adult-error` : undefined} onBlur={markGroupTouched('adult_scope_confirmed')}><legend className="px-1 font-semibold">Adults-only, low-risk pathway</legend><p className="mt-1 text-muted-foreground">Requests involving minors, impaired consent, broken/infected skin or invasive treatments are blocked.</p><label className="mt-3 flex items-start gap-2 font-semibold"><input type="checkbox" checked={draft.adult_scope_confirmed} onChange={(event) => set('adult_scope_confirmed', event.target.checked)} /><span>I confirm the person receiving the service is 18 or older and can consent.</span></label><FieldError id={`${formId}-adult-error`}>{error('adult_scope_confirmed')}</FieldError></fieldset>}
 
         <fieldset onBlur={markGroupTouched('selected_scope_ids')} aria-invalid={Boolean(error('selected_scope_ids'))} aria-describedby={error('selected_scope_ids') ? `${formId}-scope-options-error` : undefined}><legend className="text-sm font-semibold">Choose the listed work you need</legend><p className="mt-1 text-xs text-muted-foreground">Only these configured options can proceed automatically. Notes can narrow the request but cannot add a new service.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{service.scope_options.map((option) => { const media = scopeImage(service, option.id); return <label key={option.id} className="overflow-hidden rounded-xl border border-border bg-white/65 text-sm"><span className="flex items-center gap-3">{media && <img src={serviceImageUrl(media, import.meta.env.BASE_URL)} alt="" aria-hidden="true" className="h-20 w-24 shrink-0 object-cover" style={{ objectPosition: media.primaryPosition }} />}<span className="flex items-start gap-2 py-3 pr-3"><input type="checkbox" checked={draft.selected_scope_ids.includes(option.id)} onChange={() => toggleScope(option.id)} /><span>{option.label}</span></span></span></label>; })}</div><FieldError id={`${formId}-scope-options-error`}>{error('selected_scope_ids')}</FieldError></fieldset>
